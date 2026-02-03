@@ -52,6 +52,11 @@ class UserProfile:
             "message_count": 0,
             "reputation": 0,
             "studio_credits": 500,  # Starting balance
+            "pcredits": 0,          # Premium credits
+            "ai_credits": 0,        # AI interaction credits
+            "max_teams": 1,         # Default team limit
+            "max_projects": 2,      # Default projects per team limit
+            "temp_chat_cooldown": None,
             "created_at": datetime.utcnow(),
             "last_quest": None,
             "portfolio_games": [],

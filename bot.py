@@ -45,6 +45,14 @@ class StudioBot(commands.Bot):
         # Wait a moment to ensure all cogs are loaded
         await asyncio.sleep(0.5)
         
+        # Manually load premium cog if not loaded
+        if "cogs.premium" not in self.extensions:
+            try:
+                await self.load_extension("cogs.premium")
+                print("✓ Loaded cog: premium")
+            except Exception as e:
+                print(f"✗ Failed to load premium: {e}")
+        
         cmds = self.tree.get_commands()
         print(f"\n📋 Registered commands ({len(cmds)}):")
         for cmd in cmds:
