@@ -2,9 +2,15 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 from database import UserProfile, db
-from config import BOT_COLOR, CREDIT_TO_PCREDIT_RATE, PCREDIT_TO_AICREDIT_RATE, PCREDIT_SHOP, AI_NAME, AI_CHAT_COOLDOWN_HOURS, AI_CHAT_DURATION_MINUTES
+from config import (
+    BOT_COLOR, CREDIT_TO_PCREDIT_RATE, PCREDIT_TO_AICREDIT_RATE, 
+    PCREDIT_SHOP, AI_NAME, AI_CHAT_COOLDOWN_HOURS, AI_CHAT_DURATION_MINUTES,
+    OPENROUTER_API_KEY, AI_MODEL, AI_PERSONALITY
+)
 from datetime import datetime, timedelta
 import asyncio
+import aiohttp
+import json
 
 class PremiumShopView(discord.ui.View):
     def __init__(self, user_id: int):
@@ -42,6 +48,40 @@ class PremiumCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.ai_channel_id = None
+        self.session = aiohttp.ClientSession()
+
+    def cog_unload(self):
+        asyncio.create_task(self.session.close())
+
+    async def get_ai_response(self, prompt, user_id):
+        if not OPENROUTER_API_KEY:
+            return "❌ AI is currently unavailable (API Key missing)."
+
+        headers = {
+            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        
+        data = {
+            "model": AI_MODEL,
+            "messages": [
+                {"role": "system", "content": f"You are {AI_NAME}. {AI_PERSONALITY}"},
+                {"role": "user", "content": prompt}
+            ]
+        }
+
+        try:
+            async with self.session.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data) as resp:
+                if resp.status == 200:
+                    result = await resp.json()
+                    return result['choices'][0]['message']['content']
+                else:
+                    error_text = await resp.text()
+                    print(f"AI API Error: {resp.status} - {error_text}")
+                    return "❌ Sorry, I encountered an error while processing your request."
+        except Exception as e:
+            print(f"AI Connection Error: {e}")
+            return "❌ I'm having trouble connecting to the AI service right now."
 
     @app_commands.command(name="convert", description="Convert 1000 credits to 1 pCredit")
     async def convert(self, interaction: discord.Interaction, amount: int = 1):
@@ -117,24 +157,36 @@ class PremiumCog(commands.Cog):
         await interaction.response.send_message(f"✅ Secret AI channel created: {channel.mention}. It will be deleted in 1 hour.", ephemeral=True)
         await channel.send(f"Welcome {interaction.user.mention}! I am {AI_NAME}. How can I help you today?")
         
+        # Start a loop to listen for messages in this channel
+        # Note: In a real bot, you'd handle this via the on_message listener with channel ID checks
+        
         await asyncio.sleep(AI_CHAT_DURATION_MINUTES * 60)
         await channel.delete(reason="Temporary AI chat expired")
 
     @commands.Cog.listener()
     async def on_message(self, message):
         if message.author.bot: return
-        if not self.ai_channel_id or message.channel.id != self.ai_channel_id: return
+        
+        # Check if it's the public AI channel or a temp chat channel
+        is_temp_chat = message.channel.name.startswith("ai-chat-")
+        if not is_temp_chat and (not self.ai_channel_id or message.channel.id != self.ai_channel_id):
+            return
         
         user = await UserProfile.get_user(message.author.id)
-        if user.get('ai_credits', 0) <= 0:
-            await message.reply(f"❌ You don't have enough AI Credits. Convert pCredits to AI Credits to chat with {AI_NAME}!")
-            return
-            
-        # Deduct 1 AI credit per message
-        await UserProfile.update_user(message.author.id, {"ai_credits": user['ai_credits'] - 1})
         
-        # Mock AI Response (Llama placeholder)
-        await message.reply(f"[AI - {AI_NAME}]: Hello! I'm currently in Phase 1 setup. I've received your message and deducted 1 AI credit. (Mock response)")
+        # Only public channels deduct credits; temp chats are free once created
+        if not is_temp_chat:
+            if user.get('ai_credits', 0) <= 0:
+                await message.reply(f"❌ You don't have enough AI Credits. Convert pCredits to AI Credits to chat with {AI_NAME}!")
+                return
+            await UserProfile.update_user(message.author.id, {"ai_credits": user['ai_credits'] - 1})
+        
+        async with message.channel.typing():
+            response = await self.get_ai_response(message.content, message.author.id)
+            await message.reply(response)
+
+async def setup(bot):
+    await bot.add_cog(PremiumCog(bot))
 
 async def setup(bot):
     await bot.add_cog(PremiumCog(bot))
