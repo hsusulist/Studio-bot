@@ -296,5 +296,10 @@ async def setup(bot):
         embed.add_field(name="AI Credits", value=f"🤖 {user.get('ai_credits', 0)}", inline=True)
         
         await interaction.followup.send(embed=embed)
+
+    @bot.tree.command(name="credit", description="Check your Studio Credits and pCredits balance (alias)")
+    async def credit_alias_cmd(interaction: discord.Interaction):
+        """Alias for /credits"""
+        await credits_cmd(interaction)
     
     await bot.add_cog(EconomyCog(bot))
