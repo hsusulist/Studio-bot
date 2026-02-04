@@ -60,10 +60,9 @@ class StudioBot(commands.Bot):
         
         # Sync commands to guild
         try:
-            guild = discord.Object(id=self.guild_id)
-            print(f"\n🔄 Syncing commands to guild {self.guild_id}...")
-            synced = await self.tree.sync(guild=guild)
-            print(f"✓ Synced {len(synced)} command(s) to guild")
+            print("\n🔄 Syncing commands globally...")
+            synced = await self.tree.sync()
+            print(f"✓ Synced {len(synced)} command(s) globally")
             if synced:
                 for cmd in synced:
                     print(f"  ✓ {cmd.name}")

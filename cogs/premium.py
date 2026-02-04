@@ -187,6 +187,3 @@ class PremiumCog(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(PremiumCog(bot))
-
-async def setup(bot):
-    await bot.add_cog(PremiumCog(bot))
