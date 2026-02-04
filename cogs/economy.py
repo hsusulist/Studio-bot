@@ -278,5 +278,23 @@ async def setup(bot):
             embed.add_field(name="Featured Games", value=", ".join(games), inline=False)
         embed.set_footer(text="Developer of the Community")
         await interaction.followup.send(embed=embed)
+
+    @bot.tree.command(name="credits", description="Check your Studio Credits and pCredits balance")
+    async def credits_cmd(interaction: discord.Interaction):
+        await interaction.response.defer()
+        user = await UserProfile.get_user(interaction.user.id)
+        if not user:
+            await UserProfile.create_user(interaction.user.id, interaction.user.name)
+            user = await UserProfile.get_user(interaction.user.id)
+        
+        embed = discord.Embed(
+            title="💰 Your Balance",
+            color=BOT_COLOR
+        )
+        embed.add_field(name="Studio Credits", value=f"💰 {user.get('studio_credits', 0)}", inline=True)
+        embed.add_field(name="pCredits", value=f"💎 {user.get('pcredits', 0)}", inline=True)
+        embed.add_field(name="AI Credits", value=f"🤖 {user.get('ai_credits', 0)}", inline=True)
+        
+        await interaction.followup.send(embed=embed)
     
     await bot.add_cog(EconomyCog(bot))
