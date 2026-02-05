@@ -61,8 +61,8 @@ class SetupRoleSelect(discord.ui.Select):
             color=BOT_COLOR
         )
         embed.add_field(
-            name="Examples",
-            value="`1 day` `7 days` `1 month` `6 months` `1 year` `2 years` or `skip` for beginner",
+            name="Please type your experience value. Use 'day' for days, 'month' for months, and 'year' for years.",
+            value="Example: **1 day** , **10 days** , **1 month** , **2 months** , **1 year** , **2 years** and if you have 0 experience type `skip` to continue as a beginner",
             inline=False
         )
         
