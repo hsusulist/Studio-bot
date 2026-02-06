@@ -2,20 +2,30 @@ import motor.motor_asyncio
 from datetime import datetime
 from config import MONGODB_URI, DB_NAME
 
-try:
-    client = motor.motor_asyncio.AsyncIOMotorClient(MONGODB_URI, serverSelectionTimeoutMS=2000)
-    db = client[DB_NAME]
-    print("✓ MongoDB connected")
-except Exception as e:
-    print(f"⚠️ MongoDB not available: {e}")
-    print("⚠️ Using in-memory storage (data will not persist)")
-    db = None
-
 # In-memory fallback storage
 _memory_users = {}
 _memory_teams = {}
 _memory_marketplace = {}
 _memory_transactions = {}
+
+# Try MongoDB connection with better error handling
+client = None
+db = None
+
+try:
+    client = motor.motor_asyncio.AsyncIOMotorClient(
+        MONGODB_URI, 
+        serverSelectionTimeoutMS=5000,
+        connectTimeoutMS=5000,
+        socketTimeoutMS=5000
+    )
+    db = client[DB_NAME]
+    print("✓ MongoDB connected")
+except Exception as e:
+    print(f"⚠️ MongoDB connection error: {e}")
+    print("⚠️ Using in-memory storage (data will not persist)")
+    db = None
+    client = None
 
 # Collections
 if db is not None:
@@ -44,6 +54,7 @@ class UserProfile:
             "_id": user_id,
             "username": username,
             "role": None,
+            "roles": [],
             "rank": "Beginner",
             "xp": 0,
             "level": 1,
@@ -52,11 +63,6 @@ class UserProfile:
             "message_count": 0,
             "reputation": 0,
             "studio_credits": 500,  # Starting balance
-            "pcredits": 0,          # Premium credits
-            "ai_credits": 0,        # AI interaction credits
-            "max_teams": 1,         # Default team limit
-            "max_projects": 2,      # Default projects per team limit
-            "temp_chat_cooldown": None,
             "created_at": datetime.utcnow(),
             "last_quest": None,
             "portfolio_games": [],
@@ -78,7 +84,11 @@ class UserProfile:
         """Get user profile"""
         try:
             if db is not None:
-                return await users_collection.find_one({"_id": user_id})
+                user = await users_collection.find_one({"_id": user_id})
+                if user:
+                    # Also update memory cache
+                    _memory_users[user_id] = user
+                    return user
         except Exception as e:
             print(f"MongoDB error in get_user: {e}")
         
@@ -107,7 +117,7 @@ class UserProfile:
         user = await UserProfile.get_user(user_id)
         if not user:
             return
-        new_xp = user["xp"] + amount
+        new_xp = user.get("xp", 0) + amount
         level = (new_xp // 250) + 1  # Level every 250 XP
         
         try:
@@ -120,8 +130,9 @@ class UserProfile:
             print(f"MongoDB error in add_xp: {e}")
         
         # Update in memory
-        _memory_users[user_id]["xp"] = new_xp
-        _memory_users[user_id]["level"] = level
+        if user_id in _memory_users:
+            _memory_users[user_id]["xp"] = new_xp
+            _memory_users[user_id]["level"] = level
     
     @staticmethod
     async def add_reputation(user_id: int, amount: int):
@@ -129,15 +140,19 @@ class UserProfile:
         user = await UserProfile.get_user(user_id)
         if not user:
             return
-        if db is not None:
-            await users_collection.update_one(
-                {"_id": user_id},
-                {"$inc": {"reputation": amount}}
-            )
-        else:
+        try:
+            if db is not None:
+                await users_collection.update_one(
+                    {"_id": user_id},
+                    {"$inc": {"reputation": amount}}
+                )
+        except Exception as e:
+            print(f"MongoDB error in add_reputation: {e}")
+        
+        # Update in memory
+        if user_id in _memory_users:
             _memory_users[user_id]["reputation"] = user.get("reputation", 0) + amount
     
-    @staticmethod
     @staticmethod
     async def add_credits(user_id: int, amount: int):
         """Add studio credits"""
@@ -154,7 +169,8 @@ class UserProfile:
             print(f"MongoDB error in add_credits: {e}")
         
         # Update in memory
-        _memory_users[user_id]["studio_credits"] = user.get("studio_credits", 500) + amount
+        if user_id in _memory_users:
+            _memory_users[user_id]["studio_credits"] = user.get("studio_credits", 500) + amount
     
     @staticmethod
     async def get_top_users(limit: int = 10):
@@ -163,7 +179,7 @@ class UserProfile:
             if db is not None:
                 return await users_collection.find(
                     {},
-                    {"_id": 1, "username": 1, "level": 1, "reputation": 1, "role": 1}
+                    {"_id": 1, "username": 1, "level": 1, "reputation": 1, "role": 1, "roles": 1, "rank": 1}
                 ).sort("level", -1).limit(limit).to_list(limit)
         except Exception as e:
             print(f"MongoDB error in get_top_users: {e}")
@@ -193,46 +209,56 @@ class TeamData:
         try:
             if db is not None:
                 await teams_collection.insert_one(team)
-            else:
-                _memory_teams[team_id] = team
         except Exception as e:
             print(f"MongoDB error in create_team: {e}")
-            # Fallback to in-memory storage
-            _memory_teams[team_id] = team
+        
+        # Always store in memory as fallback
+        _memory_teams[team_id] = team
         return team
     
     @staticmethod
     async def get_team(team_id: str):
         """Get team data"""
-        if db is not None:
-            return await teams_collection.find_one({"_id": team_id})
-        else:
-            return _memory_teams.get(team_id)
+        try:
+            if db is not None:
+                team = await teams_collection.find_one({"_id": team_id})
+                if team:
+                    return team
+        except Exception as e:
+            print(f"MongoDB error in get_team: {e}")
+        
+        return _memory_teams.get(team_id)
     
     @staticmethod
     async def add_member(team_id: str, user_id: int):
         """Add member to team"""
-        if db is not None:
-            await teams_collection.update_one(
-                {"_id": team_id},
-                {"$push": {"members": user_id}}
-            )
-        else:
-            if team_id in _memory_teams and user_id not in _memory_teams[team_id].get("members", []):
-                _memory_teams[team_id]["members"].append(user_id)
+        try:
+            if db is not None:
+                await teams_collection.update_one(
+                    {"_id": team_id},
+                    {"$push": {"members": user_id}}
+                )
+        except Exception as e:
+            print(f"MongoDB error in add_member: {e}")
+        
+        if team_id in _memory_teams and user_id not in _memory_teams[team_id].get("members", []):
+            _memory_teams[team_id]["members"].append(user_id)
     
     @staticmethod
     async def update_milestone(team_id: str, milestone_name: str, progress: int):
         """Update team milestone"""
-        if db is not None:
-            await teams_collection.update_one(
-                {"_id": team_id},
-                {"$set": {"progress": progress, "milestones": milestone_name}}
-            )
-        else:
-            if team_id in _memory_teams:
-                _memory_teams[team_id]["progress"] = progress
-                _memory_teams[team_id]["milestones"] = milestone_name
+        try:
+            if db is not None:
+                await teams_collection.update_one(
+                    {"_id": team_id},
+                    {"$set": {"progress": progress, "milestones": milestone_name}}
+                )
+        except Exception as e:
+            print(f"MongoDB error in update_milestone: {e}")
+        
+        if team_id in _memory_teams:
+            _memory_teams[team_id]["progress"] = progress
+            _memory_teams[team_id]["milestones"] = milestone_name
 
 
 class MarketplaceData:
@@ -267,13 +293,16 @@ class MarketplaceData:
             "sold": 0,
             "created_at": datetime.utcnow()
         }
-        if db is not None:
-            result = await marketplace_collection.insert_one(listing)
-            return result.inserted_id
-        else:
-            listing_id = len(_memory_marketplace)
-            _memory_marketplace[listing_id] = listing
-            return listing_id
+        try:
+            if db is not None:
+                result = await marketplace_collection.insert_one(listing)
+                return result.inserted_id
+        except Exception as e:
+            print(f"MongoDB error in list_code: {e}")
+        
+        listing_id = len(_memory_marketplace)
+        _memory_marketplace[listing_id] = listing
+        return listing_id
     
     @staticmethod
     async def get_listings(filter_role: str = None):
@@ -291,28 +320,25 @@ class MarketplaceData:
     @staticmethod
     async def add_review(listing_id, reviewer_id: int, rating: int, comment: str):
         """Add review to listing"""
-        if db is not None:
-            await marketplace_collection.update_one(
-                {"_id": listing_id},
-                {
-                    "$push": {
-                        "reviews": {
-                            "reviewer_id": reviewer_id,
-                            "rating": rating,
-                            "comment": comment,
-                            "date": datetime.utcnow()
-                        }
-                    }
-                }
-            )
-        else:
-            if listing_id in _memory_marketplace:
-                _memory_marketplace[listing_id]["reviews"].append({
-                    "reviewer_id": reviewer_id,
-                    "rating": rating,
-                    "comment": comment,
-                    "date": datetime.utcnow()
-                })
+        review_data = {
+            "reviewer_id": reviewer_id,
+            "rating": rating,
+            "comment": comment,
+            "date": datetime.utcnow()
+        }
+        try:
+            if db is not None:
+                await marketplace_collection.update_one(
+                    {"_id": listing_id},
+                    {"$push": {"reviews": review_data}}
+                )
+        except Exception as e:
+            print(f"MongoDB error in add_review: {e}")
+        
+        if listing_id in _memory_marketplace:
+            if "reviews" not in _memory_marketplace[listing_id]:
+                _memory_marketplace[listing_id]["reviews"] = []
+            _memory_marketplace[listing_id]["reviews"].append(review_data)
 
 
 class TransactionData:
@@ -330,19 +356,25 @@ class TransactionData:
             "status": "pending",  # pending, completed, disputed
             "created_at": datetime.utcnow()
         }
-        if db is not None:
-            await transactions_collection.insert_one(transaction)
-        else:
-            _memory_transactions[len(_memory_transactions)] = transaction
+        try:
+            if db is not None:
+                await transactions_collection.insert_one(transaction)
+        except Exception as e:
+            print(f"MongoDB error in create_transaction: {e}")
+        
+        _memory_transactions[len(_memory_transactions)] = transaction
     
     @staticmethod
     async def get_user_transactions(user_id: int):
         """Get user's transaction history"""
-        if db is not None:
-            return await transactions_collection.find({
-                "$or": [{"seller_id": user_id}, {"buyer_id": user_id}]
-            }).to_list(20)
-        else:
-            user_txs = [t for t in _memory_transactions.values() 
-                       if t.get("seller_id") == user_id or t.get("buyer_id") == user_id]
-            return user_txs[:20]
+        try:
+            if db is not None:
+                return await transactions_collection.find({
+                    "$or": [{"seller_id": user_id}, {"buyer_id": user_id}]
+                }).to_list(20)
+        except Exception as e:
+            print(f"MongoDB error in get_user_transactions: {e}")
+        
+        user_txs = [t for t in _memory_transactions.values() 
+                   if t.get("seller_id") == user_id or t.get("buyer_id") == user_id]
+        return user_txs[:20]
