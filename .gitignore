@@ -25,3 +25,15 @@ dist/
 
 # Logs
 *.log
+
+# Python
+.pythonlibs/
+venv/
+.venv/
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Replit
+.upm/
