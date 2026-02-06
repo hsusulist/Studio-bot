@@ -5,6 +5,7 @@ from database import UserProfile
 from config import BOT_COLOR
 from datetime import datetime
 
+
 class ProfileView(discord.ui.View):
     """Profile viewing buttons"""
     
@@ -18,16 +19,20 @@ class ProfileView(discord.ui.View):
         await interaction.response.defer()
         user = await UserProfile.get_user(self.target_user_id)
         
+        if not user:
+            await interaction.followup.send("User not found!", ephemeral=True)
+            return
+        
         embed = discord.Embed(
-            title=f"Stats - {user['username']}",
+            title=f"Stats - {user.get('username', 'Unknown')}",
             color=BOT_COLOR
         )
-        embed.add_field(name="Level", value=f"🎯 {user['level']}", inline=True)
-        embed.add_field(name="XP", value=f"✨ {user['xp']}", inline=True)
-        embed.add_field(name="Reputation", value=f"⭐ {user['reputation']}", inline=True)
-        embed.add_field(name="Voice Minutes", value=f"🎤 {user['voice_minutes']}", inline=True)
-        embed.add_field(name="Messages", value=f"💬 {user['message_count']}", inline=True)
-        embed.add_field(name="Reviews Given", value=f"📝 {user['reviews_given']}", inline=True)
+        embed.add_field(name="Level", value=f"🎯 {user.get('level', 1)}", inline=True)
+        embed.add_field(name="XP", value=f"✨ {user.get('xp', 0)}", inline=True)
+        embed.add_field(name="Reputation", value=f"⭐ {user.get('reputation', 0)}", inline=True)
+        embed.add_field(name="Voice Minutes", value=f"🎤 {user.get('voice_minutes', 0)}", inline=True)
+        embed.add_field(name="Messages", value=f"💬 {user.get('message_count', 0)}", inline=True)
+        embed.add_field(name="Reviews Given", value=f"📝 {user.get('reviews_given', 0)}", inline=True)
         
         await interaction.followup.send(embed=embed, ephemeral=True)
     
@@ -36,8 +41,12 @@ class ProfileView(discord.ui.View):
         await interaction.response.defer()
         user = await UserProfile.get_user(self.target_user_id)
         
+        if not user:
+            await interaction.followup.send("User not found!", ephemeral=True)
+            return
+        
         embed = discord.Embed(
-            title=f"Portfolio - {user['username']}",
+            title=f"Portfolio - {user.get('username', 'Unknown')}",
             color=BOT_COLOR
         )
         
@@ -55,13 +64,20 @@ class ProfileView(discord.ui.View):
         await interaction.response.defer()
         user = await UserProfile.get_user(self.target_user_id)
         
+        if not user:
+            await interaction.followup.send("User not found!", ephemeral=True)
+            return
+        
         embed = discord.Embed(
-            title=f"Rank - {user['username']}",
+            title=f"Rank - {user.get('username', 'Unknown')}",
             color=BOT_COLOR
         )
-        embed.add_field(name="Current Rank", value=f"**{user['rank']}**", inline=False)
-        embed.add_field(name="Role", value=f"**{user['role']}**", inline=False)
-        embed.add_field(name="Experience", value=f"**{user['experience_months']} months**", inline=False)
+        embed.add_field(name="Current Rank", value=f"**{user.get('rank', 'Beginner')}**", inline=False)
+        
+        roles = user.get('roles', [])
+        roles_str = ", ".join(roles) if roles else user.get('role', 'N/A')
+        embed.add_field(name="Role", value=f"**{roles_str}**", inline=False)
+        embed.add_field(name="Experience", value=f"**{user.get('experience_months', 0)} months**", inline=False)
         
         embed.add_field(
             name="Rank Tiers",
@@ -77,58 +93,6 @@ class ProfileCog(commands.Cog):
     
     def __init__(self, bot):
         self.bot = bot
-    
-    async def profile(self, interaction: discord.Interaction):
-        """View your profile"""
-        await interaction.response.defer()
-        target = interaction.user
-        target_user = await UserProfile.get_user(target.id)
-        
-        if not target_user:
-            await UserProfile.create_user(target.id, target.name)
-            target_user = await UserProfile.get_user(target.id)
-        
-        view = ProfileView(interaction.user.id, target.id)
-        
-        # Create main profile embed
-        roles = target_user.get('roles', ['Unknown'])
-        roles_str = ", ".join(roles) if isinstance(roles, list) else str(roles)
-        embed = discord.Embed(
-            title=f"{roles_str} | {target_user['rank']}",
-            description=f"**{target.mention}**",
-            color=BOT_COLOR
-        )
-        
-        embed.add_field(name="🎯 Level", value=str(target_user['level']), inline=True)
-        embed.add_field(name="⭐ Reputation", value=str(target_user['reputation']), inline=True)
-        embed.add_field(name="✨ XP", value=str(target_user['xp']), inline=True)
-        
-        embed.set_thumbnail(url=target.display_avatar.url)
-        embed.set_footer(text=f"Member since {target_user['created_at'].strftime('%B %d, %Y')}")
-        
-        await interaction.followup.send(embed=embed, view=view)
-    
-    async def leaderboard(self, interaction: discord.Interaction):
-        """View top developers"""
-        await interaction.response.defer()
-        top_users = await UserProfile.get_top_users(10)
-        
-        embed = discord.Embed(
-            title="🏆 Top 10 Developers of the Week",
-            color=BOT_COLOR
-        )
-        
-        medals = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
-        
-        for i, user in enumerate(top_users):
-            medal = medals[i] if i < len(medals) else "❌"
-            embed.add_field(
-                name=f"{medal} {user['username']}",
-                value=f"Level {user['level']} | {user['role']} | ⭐ {user['reputation']}",
-                inline=False
-            )
-        
-        await interaction.followup.send(embed=embed)
 
 
 async def setup(bot):
@@ -137,38 +101,68 @@ async def setup(bot):
         await interaction.response.defer()
         target = interaction.user
         target_user = await UserProfile.get_user(target.id)
+        
         if not target_user:
             await UserProfile.create_user(target.id, target.name)
             target_user = await UserProfile.get_user(target.id)
+        
         view = ProfileView(interaction.user.id, target.id)
+        
+        roles = target_user.get('roles', ['Unknown'])
+        roles_str = ", ".join(roles) if isinstance(roles, list) else str(roles)
+        
         embed = discord.Embed(
-            title=f"{target_user['role']} | {target_user['rank']}",
+            title=f"{roles_str} | {target_user.get('rank', 'Beginner')}",
             description=f"**{target.mention}**",
             color=BOT_COLOR
         )
-        embed.add_field(name="🎯 Level", value=str(target_user['level']), inline=True)
-        embed.add_field(name="⭐ Reputation", value=str(target_user['reputation']), inline=True)
-        embed.add_field(name="✨ XP", value=str(target_user['xp']), inline=True)
+        
+        embed.add_field(name="🎯 Level", value=str(target_user.get('level', 1)), inline=True)
+        embed.add_field(name="⭐ Reputation", value=str(target_user.get('reputation', 0)), inline=True)
+        embed.add_field(name="✨ XP", value=str(target_user.get('xp', 0)), inline=True)
+        
         embed.set_thumbnail(url=target.display_avatar.url)
-        embed.set_footer(text=f"Member since {target_user['created_at'].strftime('%B %d, %Y')}")
+        
+        created_at = target_user.get('created_at')
+        if isinstance(created_at, str):
+            try:
+                created_at = datetime.fromisoformat(created_at)
+            except:
+                created_at = datetime.utcnow()
+        elif not isinstance(created_at, datetime):
+            created_at = datetime.utcnow()
+        
+        embed.set_footer(text=f"Member since {created_at.strftime('%B %d, %Y')}")
+        
         await interaction.followup.send(embed=embed, view=view)
     
     @bot.tree.command(name="leaderboard", description="View the studio leaderboard")
     async def leaderboard_cmd(interaction: discord.Interaction):
         await interaction.response.defer()
         top_users = await UserProfile.get_top_users(10)
+        
         embed = discord.Embed(
             title="🏆 Top 10 Developers of the Week",
             color=BOT_COLOR
         )
+        
+        if not top_users:
+            embed.description = "No users yet!"
+            await interaction.followup.send(embed=embed)
+            return
+        
         medals = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
+        
         for i, user in enumerate(top_users):
             medal = medals[i] if i < len(medals) else "❌"
+            roles = user.get('roles', [])
+            role_str = roles[0] if roles else user.get('role', 'Unknown')
             embed.add_field(
-                name=f"{medal} {user['username']}",
-                value=f"Level {user['level']} | {user['role']} | ⭐ {user['reputation']}",
+                name=f"{medal} {user.get('username', 'Unknown')}",
+                value=f"Level {user.get('level', 1)} | {role_str} | ⭐ {user.get('reputation', 0)}",
                 inline=False
             )
+        
         await interaction.followup.send(embed=embed)
     
     await bot.add_cog(ProfileCog(bot))

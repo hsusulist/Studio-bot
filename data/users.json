@@ -1,0 +1,114 @@
+{
+  "1358586510831652864": {
+    "_id": 1358586510831652864,
+    "username": "hsusulist",
+    "role": null,
+    "roles": [],
+    "rank": "Beginner",
+    "xp": 115,
+    "level": 1,
+    "experience_months": 0,
+    "voice_minutes": 0,
+    "message_count": 23,
+    "reputation": 0,
+    "studio_credits": 500,
+    "created_at": "2026-02-05T12:08:13.209546",
+    "last_quest": null,
+    "portfolio_games": [],
+    "reviews_given": 0,
+    "reviews_received": [],
+    "cards": [],
+    "equipped_card": null,
+    "inventory": [],
+    "learn_channel_id": 1469347314005970974,
+    "learn_lesson": 1,
+    "learn_phase": "menu",
+    "learn_model_mode": "auto",
+    "learn_quiz_data": {},
+    "learn_conversation": [
+      {
+        "ts": "2026-02-06T11:36:06.496902+00:00",
+        "role": "assistant",
+        "content": "📖 Lesson 1: print() and Output\n⚠️ The AI provider is temporarily rate-limited right now.\nPlease wait a moment and try **Repeat Lesson**.\n(Debug: Rate limited (429) on qwen/qwen3-coder:free (attempt 3/3).)"
+      },
+      {
+        "ts": "2026-02-06T11:48:37.294456+00:00",
+        "role": "user",
+        "content": "Does print useful"
+      },
+      {
+        "ts": "2026-02-06T11:50:26.340465+00:00",
+        "role": "user",
+        "content": "Hi"
+      },
+      {
+        "ts": "2026-02-06T11:50:49.661098+00:00",
+        "role": "user",
+        "content": "Start lesson"
+      },
+      {
+        "ts": "2026-02-06T11:50:59.465668+00:00",
+        "role": "user",
+        "content": "start lesson"
+      },
+      {
+        "ts": "2026-02-06T11:51:09.438629+00:00",
+        "role": "user",
+        "content": "Does print good"
+      },
+      {
+        "ts": "2026-02-06T11:51:23.972774+00:00",
+        "role": "assistant",
+        "content": "📖 Lesson 1: print() and Output\n⚠️ The AI provider is temporarily rate-limited right now.\nPlease wait a moment and try **Repeat Lesson**.\n(Debug: Rate limited (429) on qwen/qwen3-coder:free (attempt 3/3).)"
+      },
+      {
+        "ts": "2026-02-06T11:51:40.633090+00:00",
+        "role": "assistant",
+        "content": "⚠️ The AI provider is temporarily rate-limited right now.\nPlease wait a moment and try **Repeat Lesson**.\n(Debug: Rate limited (429) on qwen/qwen3-next-80b-a3b-instruct:free (attempt 3/3).)"
+      },
+      {
+        "ts": "2026-02-06T11:51:55.473768+00:00",
+        "role": "user",
+        "content": "Bruh"
+      },
+      {
+        "ts": "2026-02-06T15:02:36.326079+00:00",
+        "role": "assistant",
+        "content": "INTRO: ⚠️ AI temporarily unavailable. Try again.\n_(Debug: Error 404: {'error': {'message': 'No endpoints found for qwen/qwen3-235b-a22b:free.', 'code': 404}, 'user_id': 'user_38LH2AwIjT7C1kLS3wihJHzvbOK'})_"
+      },
+      {
+        "ts": "2026-02-06T15:03:14.180624+00:00",
+        "role": "assistant",
+        "content": "SUBTOPICS Part 2: ⚠️ AI temporarily unavailable. Try again.\n_(Debug: Error 404: {'error': {'message': 'No endpoints found for google/gemini-2.0-flash-exp:free.', 'code': 404}, 'user_id': 'user_38LH2AwIjT7C1kLS3wihJHzvbOK'})_"
+      },
+      {
+        "ts": "2026-02-06T15:03:51.533086+00:00",
+        "role": "assistant",
+        "content": "SUBTOPICS Part 3: ⚠️ AI temporarily unavailable. Try again.\n_(Debug: Error 404: {'error': {'message': 'No endpoints found for qwen/qwen3-235b-a22b:free.', 'code': 404}, 'user_id': 'user_38LH2AwIjT7C1kLS3wihJHzvbOK'})_"
+      },
+      {
+        "ts": "2026-02-06T15:04:29.224356+00:00",
+        "role": "assistant",
+        "content": "SUBTOPICS Part 4: ⚠️ AI temporarily unavailable. Try again.\n_(Debug: Error 404: {'error': {'message': 'No endpoints found for qwen/qwen3-32b:free.', 'code': 404}, 'user_id': 'user_38LH2AwIjT7C1kLS3wihJHzvbOK'})_"
+      }
+    ],
+    "learn_panel_message_id": 1469347339180179700,
+    "learn_completed_lessons": [],
+    "learn_quiz_scores": {},
+    "learn_hints_used": 0,
+    "learn_total_questions": 0,
+    "learn_correct_answers": 0,
+    "learn_bookmarks": [],
+    "learn_notes": {},
+    "learn_streak": 1,
+    "learn_last_activity": "2026-02-06T15:01:59.060975",
+    "learn_quiz_attempts": 0,
+    "learn_weak_topics": {},
+    "learn_strong_topics": {},
+    "learn_question_history": [],
+    "learn_quiz_questions": [],
+    "learn_current_quiz_index": 0,
+    "learn_hints_remaining": 3,
+    "learn_lesson_part": 0
+  }
+}

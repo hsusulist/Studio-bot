@@ -10,21 +10,24 @@ from datetime import datetime
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
+intents.voice_states = True
 
 class StudioBot(commands.Bot):
     """Main Discord Bot Class"""
     
     def __init__(self):
         super().__init__(
-            command_prefix="/",
+            command_prefix="!",
             intents=intents,
             help_command=None
         )
         self.guild_id = GUILD_ID
+        self._voice_times = {}
+        self._synced = False  # ✅ FIX: Track if already synced
     
     async def setup_hook(self):
         """Load all cogs"""
-        # Load cogs from cogs folder
+        print("\n🔧 Loading cogs...")
         cogs_dir = "cogs"
         try:
             for filename in os.listdir(cogs_dir):
@@ -32,42 +35,64 @@ class StudioBot(commands.Bot):
                     cog_name = filename[:-3]
                     try:
                         await self.load_extension(f"cogs.{cog_name}")
-                        print(f"✓ Loaded cog: {cog_name}")
+                        print(f"  ✓ Loaded cog: {cog_name}")
                     except Exception as e:
-                        print(f"✗ Failed to load {cog_name}: {e}")
+                        print(f"  ✗ Failed to load {cog_name}: {e}")
+                        import traceback
+                        traceback.print_exc()
         except Exception as e:
             print(f"✗ Error loading cogs: {e}")
     
     async def on_ready(self):
         """Bot ready event"""
-        print(f"✓ Bot logged in as {self.user}")
+        print(f"\n✓ Bot logged in as {self.user}")
+        print(f"✓ Bot ID: {self.user.id}")
+        
+        # ✅ FIX: Chỉ sync 1 lần
+        if self._synced:
+            print("✓ Already synced, skipping...")
+            await self.change_presence(
+                activity=discord.Activity(
+                    type=discord.ActivityType.watching,
+                    name="Developers Build | /help"
+                )
+            )
+            return
         
         # Wait a moment to ensure all cogs are loaded
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(1)
         
         cmds = self.tree.get_commands()
-        print(f"\n📋 Registered commands ({len(cmds)}):")
+        print(f"\n📋 Registered Application Commands ({len(cmds)}):")
         for cmd in cmds:
-            print(f"  - /{cmd.name}: {cmd.description}")
+            print(f"  ✓ /{cmd.name}")
         
         # Sync commands to guild
         try:
             guild = discord.Object(id=self.guild_id)
-            print(f"\n🔄 Syncing commands to guild {self.guild_id}...")
+            print(f"\n🔄 Syncing {len(cmds)} commands to guild {self.guild_id}...")
+            
+            # ✅ FIX: XÓA dòng copy_global_to - đây là nguyên nhân duplicate!
+            # self.tree.copy_global_to(guild=guild)  # ← ĐÃ XÓA
+            
+            # Sync the commands
             synced = await self.tree.sync(guild=guild)
-            print(f"✓ Synced {len(synced)} command(s) to guild")
-            if synced:
-                for cmd in synced:
-                    print(f"  ✓ {cmd.name}")
+            print(f"✓ Successfully synced {len(synced)} command(s)")
+            
+            # ✅ FIX: Đánh dấu đã sync
+            self._synced = True
+            
+            if len(synced) == 0 and len(cmds) > 0:
+                print(f"✓ All {len(cmds)} commands already up-to-date on Discord")
         except Exception as e:
-            print(f"✗ Failed to sync command tree: {e}")
+            print(f"✗ Failed to sync commands: {e}")
             import traceback
             traceback.print_exc()
         
         await self.change_presence(
             activity=discord.Activity(
                 type=discord.ActivityType.watching,
-                name="Developers Build the Next Big Thing | /help"
+                name="Developers Build | /help"
             )
         )
     
@@ -294,6 +319,8 @@ class StudioBot(commands.Bot):
             print(f"✓ Sent confirmation to {message.author.name}")
         except Exception as e:
             print(f"✗ Error sending confirmation: {e}")
+        
+        await self.process_commands(message)
     
     async def on_voice_state_update(self, member, before, after):
         """Track voice minutes when user joins/leaves voice channel"""
@@ -302,17 +329,15 @@ class StudioBot(commands.Bot):
         
         # User joined a voice channel
         if before.channel is None and after.channel is not None:
-            print(f"📢 {member.name} joined voice channel")
-            # Set start time (we'll use this to calculate duration)
-            if not hasattr(member, '_voice_join_time'):
-                member._voice_join_time = {}
-            member._voice_join_time[after.channel.id] = datetime.utcnow()
+            print(f"📢 {member.name} joined voice channel: {after.channel.name}")
+            self._voice_times[member.id] = datetime.utcnow()
         
         # User left a voice channel
         elif before.channel is not None and after.channel is None:
+            print(f"📢 {member.name} left voice channel: {before.channel.name}")
             try:
-                if hasattr(member, '_voice_join_time') and before.channel.id in member._voice_join_time:
-                    join_time = member._voice_join_time[before.channel.id]
+                if member.id in self._voice_times:
+                    join_time = self._voice_times[member.id]
                     duration = (datetime.utcnow() - join_time).total_seconds() / 60  # Minutes
                     
                     # Update user profile
@@ -326,9 +351,14 @@ class StudioBot(commands.Bot):
                         await UserProfile.add_xp(member.id, int(duration))
                         print(f"✓ {member.name} left voice - +{int(duration)} mins, +{int(duration)} XP")
                     
-                    del member._voice_join_time[before.channel.id]
+                    del self._voice_times[member.id]
             except Exception as e:
                 print(f"✗ Error tracking voice minutes: {e}")
+        
+        # User switched channels
+        elif before.channel is not None and after.channel is not None and before.channel != after.channel:
+            print(f"📢 {member.name} switched from {before.channel.name} to {after.channel.name}")
+            # Keep tracking with same start time (continuous session)
 
 
 class MultiRoleSelectView(discord.ui.View):
@@ -420,77 +450,180 @@ class RoleSelect(discord.ui.Select):
 
 
 class RoleSelectionView(discord.ui.View):
-    """Old role selection buttons - kept for backwards compatibility"""
+    """Role selection with multi-select dropdown"""
     
     def __init__(self, user_id: int, guild_id: int):
         super().__init__(timeout=None)
         self.user_id = user_id
         self.guild_id = guild_id
-    
-    @discord.ui.button(label="Builder", emoji="🏗️", style=discord.ButtonStyle.blurple)
-    async def builder(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.handle_role_selection(interaction, "Builder")
-    
-    @discord.ui.button(label="Scripter", emoji="📝", style=discord.ButtonStyle.blurple)
-    async def scripter(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.handle_role_selection(interaction, "Scripter")
-    
-    @discord.ui.button(label="UI Designer", emoji="🎨", style=discord.ButtonStyle.blurple)
-    async def ui_designer(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.handle_role_selection(interaction, "UI Designer")
-    
-    @discord.ui.button(label="Mesh Creator", emoji="⚙️", style=discord.ButtonStyle.blurple)
-    async def mesh_creator(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.handle_role_selection(interaction, "Mesh Creator")
-    
-    @discord.ui.button(label="Animator", emoji="🎬", style=discord.ButtonStyle.blurple)
-    async def animator(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.handle_role_selection(interaction, "Animator")
-    
-    @discord.ui.button(label="Modeler", emoji="🟦", style=discord.ButtonStyle.blurple)
-    async def modeler(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.handle_role_selection(interaction, "Modeler")
-    
-    async def handle_role_selection(self, interaction: discord.Interaction, role: str):
-        """Handle role selection and assign Discord role"""
-        await interaction.response.defer(ephemeral=True)
         
-        # Update user profile
-        await UserProfile.update_user(self.user_id, {"role": role})
+        # Add the role select dropdown
+        self.add_item(RoleSelect(user_id, guild_id))
+
+
+# ✅ Owner-only commands for bot management
+# ✅ Owner-only commands for bot management
+
+@commands.command(name="sync")
+@commands.is_owner()
+async def sync_commands(ctx):
+    """
+    Fast sync to your guild (recommended while developing).
+    This makes new slash commands appear immediately in your server.
+    """
+    try:
+        bot = ctx.bot
+        guild = discord.Object(id=bot.guild_id)
+
+        # Clear guild commands then rebuild from global commands
+        bot.tree.clear_commands(guild=guild)
+        bot.tree.copy_global_to(guild=guild)
+
+        synced = await bot.tree.sync(guild=guild)
+        await ctx.send(f"✓ Synced {len(synced)} command(s) to guild")
+    except Exception as e:
+        await ctx.send(f"✗ Error: {e}")
+
+
+@commands.command(name="sync_global")
+@commands.is_owner()
+async def sync_global(ctx):
+    """
+    Sync GLOBAL commands (can take time to show up on Discord).
+    """
+    try:
+        synced = await ctx.bot.tree.sync()
+        await ctx.send(f"✓ Synced {len(synced)} global command(s)")
+    except Exception as e:
+        await ctx.send(f"✗ Error: {e}")
+
+
+@commands.command(name="sync_clear")
+@commands.is_owner()
+async def sync_clear(ctx):
+    """
+    Clear ALL guild commands, then re-copy from global and sync again.
+    Use this if Discord is showing duplicate/old commands.
+    """
+    try:
+        bot = ctx.bot
+        guild = discord.Object(id=bot.guild_id)
+
+        # Clear guild commands
+        bot.tree.clear_commands(guild=guild)
+        await bot.tree.sync(guild=guild)
+
+        # Rebuild from global and sync
+        bot.tree.copy_global_to(guild=guild)
+        synced = await bot.tree.sync(guild=guild)
+
+        # If your bot uses _synced flag, reset it
+        if hasattr(bot, "_synced"):
+            bot._synced = False
+
+        await ctx.send(f"✓ Cleared and re-synced {len(synced)} command(s) to guild")
+    except Exception as e:
+        await ctx.send(f"✗ Error: {e}")
+@commands.command(name="sync_clear")
+@commands.is_owner()
+async def sync_clear(ctx):
+    """Clear and re-sync all commands (Owner only)"""
+    try:
+        bot = ctx.bot
+        guild = discord.Object(id=bot.guild_id)
         
-        # Assign Discord role
-        try:
-            guild = interaction.client.get_guild(self.guild_id) or await interaction.client.fetch_guild(self.guild_id)
-            member = guild.get_member(self.user_id) or await guild.fetch_member(self.user_id)
+        # Clear guild commands
+        bot.tree.clear_commands(guild=guild)
+        await bot.tree.sync(guild=guild)
+        
+        # Wait a moment
+        await asyncio.sleep(1)
+        
+        # Reset sync flag so next restart will sync
+        bot._synced = False
+        
+        await ctx.send(f"✓ Cleared all commands! Restart bot to re-register.")
+    except Exception as e:
+        await ctx.send(f"✗ Error: {e}")
+
+
+@commands.command(name="reload")
+@commands.is_owner()
+async def reload_cogs(ctx, cog_name: str = None):
+    """Reload cogs (Owner only)"""
+    bot = ctx.bot
+    try:
+        if cog_name:
+            # Reload specific cog
+            await bot.reload_extension(f"cogs.{cog_name}")
+            await ctx.send(f"✓ Reloaded cog: {cog_name}")
+        else:
+            # Reload all cogs
+            cogs_dir = "cogs"
+            reloaded = []
+            for filename in os.listdir(cogs_dir):
+                if filename.endswith(".py") and not filename.startswith("_"):
+                    cog_name = filename[:-3]
+                    try:
+                        await bot.reload_extension(f"cogs.{cog_name}")
+                        reloaded.append(cog_name)
+                    except Exception as e:
+                        await ctx.send(f"✗ Failed to reload {cog_name}: {e}")
             
-            # Assign role
-            role_obj = discord.utils.get(guild.roles, name=role)
-            if role_obj:
-                await member.add_roles(role_obj)
-                print(f"✓ Assigned role {role} to {member.name}")
-            else:
-                print(f"✗ Role {role} not found in guild")
-        except Exception as e:
-            print(f"✗ Could not assign role {role}: {e}")
-        
-        # Ask for experience
-        embed = discord.Embed(
-            title="Experience Question",
-            description=f"Great! You selected **{role}**.\n\nHow many years of experience do you have?",
-            color=3092790
-        )
-        embed.add_field(
-            name="Examples",
-            value="Type: `0` for Beginner, `1` for 1 year, `3` for 3 years, `skip` to use default",
-            inline=False
-        )
-        
-        await interaction.followup.send(embed=embed, ephemeral=True)
+            # Re-sync commands
+            guild = discord.Object(id=bot.guild_id)
+            await bot.tree.sync(guild=guild)
+            await ctx.send(f"✓ Reloaded {len(reloaded)} cogs: {', '.join(reloaded)}")
+    except Exception as e:
+        await ctx.send(f"✗ Error: {e}")
+
+
+@commands.command(name="status")
+@commands.is_owner()
+async def bot_status(ctx):
+    """Show bot status (Owner only)"""
+    bot = ctx.bot
+    
+    embed = discord.Embed(
+        title="🤖 Bot Status",
+        color=discord.Color.green()
+    )
+    
+    # Commands
+    cmds = bot.tree.get_commands()
+    embed.add_field(name="Commands", value=f"{len(cmds)} registered", inline=True)
+    
+    # Cogs
+    cogs = list(bot.cogs.keys())
+    embed.add_field(name="Cogs", value=f"{len(cogs)} loaded", inline=True)
+    
+    # Voice tracking
+    voice_users = len(bot._voice_times)
+    embed.add_field(name="Voice Tracking", value=f"{voice_users} users", inline=True)
+    
+    # Guilds
+    embed.add_field(name="Guilds", value=f"{len(bot.guilds)}", inline=True)
+    
+    # Latency
+    embed.add_field(name="Latency", value=f"{round(bot.latency * 1000)}ms", inline=True)
+    
+    # Sync status
+    embed.add_field(name="Synced", value=f"{'Yes' if bot._synced else 'No'}", inline=True)
+    
+    await ctx.send(embed=embed)
 
 
 def run_bot():
     """Run the bot"""
     bot = StudioBot()
+    
+    # Add owner commands
+    bot.add_command(sync_commands)
+    bot.add_command(sync_global)
+    bot.add_command(sync_clear)
+    bot.add_command(reload_cogs)
+    bot.add_command(bot_status)
+    
     bot.run(DISCORD_TOKEN)
 
 

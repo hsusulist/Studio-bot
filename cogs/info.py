@@ -4,6 +4,7 @@ from discord import app_commands
 from config import BOT_COLOR, GUILD_ID
 from database import UserProfile
 
+
 class SetupRoleSelect(discord.ui.Select):
     """Multi-role select for setup command"""
     
@@ -30,11 +31,13 @@ class SetupRoleSelect(discord.ui.Select):
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
         
-        # Save selected roles
         roles = self.values
         roles_str = ", ".join(roles)
         
-        # Set initial rank to 'Beginner' (will be updated based on experience input)
+        user = await UserProfile.get_user(self.user_id)
+        if not user:
+            await UserProfile.create_user(self.user_id, interaction.user.name)
+        
         await UserProfile.update_user(self.user_id, {
             "roles": roles,
             "rank": "Beginner",
@@ -54,11 +57,10 @@ class SetupRoleSelect(discord.ui.Select):
         except Exception as e:
             print(f"✗ Could not assign roles: {e}")
         
-        # Ask for experience
         embed = discord.Embed(
-            title="Experience Question",
+            title="✓ Roles Selected!",
             description=f"Great! You selected **{roles_str}** as your roles.\n\nHow much experience do you have?",
-            color=BOT_COLOR
+            color=discord.Color.green()
         )
         embed.add_field(
             name="Examples",
@@ -76,10 +78,7 @@ class SetupRoleView(discord.ui.View):
         super().__init__(timeout=None)
         self.user_id = user_id
         self.guild_id = guild_id
-        
-        # Add the role select dropdown
-        role_select = SetupRoleSelect(user_id, guild_id)
-        self.add_item(role_select)
+        self.add_item(SetupRoleSelect(user_id, guild_id))
 
 
 class HelpView(discord.ui.View):
@@ -127,46 +126,14 @@ class HelpView(discord.ui.View):
             title="All Commands",
             color=BOT_COLOR
         )
-        embed.add_field(
-            name="/profile",
-            value="View your or someone's profile and stats",
-            inline=False
-        )
-        embed.add_field(
-            name="/shop",
-            value="Browse marketplace, sell code, view history",
-            inline=False
-        )
-        embed.add_field(
-            name="/team",
-            value="Create or manage teams for projects",
-            inline=False
-        )
-        embed.add_field(
-            name="/find",
-            value="Find developers by role and experience",
-            inline=False
-        )
-        embed.add_field(
-            name="/quest",
-            value="View daily quests and earn rewards",
-            inline=False
-        )
-        embed.add_field(
-            name="/review",
-            value="AI code review and optimization tips",
-            inline=False
-        )
-        embed.add_field(
-            name="/card",
-            value="Generate your developer portfolio card",
-            inline=False
-        )
-        embed.add_field(
-            name="/leaderboard",
-            value="View top developers of the week",
-            inline=False
-        )
+        embed.add_field(name="/profile", value="View your or someone's profile and stats", inline=False)
+        embed.add_field(name="/shop", value="Browse marketplace, sell code, view history", inline=False)
+        embed.add_field(name="/team", value="Create or manage teams for projects", inline=False)
+        embed.add_field(name="/find", value="Find developers by role and experience", inline=False)
+        embed.add_field(name="/quest", value="View daily quests and earn rewards", inline=False)
+        embed.add_field(name="/review", value="AI code review and optimization tips", inline=False)
+        embed.add_field(name="/card", value="Generate your developer portfolio card", inline=False)
+        embed.add_field(name="/leaderboard", value="View top developers of the week", inline=False)
         
         await interaction.followup.send(embed=embed, ephemeral=True)
     
@@ -178,26 +145,10 @@ class HelpView(discord.ui.View):
             title="Rank System",
             color=BOT_COLOR
         )
-        embed.add_field(
-            name="🥚 Beginner",
-            value="0 months experience or fresh accounts",
-            inline=False
-        )
-        embed.add_field(
-            name="🌱 Learner",
-            value="> 1 month experience",
-            inline=False
-        )
-        embed.add_field(
-            name="🔥 Expert",
-            value="> 1 year experience",
-            inline=False
-        )
-        embed.add_field(
-            name="👑 Master",
-            value="> 3 years experience",
-            inline=False
-        )
+        embed.add_field(name="🥚 Beginner", value="0 months experience or fresh accounts", inline=False)
+        embed.add_field(name="🌱 Learner", value="> 1 month experience", inline=False)
+        embed.add_field(name="🔥 Expert", value="> 1 year experience", inline=False)
+        embed.add_field(name="👑 Master", value="> 3 years experience", inline=False)
         embed.add_field(
             name="Benefits",
             value="Higher ranks unlock:\n💰 Lower marketplace taxes\n🚀 Access to Pro-Dev channels\n📊 Marketplace priority",
@@ -212,49 +163,6 @@ class InfoCog(commands.Cog):
     
     def __init__(self, bot):
         self.bot = bot
-    
-    async def help(self, interaction: discord.Interaction):
-        """Get help and command info"""
-        await interaction.response.defer()
-        view = HelpView()
-        
-        embed = discord.Embed(
-            title="Ashtrails' Studio Bot Help",
-            description="Welcome! Learn how to use the bot and grow your skills.",
-            color=BOT_COLOR
-        )
-        
-        await interaction.followup.send(embed=embed, view=view)
-    
-    async def stats(self, interaction: discord.Interaction):
-        """View server-wide statistics"""
-        await interaction.response.defer()
-        try:
-            from database import users_collection, teams_collection, marketplace_collection, db
-            
-            if db is not None:
-                user_count = await users_collection.count_documents({})
-                team_count = await teams_collection.count_documents({})
-                listing_count = await marketplace_collection.count_documents({})
-            else:
-                from database import _memory_users, _memory_teams, _memory_marketplace
-                user_count = len(_memory_users)
-                team_count = len(_memory_teams)
-                listing_count = len(_memory_marketplace)
-        except:
-            user_count = 0
-            team_count = 0
-            listing_count = 0
-        
-        embed = discord.Embed(
-            title="Ashtrails' Studio Statistics",
-            color=BOT_COLOR
-        )
-        embed.add_field(name="Active Developers", value=str(user_count), inline=True)
-        embed.add_field(name="Active Teams", value=str(team_count), inline=True)
-        embed.add_field(name="Marketplace Listings", value=str(listing_count), inline=True)
-        
-        await interaction.followup.send(embed=embed)
 
 
 async def setup(bot):
@@ -262,31 +170,29 @@ async def setup(bot):
     async def help_cmd(interaction: discord.Interaction):
         await interaction.response.defer()
         view = HelpView()
+        
         embed = discord.Embed(
             title="Ashtrails' Studio Bot Help",
             description="Welcome! Learn how to use the bot and grow your skills.",
             color=BOT_COLOR
         )
+        
         await interaction.followup.send(embed=embed, view=view)
     
     @bot.tree.command(name="stats", description="View server and bot statistics")
     async def stats_cmd(interaction: discord.Interaction):
         await interaction.response.defer()
+        
         try:
-            from database import users_collection, teams_collection, marketplace_collection, db
-            if db is not None:
-                user_count = await users_collection.count_documents({})
-                team_count = await teams_collection.count_documents({})
-                listing_count = await marketplace_collection.count_documents({})
-            else:
-                from database import _memory_users, _memory_teams, _memory_marketplace
-                user_count = len(_memory_users)
-                team_count = len(_memory_teams)
-                listing_count = len(_memory_marketplace)
+            from database import _memory_users, _memory_teams, _memory_marketplace
+            user_count = len(_memory_users)
+            team_count = len(_memory_teams)
+            listing_count = len(_memory_marketplace)
         except:
             user_count = 0
             team_count = 0
             listing_count = 0
+        
         embed = discord.Embed(
             title="Ashtrails' Studio Statistics",
             color=BOT_COLOR
@@ -294,87 +200,51 @@ async def setup(bot):
         embed.add_field(name="Active Developers", value=str(user_count), inline=True)
         embed.add_field(name="Active Teams", value=str(team_count), inline=True)
         embed.add_field(name="Marketplace Listings", value=str(listing_count), inline=True)
+        
         await interaction.followup.send(embed=embed)
     
     @bot.tree.command(name="setup", description="Setup your profile and choose your role")
     async def setup_cmd(interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
         
-        # Get or create user profile
         user = await UserProfile.get_user(interaction.user.id)
         if not user:
             await UserProfile.create_user(interaction.user.id, interaction.user.name)
         
-        # Send role selection DM
-        try:
-            embed = discord.Embed(
-                title="Ashtrails' Studio Setup 🎨",
-                description="Select your role to get started.",
-                color=BOT_COLOR
-            )
-            embed.add_field(
-                name="Choose Your Path",
-                value="Click the button below to select your role.",
-                inline=False
-            )
-            
-            view = SetupRoleView(interaction.user.id, GUILD_ID)
-            await interaction.user.send(embed=embed, view=view)
-            
-            # Confirm in current channel
-            confirm_embed = discord.Embed(
-                title="✓ Setup DM Sent",
-                description="Check your DMs for the role selection buttons!",
-                color=discord.Color.green()
-            )
-            await interaction.followup.send(embed=confirm_embed, ephemeral=True)
-        except Exception as e:
-            error_embed = discord.Embed(
-                title="Error",
-                description=f"Could not send setup DM: {str(e)}",
-                color=discord.Color.red()
-            )
-            await interaction.followup.send(embed=error_embed, ephemeral=True)
+        embed = discord.Embed(
+            title="Ashtrails' Studio Setup 🎨",
+            description="Select your role to get started.",
+            color=BOT_COLOR
+        )
+        embed.add_field(
+            name="Choose Your Path",
+            value="Click the button below to select your role.",
+            inline=False
+        )
+        
+        view = SetupRoleView(interaction.user.id, GUILD_ID)
+        await interaction.followup.send(embed=embed, view=view, ephemeral=True)
     
     @bot.tree.command(name="start", description="🎯 START HERE - Setup your profile")
     async def start_cmd(interaction: discord.Interaction):
-        """Alias for setup command"""
         await interaction.response.defer(ephemeral=True)
         
-        # Get or create user profile
         user = await UserProfile.get_user(interaction.user.id)
         if not user:
             await UserProfile.create_user(interaction.user.id, interaction.user.name)
         
-        # Send role selection DM
-        try:
-            embed = discord.Embed(
-                title="Ashtrails' Studio Setup 🎨",
-                description="Select your role to get started.",
-                color=BOT_COLOR
-            )
-            embed.add_field(
-                name="Choose Your Path",
-                value="Click the button below to select your role.",
-                inline=False
-            )
-            
-            view = SetupRoleView(interaction.user.id, GUILD_ID)
-            await interaction.user.send(embed=embed, view=view)
-            
-            # Confirm in current channel
-            confirm_embed = discord.Embed(
-                title="✓ Setup DM Sent",
-                description="Check your DMs for the role selection buttons!",
-                color=discord.Color.green()
-            )
-            await interaction.followup.send(embed=confirm_embed, ephemeral=True)
-        except Exception as e:
-            error_embed = discord.Embed(
-                title="Error",
-                description=f"Could not send setup DM: {str(e)}",
-                color=discord.Color.red()
-            )
-            await interaction.followup.send(embed=error_embed, ephemeral=True)
+        embed = discord.Embed(
+            title="Welcome to Ashtrails' Studio! 🎨",
+            description="Select your role to get started.",
+            color=BOT_COLOR
+        )
+        embed.add_field(
+            name="Choose Your Path",
+            value="Click the dropdown below to select your role(s).",
+            inline=False
+        )
+        
+        view = SetupRoleView(interaction.user.id, GUILD_ID)
+        await interaction.followup.send(embed=embed, view=view, ephemeral=True)
     
     await bot.add_cog(InfoCog(bot))

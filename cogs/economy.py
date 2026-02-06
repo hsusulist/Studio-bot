@@ -6,6 +6,7 @@ from config import BOT_COLOR, DAILY_QUEST_REWARD
 from datetime import datetime
 import random
 
+
 class QuestView(discord.ui.View):
     """Quest action buttons"""
     
@@ -44,19 +45,31 @@ class QuestView(discord.ui.View):
         await interaction.response.defer()
         user = await UserProfile.get_user(self.user_id)
         
+        if not user:
+            await UserProfile.create_user(self.user_id, interaction.user.name)
+            user = await UserProfile.get_user(self.user_id)
+        
         # Check if user can claim daily quest
         last_quest = user.get('last_quest')
         if last_quest:
-            last_time = datetime.fromisoformat(last_quest)
-            today = datetime.utcnow().date()
-            if last_time.date() == today:
-                embed = discord.Embed(
-                    title="Quest Already Claimed",
-                    description="Come back tomorrow for another reward!",
-                    color=discord.Color.red()
-                )
-                await interaction.followup.send(embed=embed, ephemeral=True)
-                return
+            if isinstance(last_quest, str):
+                try:
+                    last_time = datetime.fromisoformat(last_quest)
+                except:
+                    last_time = None
+            else:
+                last_time = last_quest
+            
+            if last_time:
+                today = datetime.utcnow().date()
+                if last_time.date() == today:
+                    embed = discord.Embed(
+                        title="Quest Already Claimed",
+                        description="Come back tomorrow for another reward!",
+                        color=discord.Color.red()
+                    )
+                    await interaction.followup.send(embed=embed, ephemeral=True)
+                    return
         
         reward = DAILY_QUEST_REWARD
         await UserProfile.add_credits(self.user_id, reward)
@@ -75,14 +88,18 @@ class QuestView(discord.ui.View):
         await interaction.response.defer()
         user = await UserProfile.get_user(self.user_id)
         
+        if not user:
+            await interaction.followup.send("User not found!", ephemeral=True)
+            return
+        
         embed = discord.Embed(
             title="Progress Stats",
             color=BOT_COLOR
         )
-        embed.add_field(name="Level", value=str(user['level']), inline=True)
-        embed.add_field(name="XP", value=f"{user['xp']} / {(user['level']) * 250}", inline=True)
-        embed.add_field(name="Credits", value=f"💰 {user['studio_credits']}", inline=True)
-        embed.add_field(name="Reputation", value=f"⭐ {user['reputation']}", inline=True)
+        embed.add_field(name="Level", value=str(user.get('level', 1)), inline=True)
+        embed.add_field(name="XP", value=f"{user.get('xp', 0)} / {user.get('level', 1) * 250}", inline=True)
+        embed.add_field(name="Credits", value=f"💰 {user.get('studio_credits', 0)}", inline=True)
+        embed.add_field(name="Reputation", value=f"⭐ {user.get('reputation', 0)}", inline=True)
         
         await interaction.followup.send(embed=embed, ephemeral=True)
 
@@ -92,93 +109,6 @@ class EconomyCog(commands.Cog):
     
     def __init__(self, bot):
         self.bot = bot
-    
-    async def quest(self, interaction: discord.Interaction):
-        """Daily quests and rewards"""
-        await interaction.response.defer()
-        view = QuestView(interaction.user.id)
-        
-        embed = discord.Embed(
-            title="Daily Quests",
-            description="Earn Studio Credits by completing tasks in the community",
-            color=BOT_COLOR
-        )
-        embed.add_field(
-            name="Features",
-            value="📋 View Quests\n🎁 Claim Daily Reward\n📊 Check Progress",
-            inline=False
-        )
-        
-        await interaction.followup.send(embed=embed, view=view)
-    
-    async def review(self, interaction: discord.Interaction):
-        """AI-powered code review (Luau/Lua)"""
-        await interaction.response.defer()
-        
-        embed = discord.Embed(
-            title="Code Review",
-            description="Let me analyze your Lua code for you!",
-            color=BOT_COLOR
-        )
-        embed.add_field(name="Features", value="🤖 AI Analysis\n⚠️ Error Detection\n💡 Optimization Tips", inline=False)
-        
-        # Send example review
-        review_embed = discord.Embed(
-            title="✓ Code Review Complete",
-            color=discord.Color.green()
-        )
-        review_embed.add_field(
-            name="Analysis",
-            value="✓ No syntax errors detected\n⚠️ Could optimize memory usage\n💡 Consider using local variables",
-            inline=False
-        )
-        review_embed.add_field(name="Score", value="**8.5/10** - Good", inline=False)
-        
-        await UserProfile.add_xp(interaction.user.id, 25)
-        
-        await interaction.followup.send(embed=review_embed)
-    
-    async def card(self, interaction: discord.Interaction):
-        """Generate developer portfolio card"""
-        await interaction.response.defer()
-        user = await UserProfile.get_user(interaction.user.id)
-        
-        if not user:
-            embed = discord.Embed(
-                title="User Not Found",
-                description="You haven't set up your profile yet",
-                color=BOT_COLOR
-            )
-            await interaction.followup.send(embed=embed)
-            return
-        
-        # Create portfolio card
-        embed = discord.Embed(
-            title="🎯 Developer Portfolio Card",
-            color=BOT_COLOR
-        )
-        embed.set_thumbnail(url=interaction.user.display_avatar.url)
-        
-        embed.add_field(name="Developer", value=f"{interaction.user.mention}", inline=False)
-        
-        # Show multiple roles
-        roles = user.get('roles', ['Unknown'])
-        roles_str = ", ".join(roles) if isinstance(roles, list) else str(roles)
-        embed.add_field(name="Roles", value=roles_str, inline=True)
-        
-        embed.add_field(name="Rank", value=user.get('rank', 'Unknown'), inline=True)
-        embed.add_field(name="Level", value=user.get('level', 1), inline=True)
-        embed.add_field(name="Reputation", value=f"⭐ {user.get('reputation', 0)}", inline=True)
-        embed.add_field(name="Message Count", value=f"💬 {user.get('message_count', 0)}", inline=True)
-        embed.add_field(name="Voice Minutes", value=f"🎤 {user.get('voice_minutes', 0)}", inline=True)
-        
-        games = user.get('portfolio_games', [])
-        if games:
-            embed.add_field(name="Featured Games", value=", ".join(games), inline=False)
-        
-        embed.set_footer(text="Developer of the Community")
-        
-        await interaction.followup.send(embed=embed)
 
 
 async def setup(bot):
@@ -187,25 +117,12 @@ async def setup(bot):
         await interaction.response.defer()
         user = await UserProfile.get_user(interaction.user.id)
         
-        # Check if user has profile
         if not user:
             embed = discord.Embed(
                 title="📋 Profile Not Found",
-                description="You haven't created your profile yet. Click below to get started!",
+                description="You haven't created your profile yet. Use `/start` to get started!",
                 color=discord.Color.orange()
             )
-            
-            # Send setup DM
-            from cogs.info import SetupRoleView
-            from config import GUILD_ID
-            embed_dm = discord.Embed(
-                title="Ashtrails' Studio Setup 🎨",
-                description="Select your role to get started.",
-                color=discord.Color.blue()
-            )
-            view_dm = SetupRoleView(interaction.user.id, GUILD_ID)
-            await interaction.user.send(embed=embed_dm, view=view_dm)
-            
             await interaction.followup.send(embed=embed, ephemeral=True)
             return
         
@@ -231,6 +148,7 @@ async def setup(bot):
             color=BOT_COLOR
         )
         embed.add_field(name="Features", value="🤖 AI Analysis\n⚠️ Error Detection\n💡 Optimization Tips", inline=False)
+        
         review_embed = discord.Embed(
             title="✓ Code Review Complete",
             color=discord.Color.green()
@@ -241,6 +159,7 @@ async def setup(bot):
             inline=False
         )
         review_embed.add_field(name="Score", value="**8.5/10** - Good", inline=False)
+        
         await UserProfile.add_xp(interaction.user.id, 25)
         await interaction.followup.send(embed=review_embed)
     
@@ -248,14 +167,16 @@ async def setup(bot):
     async def card_cmd(interaction: discord.Interaction):
         await interaction.response.defer()
         user = await UserProfile.get_user(interaction.user.id)
+        
         if not user:
             embed = discord.Embed(
                 title="User Not Found",
-                description="You haven't set up your profile yet",
+                description="You haven't set up your profile yet. Use `/start`",
                 color=BOT_COLOR
             )
             await interaction.followup.send(embed=embed)
             return
+        
         embed = discord.Embed(
             title="🎯 Developer Portfolio Card",
             color=BOT_COLOR
@@ -263,19 +184,20 @@ async def setup(bot):
         embed.set_thumbnail(url=interaction.user.display_avatar.url)
         embed.add_field(name="Developer", value=f"{interaction.user.mention}", inline=False)
         
-        # Show multiple roles
         roles = user.get('roles', ['Unknown'])
         roles_str = ", ".join(roles) if isinstance(roles, list) else str(roles)
         embed.add_field(name="Roles", value=roles_str, inline=True)
         
         embed.add_field(name="Rank", value=user.get('rank', 'Unknown'), inline=True)
-        embed.add_field(name="Level", value=user.get('level', 1), inline=True)
+        embed.add_field(name="Level", value=str(user.get('level', 1)), inline=True)
         embed.add_field(name="Reputation", value=f"⭐ {user.get('reputation', 0)}", inline=True)
         embed.add_field(name="Message Count", value=f"💬 {user.get('message_count', 0)}", inline=True)
         embed.add_field(name="Voice Minutes", value=f"🎤 {user.get('voice_minutes', 0)}", inline=True)
+        
         games = user.get('portfolio_games', [])
         if games:
             embed.add_field(name="Featured Games", value=", ".join(games), inline=False)
+        
         embed.set_footer(text="Developer of the Community")
         await interaction.followup.send(embed=embed)
     
