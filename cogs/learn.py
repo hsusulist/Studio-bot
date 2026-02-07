@@ -2334,13 +2334,13 @@ Explain each subtopic thoroughly:
             )
             await channel.send(embed=embed)
 
-        async def _send_lesson_conclusion(self, channel: discord.TextChannel, session: LearnSession, lesson: dict):
-            model_pool = get_model_pool(session.model_mode, lesson['title'])
+    async def _send_lesson_conclusion(self, channel: discord.TextChannel, session: LearnSession, lesson: dict):
+        model_pool = get_model_pool(session.model_mode, lesson['title'])
 
-            mistakes = lesson.get("common_mistakes", [])
-            mistakes_text = "\n".join([f"• {m}" for m in mistakes])
+        mistakes = lesson.get("common_mistakes", [])
+        mistakes_text = "\n".join([f"• {m}" for m in mistakes])
 
-            system = """You are an expert teacher finishing a lesson.
+        system = """You are an expert teacher finishing a lesson.
 
 Write the following sections:
 
@@ -2356,27 +2356,27 @@ A hands-on project that uses all concepts from this lesson. Include complete sta
 ## 📝 SUMMARY
 6-8 bullet points summarizing the key takeaways, plus a quick reference table."""
 
-            user_msg = f"""Finish Lesson {lesson['n']}: {lesson['title']}
+        user_msg = f"""Finish Lesson {lesson['n']}: {lesson['title']}
 Common mistakes to cover: {mistakes_text}
 Mini project idea: {lesson.get('mini_project', 'Practice exercise')}"""
 
-            async with channel.typing():
-                content = await openrouter_chat(
-                    [{"role": "system", "content": system}, {"role": "user", "content": user_msg}],
-                    model_pool=model_pool,
-                    max_tokens=2500,
-                )
+        async with channel.typing():
+            content = await openrouter_chat(
+                [{"role": "system", "content": system}, {"role": "user", "content": user_msg}],
+                model_pool=model_pool,
+                max_tokens=2500,
+            )
 
-            await append_conversation(session.user_id, "assistant", f"CONCLUSION: {content[:1500]}")
+        await append_conversation(session.user_id, "assistant", f"CONCLUSION: {content[:1500]}")
 
-            parts = self._split_content(content, 3900)
-            for i, part in enumerate(parts):
-                embed = discord.Embed(
-                    title="⚠️ Mistakes, Tips & Practice" if i == 0 else "⚠️ (continued)",
-                    description=part,
-                    color=discord.Color.orange()
-                )
-                await channel.send(embed=embed)
+        parts = self._split_content(content, 3900)
+        for i, part in enumerate(parts):
+            embed = discord.Embed(
+                title="⚠️ Mistakes, Tips & Practice" if i == 0 else "⚠️ (continued)",
+                description=part,
+                color=discord.Color.orange()
+            )
+            await channel.send(embed=embed)
 
     async def send_project_lesson(self, channel: discord.TextChannel, session: LearnSession, lesson: dict):
         requirements = "\n".join([f"✅ {req}" for req in lesson.get("project_requirements", [])])

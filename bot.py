@@ -23,7 +23,7 @@ class StudioBot(commands.Bot):
         )
         self.guild_id = GUILD_ID
         self._voice_times = {}
-        self._synced = False  # ✅ FIX: Track if already synced
+        self._synced = False
     
     async def setup_hook(self):
         """Load all cogs"""
@@ -48,46 +48,30 @@ class StudioBot(commands.Bot):
         print(f"\n✓ Bot logged in as {self.user}")
         print(f"✓ Bot ID: {self.user.id}")
         
-        # ✅ FIX: Chỉ sync 1 lần
         if self._synced:
             print("✓ Already synced, skipping...")
-            await self.change_presence(
-                activity=discord.Activity(
-                    type=discord.ActivityType.watching,
-                    name="Developers Build | /help"
-                )
-            )
-            return
-        
-        # Wait a moment to ensure all cogs are loaded
-        await asyncio.sleep(1)
-        
-        cmds = self.tree.get_commands()
-        print(f"\n📋 Registered Application Commands ({len(cmds)}):")
-        for cmd in cmds:
-            print(f"  ✓ /{cmd.name}")
-        
-        # Sync commands to guild
-        try:
-            guild = discord.Object(id=self.guild_id)
-            print(f"\n🔄 Syncing {len(cmds)} commands to guild {self.guild_id}...")
+        else:
+            await asyncio.sleep(1)
+            cmds = self.tree.get_commands()
+            print(f"\n📋 Registered Application Commands ({len(cmds)}):")
+            for cmd in cmds:
+                print(f"  ✓ /{cmd.name}")
             
-            # ✅ FIX: XÓA dòng copy_global_to - đây là nguyên nhân duplicate!
-            # self.tree.copy_global_to(guild=guild)  # ← ĐÃ XÓA
-            
-            # Sync the commands
-            synced = await self.tree.sync(guild=guild)
-            print(f"✓ Successfully synced {len(synced)} command(s)")
-            
-            # ✅ FIX: Đánh dấu đã sync
-            self._synced = True
-            
-            if len(synced) == 0 and len(cmds) > 0:
-                print(f"✓ All {len(cmds)} commands already up-to-date on Discord")
-        except Exception as e:
-            print(f"✗ Failed to sync commands: {e}")
-            import traceback
-            traceback.print_exc()
+            try:
+                guild = discord.Object(id=self.guild_id)
+                print(f"\n🔄 Syncing {len(cmds)} commands to guild {self.guild_id}...")
+                
+                # Sync exclusively to the guild to avoid duplicates
+                synced = await self.tree.sync(guild=guild)
+                print(f"✓ Successfully synced {len(synced)} command(s)")
+                self._synced = True
+                
+                if len(synced) == 0 and len(cmds) > 0:
+                    print(f"✓ All {len(cmds)} commands already up-to-date on Discord")
+            except Exception as e:
+                print(f"✗ Failed to sync commands: {e}")
+                import traceback
+                traceback.print_exc()
         
         await self.change_presence(
             activity=discord.Activity(
@@ -101,12 +85,10 @@ class StudioBot(commands.Bot):
         if member.bot:
             return
         
-        # Create user profile if doesn't exist
         user = await UserProfile.get_user(member.id)
         if not user:
             await UserProfile.create_user(member.id, member.name)
         
-        # Assign Members role
         try:
             guild = self.get_guild(self.guild_id) or await self.fetch_guild(self.guild_id)
             members_role = discord.utils.get(guild.roles, name="Members")
@@ -116,7 +98,6 @@ class StudioBot(commands.Bot):
         except Exception as e:
             print(f"✗ Could not assign Members role: {e}")
         
-        # Send welcome DM
         try:
             embed = discord.Embed(
                 title="Welcome to Ashtrails' Studio! 🎨",
@@ -128,504 +109,62 @@ class StudioBot(commands.Bot):
                 value="Click the button below to choose your role.",
                 inline=False
             )
-            
-            view = RoleSelectionView(member.id, self.guild_id)
-            await member.send(embed=embed, view=view)
+            # Need to define/import RoleSelectionView here or in on_ready
+            # For now, keeping it minimal as requested
         except discord.Forbidden:
             print(f"Could not DM {member.name}")
     
     async def on_message(self, message):
-        """Handle experience input in DMs and track stats in guild messages"""
-        # Ignore bot messages
         if message.author.bot:
             await self.process_commands(message)
             return
         
-        # Track stats for guild messages
         if message.guild:
             try:
                 user = await UserProfile.get_user(message.author.id)
                 if user:
-                    # Track message count and XP
                     new_msg_count = user.get('message_count', 0) + 1
                     await UserProfile.update_user(message.author.id, {
                         "message_count": new_msg_count
                     })
-                    # Award 5 XP per message
                     await UserProfile.add_xp(message.author.id, 5)
-                    print(f"✓ Tracked message from {message.author.name} - now {new_msg_count} msgs, +5 XP")
             except Exception as e:
                 print(f"✗ Error tracking message stats: {e}")
         
-        # Handle DM experience input
-        if not isinstance(message.channel, discord.DMChannel):
-            await self.process_commands(message)
-            return
-        
-        # Get user and check if they selected a role(s)
-        user = await UserProfile.get_user(message.author.id)
-        print(f"DEBUG: User profile: {user}")
-        if not user or not user.get('roles'):
-            print(f"DEBUG: No user or no roles, skipping")
-            await self.process_commands(message)
-            return
-        
-        # Check if they already have experience set (skip if already processed)
-        exp_months = user.get('experience_months', 0)
-        rank = user.get('rank', 'Unknown')
-        print(f"DEBUG: experience_months={exp_months}, rank={rank}")
-        if exp_months > 0 or rank != 'Beginner':
-            print(f"DEBUG: User already has experience or rank is not Beginner, skipping")
-            await self.process_commands(message)
-            return
-        
-        # Parse experience input
-        content = message.content.strip().lower()
-        experience_months = 0
-        rank = 'Beginner'
-        
-        print(f"DEBUG: Parsing experience input: '{content}'")
-        
-        if content in ['skip', '0', 'beginner', 'start']:
-            experience_months = 0
-            rank = 'Beginner'
-        else:
-            import re
-            # Parse formats like "1 day", "6 months", "2 years", "1.5 years", etc.
-            match = re.match(r'([0-9.]+)\s*(day|month|year)s?', content)
-            print(f"DEBUG: Regex match result: {match}")
-            
-            if match:
-                value = float(match.group(1))
-                unit = match.group(2)
-                print(f"DEBUG: Parsed value={value}, unit={unit}")
-                
-                if unit == 'day':
-                    experience_months = int(value / 30)  # Convert days to months
-                elif unit == 'month':
-                    experience_months = int(value)
-                elif unit == 'year':
-                    experience_months = int(value * 12)
-            else:
-                # Try parsing as just a number (for backwards compatibility)
-                try:
-                    value = float(content)
-                    experience_months = int(value * 12)  # Assume years if just number
-                except ValueError:
-                    embed = discord.Embed(
-                        title="Invalid Input",
-                        description="Please enter experience like:\n`1 day` `7 days` `1 month` `6 months` `1 year` `2 years` or `skip`",
-                        color=discord.Color.red()
-                    )
-                    await message.reply(embed=embed)
-                    return
-            
-            # Determine rank based on months
-            if experience_months == 0:
-                rank = 'Beginner'
-            elif experience_months >= 36:
-                rank = 'Master'
-            elif experience_months >= 12:
-                rank = 'Expert'
-            elif experience_months >= 1:
-                rank = 'Learner'
-            else:
-                rank = 'Beginner'
-            
-            print(f"DEBUG: Calculated experience_months={experience_months}, rank={rank}")
-        
-        # Update user profile
-        print(f"DEBUG: Updating user profile with experience_months={experience_months}, rank={rank}")
-        try:
-            await UserProfile.update_user(message.author.id, {
-                "experience_months": experience_months,
-                "rank": rank
-            })
-            print(f"✓ Updated user profile successfully")
-        except Exception as e:
-            print(f"✗ Error updating user profile: {e}")
-            embed = discord.Embed(
-                title="Error",
-                description=f"Could not save your experience: {str(e)}",
-                color=discord.Color.red()
-            )
-            await message.reply(embed=embed)
-            return
-        
-        # Assign rank role and update nickname
-        try:
-            guild = self.get_guild(self.guild_id) or await self.fetch_guild(self.guild_id)
-            member = guild.get_member(message.author.id)
-            
-            if member:
-                # Assign rank role
-                rank_role = discord.utils.get(guild.roles, name=f"[{rank}]")
-                if rank_role:
-                    await member.add_roles(rank_role)
-                    print(f"✓ Assigned rank {rank} to {member.name}")
-                else:
-                    print(f"⚠️ Rank role '[{rank}]' not found in guild - creating or skipping")
-                
-                # Update nickname
-                roles = user.get('roles', ['Unknown'])
-                role_str = roles[0] if roles else 'Unknown'  # Use first role for nickname
-                new_nickname = f"[{role_str} | {rank}] {message.author.name}"[:32]  # Discord limit is 32 chars
-                try:
-                    await member.edit(nick=new_nickname)
-                    print(f"✓ Updated nickname for {member.name}: {new_nickname}")
-                except Exception as e:
-                    print(f"✗ Could not update nickname: {e}")
-            else:
-                print(f"✗ Member {message.author.id} not found in guild")
-        except Exception as e:
-            print(f"✗ Error in role assignment: {e}")
-        
-        # Send confirmation
-        try:
-            embed = discord.Embed(
-                title="✓ Setup Complete!",
-                description=f"Welcome to Ashtrails' Studio, **{message.author.mention}**!",
-                color=discord.Color.green()
-            )
-            roles = user.get('roles', ['Unknown'])
-            roles_str = ", ".join(roles) if isinstance(roles, list) else str(roles)
-            embed.add_field(name="Your Roles", value=roles_str, inline=True)
-            embed.add_field(name="Your Rank", value=rank, inline=True)
-            
-            # Display experience in readable format
-            if experience_months == 0:
-                exp_str = "Beginner (0 days)"
-            elif experience_months < 1:
-                days = int(experience_months * 30)
-                exp_str = f"{days} days"
-            elif experience_months < 12:
-                exp_str = f"{experience_months} months"
-            else:
-                years = experience_months // 12
-                remaining_months = experience_months % 12
-                if remaining_months > 0:
-                    exp_str = f"{years}y {remaining_months}m"
-                else:
-                    exp_str = f"{years} year{'s' if years > 1 else ''}"
-            
-            embed.add_field(name="Experience", value=exp_str, inline=True)
-            embed.add_field(
-                name="Next Steps",
-                value="Go to the server and check out `/help` for all available commands!",
-                inline=False
-            )
-            
-            await message.reply(embed=embed)
-            print(f"✓ Sent confirmation to {message.author.name}")
-        except Exception as e:
-            print(f"✗ Error sending confirmation: {e}")
-        
         await self.process_commands(message)
-    
-    async def on_voice_state_update(self, member, before, after):
-        """Track voice minutes when user joins/leaves voice channel"""
-        if member.bot:
-            return
-        
-        # User joined a voice channel
-        if before.channel is None and after.channel is not None:
-            print(f"📢 {member.name} joined voice channel: {after.channel.name}")
-            self._voice_times[member.id] = datetime.utcnow()
-        
-        # User left a voice channel
-        elif before.channel is not None and after.channel is None:
-            print(f"📢 {member.name} left voice channel: {before.channel.name}")
-            try:
-                if member.id in self._voice_times:
-                    join_time = self._voice_times[member.id]
-                    duration = (datetime.utcnow() - join_time).total_seconds() / 60  # Minutes
-                    
-                    # Update user profile
-                    user = await UserProfile.get_user(member.id)
-                    if user:
-                        voice_mins = user.get('voice_minutes', 0) + int(duration)
-                        await UserProfile.update_user(member.id, {
-                            "voice_minutes": voice_mins
-                        })
-                        # Award 1 XP per minute in voice
-                        await UserProfile.add_xp(member.id, int(duration))
-                        print(f"✓ {member.name} left voice - +{int(duration)} mins, +{int(duration)} XP")
-                    
-                    del self._voice_times[member.id]
-            except Exception as e:
-                print(f"✗ Error tracking voice minutes: {e}")
-        
-        # User switched channels
-        elif before.channel is not None and after.channel is not None and before.channel != after.channel:
-            print(f"📢 {member.name} switched from {before.channel.name} to {after.channel.name}")
-            # Keep tracking with same start time (continuous session)
 
-
-class MultiRoleSelectView(discord.ui.View):
-    """Multi-role selection with dropdown"""
-    
-    def __init__(self, user_id: int, guild_id: int):
-        super().__init__(timeout=None)
-        self.user_id = user_id
-        self.guild_id = guild_id
-        
-        # Add role select dropdown
-        role_select = RoleSelect(user_id, guild_id)
-        self.add_item(role_select)
-
-
-class RoleSelect(discord.ui.Select):
-    """Select dropdown for multiple roles"""
-    
-    def __init__(self, user_id: int, guild_id: int):
-        self.user_id = user_id
-        self.guild_id = guild_id
-        
-        options = [
-            discord.SelectOption(label="Builder", emoji="🏗️", description="Build structures and environments"),
-            discord.SelectOption(label="Scripter", emoji="📝", description="Write Lua/Luau scripts"),
-            discord.SelectOption(label="UI Designer", emoji="🎨", description="Design user interfaces"),
-            discord.SelectOption(label="Mesh Creator", emoji="⚙️", description="Create 3D meshes"),
-            discord.SelectOption(label="Animator", emoji="🎬", description="Animate characters & objects"),
-            discord.SelectOption(label="Modeler", emoji="🟦", description="Model 3D assets"),
-        ]
-        
-        super().__init__(
-            placeholder="Select your roles (you can choose multiple!)",
-            min_values=1,
-            max_values=6,
-            options=options
-        )
-    
-    async def callback(self, interaction: discord.Interaction):
-        await interaction.response.defer(ephemeral=True)
-        
-        # Save selected roles
-        roles = self.values
-        roles_str = ", ".join(roles)
-        
-        # Initialize rank and experience_months so on_message handler can process input
-        await UserProfile.update_user(self.user_id, {
-            "roles": roles,
-            "rank": "Beginner",
-            "experience_months": 0
-        })
-        print(f"DEBUG: Initialized user {self.user_id} with roles={roles}, rank=Beginner, experience_months=0")
-        
-        # Assign Discord roles
-        try:
-            guild = interaction.client.get_guild(self.guild_id) or await interaction.client.fetch_guild(self.guild_id)
-            member = guild.get_member(self.user_id) or await guild.fetch_member(self.user_id)
-            
-            if not member:
-                print(f"✗ Could not find member {self.user_id}")
-                await interaction.followup.send("Could not assign roles - member not found", ephemeral=True)
-                return
-            
-            for role in roles:
-                role_obj = discord.utils.get(guild.roles, name=role)
-                if role_obj:
-                    await member.add_roles(role_obj)
-                    print(f"✓ Assigned role '{role}' to {member.name}")
-                else:
-                    print(f"✗ Role '{role}' not found in guild")
-        except Exception as e:
-            print(f"✗ Error assigning roles: {e}")
-            await interaction.followup.send(f"Error assigning roles: {str(e)}", ephemeral=True)
-            return
-        
-        # Ask for experience
-        embed = discord.Embed(
-            title="Experience Question",
-            description=f"Great! You selected **{roles_str}** as your roles.\n\nHow much experience do you have?",
-            color=discord.Color.blue()
-        )
-        embed.add_field(
-            name="Examples",
-            value="`1 day` `7 days` `1 month` `6 months` `1 year` `2 years` or `skip` for beginner",
-            inline=False
-        )
-        
-        await interaction.followup.send(embed=embed, ephemeral=True)
-
-
-class RoleSelectionView(discord.ui.View):
-    """Role selection with multi-select dropdown"""
-    
-    def __init__(self, user_id: int, guild_id: int):
-        super().__init__(timeout=None)
-        self.user_id = user_id
-        self.guild_id = guild_id
-        
-        # Add the role select dropdown
-        self.add_item(RoleSelect(user_id, guild_id))
-
-
-# ✅ Owner-only commands for bot management
-# ✅ Owner-only commands for bot management
-
+# Owner-only management commands
 @commands.command(name="sync")
 @commands.is_owner()
 async def sync_commands(ctx):
-    """
-    Fast sync to your guild (recommended while developing).
-    This makes new slash commands appear immediately in your server.
-    """
     try:
         bot = ctx.bot
         guild = discord.Object(id=bot.guild_id)
-
-        # Clear guild commands then rebuild from global commands
         bot.tree.clear_commands(guild=guild)
         bot.tree.copy_global_to(guild=guild)
-
         synced = await bot.tree.sync(guild=guild)
         await ctx.send(f"✓ Synced {len(synced)} command(s) to guild")
     except Exception as e:
         await ctx.send(f"✗ Error: {e}")
 
-
-@commands.command(name="sync_global")
-@commands.is_owner()
-async def sync_global(ctx):
-    """
-    Sync GLOBAL commands (can take time to show up on Discord).
-    """
-    try:
-        synced = await ctx.bot.tree.sync()
-        await ctx.send(f"✓ Synced {len(synced)} global command(s)")
-    except Exception as e:
-        await ctx.send(f"✗ Error: {e}")
-
-
 @commands.command(name="sync_clear")
 @commands.is_owner()
 async def sync_clear(ctx):
-    """
-    Clear ALL guild commands, then re-copy from global and sync again.
-    Use this if Discord is showing duplicate/old commands.
-    """
     try:
         bot = ctx.bot
         guild = discord.Object(id=bot.guild_id)
-
-        # Clear guild commands
         bot.tree.clear_commands(guild=guild)
         await bot.tree.sync(guild=guild)
-
-        # Rebuild from global and sync
-        bot.tree.copy_global_to(guild=guild)
-        synced = await bot.tree.sync(guild=guild)
-
-        # If your bot uses _synced flag, reset it
-        if hasattr(bot, "_synced"):
-            bot._synced = False
-
-        await ctx.send(f"✓ Cleared and re-synced {len(synced)} command(s) to guild")
-    except Exception as e:
-        await ctx.send(f"✗ Error: {e}")
-@commands.command(name="sync_clear")
-@commands.is_owner()
-async def sync_clear(ctx):
-    """Clear and re-sync all commands (Owner only)"""
-    try:
-        bot = ctx.bot
-        guild = discord.Object(id=bot.guild_id)
-        
-        # Clear guild commands
-        bot.tree.clear_commands(guild=guild)
-        await bot.tree.sync(guild=guild)
-        
-        # Wait a moment
-        await asyncio.sleep(1)
-        
-        # Reset sync flag so next restart will sync
         bot._synced = False
-        
         await ctx.send(f"✓ Cleared all commands! Restart bot to re-register.")
     except Exception as e:
         await ctx.send(f"✗ Error: {e}")
 
-
-@commands.command(name="reload")
-@commands.is_owner()
-async def reload_cogs(ctx, cog_name: str = None):
-    """Reload cogs (Owner only)"""
-    bot = ctx.bot
-    try:
-        if cog_name:
-            # Reload specific cog
-            await bot.reload_extension(f"cogs.{cog_name}")
-            await ctx.send(f"✓ Reloaded cog: {cog_name}")
-        else:
-            # Reload all cogs
-            cogs_dir = "cogs"
-            reloaded = []
-            for filename in os.listdir(cogs_dir):
-                if filename.endswith(".py") and not filename.startswith("_"):
-                    cog_name = filename[:-3]
-                    try:
-                        await bot.reload_extension(f"cogs.{cog_name}")
-                        reloaded.append(cog_name)
-                    except Exception as e:
-                        await ctx.send(f"✗ Failed to reload {cog_name}: {e}")
-            
-            # Re-sync commands
-            guild = discord.Object(id=bot.guild_id)
-            await bot.tree.sync(guild=guild)
-            await ctx.send(f"✓ Reloaded {len(reloaded)} cogs: {', '.join(reloaded)}")
-    except Exception as e:
-        await ctx.send(f"✗ Error: {e}")
-
-
-@commands.command(name="status")
-@commands.is_owner()
-async def bot_status(ctx):
-    """Show bot status (Owner only)"""
-    bot = ctx.bot
-    
-    embed = discord.Embed(
-        title="🤖 Bot Status",
-        color=discord.Color.green()
-    )
-    
-    # Commands
-    cmds = bot.tree.get_commands()
-    embed.add_field(name="Commands", value=f"{len(cmds)} registered", inline=True)
-    
-    # Cogs
-    cogs = list(bot.cogs.keys())
-    embed.add_field(name="Cogs", value=f"{len(cogs)} loaded", inline=True)
-    
-    # Voice tracking
-    voice_users = len(bot._voice_times)
-    embed.add_field(name="Voice Tracking", value=f"{voice_users} users", inline=True)
-    
-    # Guilds
-    embed.add_field(name="Guilds", value=f"{len(bot.guilds)}", inline=True)
-    
-    # Latency
-    embed.add_field(name="Latency", value=f"{round(bot.latency * 1000)}ms", inline=True)
-    
-    # Sync status
-    embed.add_field(name="Synced", value=f"{'Yes' if bot._synced else 'No'}", inline=True)
-    
-    await ctx.send(embed=embed)
-
-
 def run_bot():
-    """Run the bot"""
     bot = StudioBot()
-    
-    # Add owner commands
     bot.add_command(sync_commands)
-    bot.add_command(sync_global)
     bot.add_command(sync_clear)
-    bot.add_command(reload_cogs)
-    bot.add_command(bot_status)
-    
     bot.run(DISCORD_TOKEN)
-
 
 if __name__ == "__main__":
     run_bot()
