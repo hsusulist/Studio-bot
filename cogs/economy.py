@@ -110,10 +110,8 @@ class EconomyCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-
-async def setup(bot):
-    @bot.tree.command(name="quest", description="Daily quests and rewards")
-    async def quest_cmd(interaction: discord.Interaction):
+    @app_commands.command(name="quest", description="Daily quests and rewards")
+    async def quest_cmd(self, interaction: discord.Interaction):
         await interaction.response.defer()
         user = await UserProfile.get_user(interaction.user.id)
         
@@ -139,8 +137,8 @@ async def setup(bot):
         )
         await interaction.followup.send(embed=embed, view=view)
     
-    @bot.tree.command(name="review", description="AI-powered code review (Luau/Lua)")
-    async def review_cmd(interaction: discord.Interaction):
+    @app_commands.command(name="review", description="AI-powered code review (Luau/Lua)")
+    async def review_cmd(self, interaction: discord.Interaction):
         await interaction.response.defer()
         embed = discord.Embed(
             title="Code Review",
@@ -163,8 +161,8 @@ async def setup(bot):
         await UserProfile.add_xp(interaction.user.id, 25)
         await interaction.followup.send(embed=review_embed)
     
-    @bot.tree.command(name="card", description="View your developer card")
-    async def card_cmd(interaction: discord.Interaction):
+    @app_commands.command(name="card", description="View your developer card")
+    async def card_cmd(self, interaction: discord.Interaction):
         await interaction.response.defer()
         user = await UserProfile.get_user(interaction.user.id)
         
@@ -201,9 +199,9 @@ async def setup(bot):
         embed.set_footer(text="Developer of the Community")
         await interaction.followup.send(embed=embed)
 
-    @bot.tree.command(name="credits", description="Check your Studio Credits and pCredits balance")
-    async def credits_cmd(interaction: discord.Interaction):
-        await interaction.response.defer()
+    @app_commands.command(name="credits", description="Check your Studio Credits and pCredits balance")
+    async def credits_cmd(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
         user = await UserProfile.get_user(interaction.user.id)
         if not user:
             await UserProfile.create_user(interaction.user.id, interaction.user.name)
@@ -217,11 +215,13 @@ async def setup(bot):
         embed.add_field(name="pCredits", value=f"💎 {user.get('pcredits', 0)}", inline=True)
         embed.add_field(name="AI Credits", value=f"🤖 {user.get('ai_credits', 0)}", inline=True)
         
-        await interaction.followup.send(embed=embed)
+        await interaction.followup.send(embed=embed, ephemeral=True)
 
-    @bot.tree.command(name="credit", description="Check your Studio Credits and pCredits balance (alias)")
-    async def credit_alias_cmd(interaction: discord.Interaction):
+    @app_commands.command(name="credit", description="Check your Studio Credits and pCredits balance (alias)")
+    async def credit_alias_cmd(self, interaction: discord.Interaction):
         """Alias for /credits"""
-        await credits_cmd(interaction)
-    
+        await self.credits_cmd(interaction)
+
+
+async def setup(bot):
     await bot.add_cog(EconomyCog(bot))

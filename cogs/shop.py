@@ -551,301 +551,50 @@ class RateSellerView(discord.ui.View):
         await self.submit_rating(interaction, 5)
     
     async def submit_rating(self, interaction: discord.Interaction, rating: int):
+        if interaction.user.id != self.buyer_id:
+            await interaction.response.send_message("Only the buyer can rate this seller!", ephemeral=True)
+            return
+            
         await interaction.response.defer(ephemeral=True)
-        
-        # Add review
-        await MarketplaceData.add_review(
-            self.listing_id,
-            self.buyer_id,
-            rating,
-            f"Rated {rating}/5 stars"
-        )
-        
-        # Get updated seller info
-        seller = await UserProfile.get_user(self.seller_id)
-        seller_rating = seller.get('seller_rating', 5.0) if seller else 5.0
-        can_sell = seller.get('can_sell', True) if seller else True
+        await MarketplaceData.add_rating(self.listing_id, self.seller_id, rating)
         
         embed = discord.Embed(
-            title="✅ Rating Submitted!",
-            description=f"You rated this seller **{rating}/5** ⭐",
+            title="⭐ Thanks for Rating!",
+            description=f"You gave a {rating}-star rating.",
             color=discord.Color.green()
         )
-        embed.add_field(name="Seller's New Rating", value=f"⭐ {seller_rating}/5", inline=True)
-        
-        if not can_sell:
-            embed.add_field(
-                name="⚠️ Seller Restricted",
-                value="This seller's rating dropped too low and they can no longer sell.",
-                inline=False
-            )
-        
         await interaction.followup.send(embed=embed, ephemeral=True)
-        
-        # Disable the view
         self.stop()
 
 
-# ==================== COG SETUP ====================
 class ShopCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    @app_commands.command(name="sell", description="Sell your asset on the marketplace")
+    async def sell_cmd(self, interaction: discord.Interaction):
+        """Open the sell menu"""
+        if interaction.response.is_done():
+            return
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except discord.errors.InteractionResponded:
+            pass
+        
+        view = SellView(interaction.user.id)
+        embed = discord.Embed(
+            title="💰 Sell on Marketplace",
+            description="Choose what you want to sell today!\n\n"
+                       "📝 **Code:** Paste Lua/Luau code snippet\n"
+                       "🏗️ **Builds:** Upload .rbxm/.rbxmx model file\n"
+                       "🎨 **UIs:** Upload .rbxm/.rbxmx UI model",
+            color=BOT_COLOR
+        )
+        
+        await interaction.followup.send(embed=embed, view=view, ephemeral=True)
 
-async def setup(bot):
-    @bot.tree.command(name="shop", description="Browse the marketplace")
-    async def shop_cmd(interaction: discord.Interaction):
-        await interaction.response.defer()
-        
-        user = await UserProfile.get_user(interaction.user.id)
-        if not user:
-            await UserProfile.create_user(interaction.user.id, interaction.user.name)
-            user = await UserProfile.get_user(interaction.user.id)
-        
-        view = ShopView(interaction.user.id)
-        
-        # Get initial listings
-        result = await MarketplaceData.get_listings(page=1, per_page=5)
-        listings = result['listings']
-        total = result['total']
-        total_pages = result['total_pages']
-        
-        embed = discord.Embed(
-            title="🛍️ Marketplace",
-            description=f"**{total}** listings available | Page **1/{total_pages}**\n\nUse `/buy <ID>` to purchase!",
-            color=BOT_COLOR
-        )
-        
-        if not listings:
-            embed.add_field(
-                name="No listings yet!",
-                value="Be the first to sell with `/sell`!",
-                inline=False
-            )
-        else:
-            for listing in listings:
-                cat_emoji = CATEGORY_EMOJIS.get(listing.get('category', 'code'), '📝')
-                rating = listing.get('rating', 0)
-                stars = "⭐" * int(rating) + "☆" * (5 - int(rating)) if rating > 0 else "No ratings"
-                
-                embed.add_field(
-                    name=f"{cat_emoji} {listing.get('title', 'Untitled')} | ID: `{listing.get('listing_id', 'N/A')}`",
-                    value=f"💰 **{listing.get('price', 0)}** Credits | {stars}\n"
-                          f"📊 Sold: {listing.get('sold', 0)} | By: <@{listing.get('seller_id', 0)}>",
-                    inline=False
-                )
-        
-        embed.set_footer(text=f"Balance: {user.get('studio_credits', 0)} 💰 | Use buttons to filter")
-        
-        await interaction.followup.send(embed=embed, view=view)
-    
-    @bot.tree.command(name="sell", description="Sell code, builds, or UIs on the marketplace")
-    async def sell_cmd(interaction: discord.Interaction):
-        await interaction.response.defer(ephemeral=True)
-        
-        user = await UserProfile.get_user(interaction.user.id)
-        if not user:
-            await UserProfile.create_user(interaction.user.id, interaction.user.name)
-            user = await UserProfile.get_user(interaction.user.id)
-        
-        # Check if user can sell
-        can_sell, reason = await MarketplaceData.can_user_sell(interaction.user.id)
-        
-        embed = discord.Embed(
-            title="🛒 Sell on Marketplace",
-            description="Choose what you want to sell:",
-            color=BOT_COLOR
-        )
-        
-        if not can_sell:
-            embed.add_field(
-                name="⚠️ Selling Restricted",
-                value=reason,
-                inline=False
-            )
-            embed.color = discord.Color.red()
-        else:
-            embed.add_field(name="📝 Code", value="Sell Lua/Luau scripts", inline=True)
-            embed.add_field(name="🏗️ Builds", value="Sell .rbxm/.rbxmx files", inline=True)
-            embed.add_field(name="🎨 UIs", value="Sell UI designs", inline=True)
-            embed.add_field(
-                name="Your Seller Stats",
-                value=f"⭐ Rating: {user.get('seller_rating', 5.0)}/5\n"
-                      f"📊 Total Sales: {user.get('sales_count', 0)}",
-                inline=False
-            )
-        
-        view = SellView(interaction.user.id) if can_sell else None
-        await interaction.followup.send(embed=embed, view=view, ephemeral=True)
-    
-    @bot.tree.command(name="buy", description="Buy a listing by ID")
-    @app_commands.describe(listing_id="The ID of the listing to buy (e.g., L-ABC12345)")
-    async def buy_cmd(interaction: discord.Interaction, listing_id: str):
-        await interaction.response.defer(ephemeral=True)
-        
-        # Get listing
-        listing = await MarketplaceData.get_listing(listing_id)
-        
-        if not listing:
-            embed = discord.Embed(
-                title="❌ Listing Not Found",
-                description=f"No listing found with ID `{listing_id}`\n\nUse `/shop` to browse listings.",
-                color=discord.Color.red()
-            )
-            await interaction.followup.send(embed=embed, ephemeral=True)
-            return
-        
-        # Check if listing is active
-        if listing.get('status') != 'active':
-            embed = discord.Embed(
-                title="❌ Listing Unavailable",
-                description="This listing is no longer available.",
-                color=discord.Color.red()
-            )
-            await interaction.followup.send(embed=embed, ephemeral=True)
-            return
-        
-        # Get buyer
-        buyer = await UserProfile.get_user(interaction.user.id)
-        if not buyer:
-            await UserProfile.create_user(interaction.user.id, interaction.user.name)
-            buyer = await UserProfile.get_user(interaction.user.id)
-        
-        seller_id = listing.get('seller_id')
-        price = listing.get('price', 0)
-        
-        # Check if trying to buy own listing
-        if seller_id == interaction.user.id:
-            embed = discord.Embed(
-                title="❌ Cannot Buy",
-                description="You can't buy your own listing!",
-                color=discord.Color.red()
-            )
-            await interaction.followup.send(embed=embed, ephemeral=True)
-            return
-        
-        # Check if already purchased
-        purchases = buyer.get('purchases', [])
-        if any(p.get('listing_id') == listing_id for p in purchases):
-            embed = discord.Embed(
-                title="❌ Already Purchased",
-                description="You already own this item!",
-                color=discord.Color.red()
-            )
-            await interaction.followup.send(embed=embed, ephemeral=True)
-            return
-        
-        # Check credits
-        buyer_credits = buyer.get('studio_credits', 0)
-        if buyer_credits < price:
-            embed = discord.Embed(
-                title="❌ Insufficient Credits",
-                description=f"You need **{price}** 💰 but only have **{buyer_credits}** 💰",
-                color=discord.Color.red()
-            )
-            await interaction.followup.send(embed=embed, ephemeral=True)
-            return
-        
-        # Process purchase
-        await UserProfile.add_credits(interaction.user.id, -price)
-        await UserProfile.add_credits(seller_id, price)
-        await UserProfile.add_purchase(interaction.user.id, listing_id)
-        await MarketplaceData.increment_sold(listing_id)
-        
-        # Create transaction
-        await TransactionData.create_transaction(
-            seller_id, interaction.user.id, price, listing_id, "marketplace"
-        )
-        
-        # Build success embed
-        cat_emoji = CATEGORY_EMOJIS.get(listing.get('category', 'code'), '📝')
-        
-        embed = discord.Embed(
-            title="✅ Purchase Successful!",
-            description=f"You bought **{listing.get('title')}**!",
-            color=discord.Color.green()
-        )
-        embed.add_field(name="Category", value=f"{cat_emoji} {listing.get('category', 'code').title()}", inline=True)
-        embed.add_field(name="Price Paid", value=f"💰 {price}", inline=True)
-        embed.add_field(name="Listing ID", value=f"`{listing_id}`", inline=True)
-        
-        # Deliver content based on category
-        category = listing.get('category', 'code')
-        
-        if category == 'code':
-            code = listing.get('code', 'No code available')
-            embed.add_field(
-                name="📝 Your Code",
-                value=f"```lua\n{code[:1000]}{'...' if len(code) > 1000 else ''}\n```",
-                inline=False
-            )
-        elif category in ['build', 'ui']:
-            file_path = listing.get('file_path')
-            file_name = listing.get('file_name', 'file.rbxm')
-            
-            if file_path and os.path.exists(file_path):
-                embed.add_field(
-                    name="📁 Your File",
-                    value=f"File: `{file_name}`\n\nThe file will be sent to your DMs!",
-                    inline=False
-                )
-                
-                # Send file via DM
-                try:
-                    file = discord.File(file_path, filename=file_name)
-                    dm_embed = discord.Embed(
-                        title=f"📦 Your Purchase: {listing.get('title')}",
-                        description=f"Here's your {category} file!",
-                        color=BOT_COLOR
-                    )
-                    await interaction.user.send(embed=dm_embed, file=file)
-                except discord.Forbidden:
-                    embed.add_field(
-                        name="⚠️ DM Failed",
-                        value="Couldn't send file to your DMs. Please enable DMs!",
-                        inline=False
-                    )
-            else:
-                embed.add_field(
-                    name="⚠️ File Not Found",
-                    value="The file is no longer available. Contact the seller.",
-                    inline=False
-                )
-        
-        embed.add_field(
-            name="📊 Rate This Seller",
-            value="Please rate your experience using the buttons below!",
-            inline=False
-        )
-        
-        # Add rating view
-        view = RateSellerView(listing_id, seller_id, interaction.user.id)
-        
-        await interaction.followup.send(embed=embed, view=view, ephemeral=True)
-    
-    @bot.tree.command(name="credits", description="Check your credits balance")
-    async def credits_cmd(interaction: discord.Interaction):
-        await interaction.response.defer(ephemeral=True)
-        
-        user = await UserProfile.get_user(interaction.user.id)
-        if not user:
-            await UserProfile.create_user(interaction.user.id, interaction.user.name)
-            user = await UserProfile.get_user(interaction.user.id)
-        
-        embed = discord.Embed(
-            title=f"💰 {interaction.user.display_name}'s Wallet",
-            color=BOT_COLOR
-        )
-        embed.add_field(name="Credits", value=f"**{user.get('studio_credits', 0)}** 💰", inline=True)
-        embed.add_field(name="Player ID", value=f"`{user.get('player_id', 'N/A')}`", inline=True)
-        embed.add_field(name="Seller Rating", value=f"⭐ {user.get('seller_rating', 5.0)}/5", inline=True)
-        embed.add_field(name="Total Sales", value=f"📊 {user.get('sales_count', 0)}", inline=True)
-        embed.add_field(name="Can Sell", value="✅ Yes" if user.get('can_sell', True) else "❌ No", inline=True)
-        
-        await interaction.followup.send(embed=embed, ephemeral=True)
-    
-    @bot.tree.command(name="myid", description="View your unique Player ID")
-    async def myid_cmd(interaction: discord.Interaction):
+    @app_commands.command(name="myid", description="View your unique Player ID")
+    async def myid_cmd(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
         
         user = await UserProfile.get_user(interaction.user.id)
@@ -863,5 +612,6 @@ async def setup(bot):
         embed.add_field(name="Rank", value=user.get('rank', 'Beginner'), inline=True)
         
         await interaction.followup.send(embed=embed, ephemeral=True)
-    
+
+async def setup(bot):
     await bot.add_cog(ShopCog(bot))
