@@ -40,7 +40,7 @@ MAX_CONVERSATION_MESSAGES = 150
 
 
 # -----------------------------
-# 50 LESSONS (shortened for space - use your full LESSONS list)
+# 50 LESSONS - Complete Roblox Lua/Luau Curriculum
 # -----------------------------
 LESSONS: List[dict] = [
     # ===== PHASE 1: FUNDAMENTALS (1-12) =====
@@ -54,26 +54,26 @@ LESSONS: List[dict] = [
         "learning_objectives": [
             "Understand what print() is and why it matters",
             "Use print() to debug code",
-            "Distinguish between print(), warn(), and error()",
-            "Print multiple values simultaneously",
-            "Use string formatting within print",
+            "Differentiate between print(), warn(), and error()",
+            "Print multiple values at once",
+            "Use string formatting inside print",
         ],
         "subtopics": [
             {"name": "Basic print()", "description": "How to use print() to display text", "examples": 2},
-            {"name": "In biến", "description": "How to print values of variables", "examples": 2},
-            {"name": "In nhiều giá trị", "description": "print(a, b, c) with commas", "examples": 2},
-            {"name": "warn() cho cảnh báo", "description": "When to use warn()", "examples": 1},
-            {"name": "error() cho lỗi", "description": "When to use error()", "examples": 1},
-            {"name": "Debug với print", "description": "Basic debugging techniques", "examples": 2},
+            {"name": "Printing variables", "description": "How to print variable values", "examples": 2},
+            {"name": "Printing multiple values", "description": "print(a, b, c) with commas", "examples": 2},
+            {"name": "warn() for warnings", "description": "When to use warn()", "examples": 1},
+            {"name": "error() for errors", "description": "When to use error()", "examples": 1},
+            {"name": "Debugging with print", "description": "Basic debugging techniques", "examples": 2},
         ],
         "common_mistakes": [
             "Forgetting parentheses: print 'hello' instead of print('hello')",
-            "Confusing print and return",
+            "Confusing print with return",
             "Not knowing where output appears in Roblox Studio",
         ],
         "real_world": "Debug scripts, log player actions, test code",
         "estimated_time": "15-20 minutes",
-        "mini_project": "Create a script to print player info when they join the game"
+        "mini_project": "Create a script that prints player info when they join the game"
     },
     {
         "n": 2,
@@ -83,59 +83,59 @@ LESSONS: List[dict] = [
         "difficulty": "Beginner",
         "prerequisites": [1],
         "learning_objectives": [
-            "Understand what variables are and why they are needed",
+            "Understand what a variable is and why you need them",
             "Declare local variables correctly",
             "Understand why you should AVOID global variables",
-            "Follow variable naming conventions",
+            "Name variables following conventions",
             "Assign and change variable values",
         ],
         "subtopics": [
-            {"name": "What is a variable?", "description": "Data storage container concept", "examples": 2},
-            {"name": "Declaring local", "description": "local variableName = value", "examples": 3},
-            {"name": "Global variables", "description": "Why they should NOT be used", "examples": 2},
+            {"name": "What is a variable?", "description": "The concept of a container that stores data", "examples": 2},
+            {"name": "Declaring local variables", "description": "local variableName = value", "examples": 3},
+            {"name": "Global variables", "description": "Why you should NOT use them", "examples": 2},
             {"name": "Naming conventions", "description": "camelCase, UPPER_CASE for constants", "examples": 2},
             {"name": "Reassignment", "description": "Changing variable values", "examples": 2},
             {"name": "Multiple assignment", "description": "local a, b, c = 1, 2, 3", "examples": 1},
         ],
         "common_mistakes": [
-            "Not using local -> creating global variables",
-            "Using unclear variable names: x, temp, data",
+            "Not using local → creates a global variable",
+            "Naming variables unclearly: x, temp, data",
             "Using a variable before declaring it",
         ],
-        "real_world": "Save player health, game settings, counters",
+        "real_world": "Store player health, game settings, counters",
         "estimated_time": "20-25 minutes",
-        "mini_project": "Create a player data system using variables"
+        "mini_project": "Create a system that stores player info using variables"
     },
     {
         "n": 3,
-        "title": "Data Types",
+        "title": "Data Types - The Building Blocks",
         "phase": "Fundamentals",
         "keywords": ["number", "string", "boolean", "nil", "table", "typeof", "type"],
         "difficulty": "Beginner",
         "prerequisites": [2],
         "learning_objectives": [
-            "Identify 6 basic data types in Lua",
+            "Identify the 6 basic data types in Lua",
             "Use typeof() to check types",
-            "Understand when to use each type",
+            "Know when to use which type",
             "Convert between types",
         ],
         "subtopics": [
             {"name": "Numbers", "description": "Integers and decimals, no distinction", "examples": 2},
-            {"name": "Strings", "description": "Text in quotes", "examples": 2},
+            {"name": "Strings", "description": "Text inside quotes", "examples": 2},
             {"name": "Booleans", "description": "true and false", "examples": 2},
-            {"name": "nil", "description": "The 'nothing' value", "examples": 2},
+            {"name": "nil", "description": "The value of 'nothing'", "examples": 2},
             {"name": "Tables", "description": "Basic introduction to tables", "examples": 1},
-            {"name": "typeof()", "description": "Checking the type of a value", "examples": 2},
+            {"name": "typeof()", "description": "Check the type of a value", "examples": 2},
             {"name": "Type conversion", "description": "tonumber(), tostring()", "examples": 2},
         ],
         "common_mistakes": [
             "Confusing '5' (string) with 5 (number)",
             "Forgetting nil is not 'nil' (string)",
-            "Not checking type before operations",
+            "Not checking type before performing operations",
         ],
         "real_world": "Player health (number), name (string), isAlive (boolean)",
         "estimated_time": "25-30 minutes",
-        "mini_project": "Create a player data table with various types"
+        "mini_project": "Create a player data table using all types"
     },
     {
         "n": 4,
@@ -146,28 +146,28 @@ LESSONS: List[dict] = [
         "prerequisites": [3],
         "learning_objectives": [
             "Master creating and manipulating strings",
-            "Concatenate strings using the .. operator",
-            "Use string methods effectively",
-            "Use string interpolation with backticks",
+            "Concatenate strings with the .. operator",
+            "Use string methods",
+            "String interpolation with backticks",
         ],
         "subtopics": [
             {"name": "Creating strings", "description": "Single, double quotes, [[multiline]]", "examples": 2},
             {"name": "Concatenation", "description": "Joining strings with ..", "examples": 2},
             {"name": "String length", "description": "#string or string.len()", "examples": 1},
-            {"name": "string.sub()", "description": "Extracting part of a string", "examples": 2},
-            {"name": "string.find()", "description": "Finding substring positions", "examples": 2},
-            {"name": "string.upper/lower", "description": "Changing case", "examples": 1},
-            {"name": "string.format()", "description": "Formatting strings with placeholders", "examples": 2},
+            {"name": "string.sub()", "description": "Extract part of a string", "examples": 2},
+            {"name": "string.find()", "description": "Find substring position", "examples": 2},
+            {"name": "string.upper/lower", "description": "Convert to upper/lowercase", "examples": 1},
+            {"name": "string.format()", "description": "Format strings with placeholders", "examples": 2},
             {"name": "String interpolation", "description": "`Hello {name}`", "examples": 2},
         ],
         "common_mistakes": [
-            "Joining numbers with strings without conversion: 'Score: ' .. 100",
+            "Concatenating number with string without conversion: 'Score: ' .. 100",
             "Confusing # with .len()",
-            "Indexing strings from 1, not 0",
+            "String indexing starts at 1, not 0",
         ],
         "real_world": "Chat messages, UI text, formatted output",
         "estimated_time": "20-25 minutes",
-        "mini_project": "Create a chat format system with colors and prefixes"
+        "mini_project": "Create a chat formatting system with colors and prefixes"
     },
     {
         "n": 5,
@@ -185,15 +185,15 @@ LESSONS: List[dict] = [
         "subtopics": [
             {"name": "Arithmetic operators", "description": "+, -, *, /, %, ^", "examples": 2},
             {"name": "Order of operations", "description": "PEMDAS in Lua", "examples": 2},
-            {"name": "math.floor/ceil", "description": "Rounding down/up", "examples": 2},
+            {"name": "math.floor/ceil", "description": "Round down/up", "examples": 2},
             {"name": "math.abs", "description": "Absolute value", "examples": 1},
             {"name": "math.random", "description": "Random numbers", "examples": 3},
-            {"name": "math.clamp", "description": "Limiting values within a range", "examples": 2},
-            {"name": "math.min/max", "description": "Finding minimum/maximum", "examples": 1},
+            {"name": "math.clamp", "description": "Constrain a value within a range", "examples": 2},
+            {"name": "math.min/max", "description": "Find min/max", "examples": 1},
         ],
         "common_mistakes": [
-            "Division by zero",
-            "Forgetting that math.random() may need a seed",
+            "Dividing by zero",
+            "Forgetting math.random() needs a seed",
             "Not using clamp for health/values",
         ],
         "real_world": "Damage calculations, random loot, health regen",
@@ -217,23 +217,23 @@ LESSONS: List[dict] = [
             {"name": "true and false", "description": "Boolean values", "examples": 2},
             {"name": "Comparison operators", "description": "==, ~=, <, >, <=, >=", "examples": 3},
             {"name": "Logical AND", "description": "Both must be true", "examples": 2},
-            {"name": "Logical OR", "description": "One of them must be true", "examples": 2},
-            {"name": "Logical NOT", "description": "Inverting a boolean", "examples": 2},
+            {"name": "Logical OR", "description": "Either one is true", "examples": 2},
+            {"name": "Logical NOT", "description": "Invert a boolean", "examples": 2},
             {"name": "Truthy/Falsy", "description": "nil and false are falsy", "examples": 2},
-            {"name": "Short-circuit", "description": "and/or returning values", "examples": 2},
+            {"name": "Short-circuit", "description": "and/or return values", "examples": 2},
         ],
         "common_mistakes": [
             "Using = instead of == for comparison",
             "Using != instead of ~=",
             "Not understanding truthy/falsy",
         ],
-        "real_world": "Checking player conditions, game state logic",
+        "real_world": "Check player conditions, game state logic",
         "estimated_time": "25-30 minutes",
         "mini_project": "Create a permission system with multiple conditions"
     },
     {
         "n": 7,
-        "title": "if/elseif/else - Conditions",
+        "title": "if/elseif/else - Conditionals",
         "phase": "Fundamentals",
         "keywords": ["if", "then", "elseif", "else", "end", "conditional", "branch"],
         "difficulty": "Beginner",
@@ -248,12 +248,12 @@ LESSONS: List[dict] = [
             {"name": "if-then-end", "description": "Basic structure", "examples": 2},
             {"name": "if-else", "description": "Adding an alternative branch", "examples": 2},
             {"name": "elseif chains", "description": "Multiple conditions", "examples": 2},
-            {"name": "Nested if", "description": "If inside an if", "examples": 2},
+            {"name": "Nested if", "description": "If inside if", "examples": 2},
             {"name": "Guard clauses", "description": "Early return pattern", "examples": 2},
             {"name": "Ternary-like", "description": "condition and a or b", "examples": 2},
         ],
         "common_mistakes": [
-            "Forgetting 'then' after a condition",
+            "Forgetting 'then' after condition",
             "Forgetting 'end'",
             "Using too many nested ifs (pyramid of doom)",
         ],
@@ -263,22 +263,22 @@ LESSONS: List[dict] = [
     },
     {
         "n": 8,
-        "title": "Functions - Basic Functions",
+        "title": "Functions - The Basics",
         "phase": "Fundamentals",
         "keywords": ["function", "end", "call", "invoke", "define", "declaration"],
         "difficulty": "Beginner",
         "prerequisites": [7],
         "learning_objectives": [
-            "Understand what a function is and why it's needed",
+            "Understand what a function is and why you need them",
             "Define and call functions",
-            "DRY (Don't Repeat Yourself) principle",
+            "DRY principle",
             "Local vs global functions",
         ],
         "subtopics": [
             {"name": "What is a function?", "description": "Reusable code blocks", "examples": 2},
             {"name": "Defining a function", "description": "local function name() end", "examples": 2},
             {"name": "Calling a function", "description": "functionName()", "examples": 2},
-            {"name": "Anonymous functions", "description": "Unnamed function() end", "examples": 2},
+            {"name": "Anonymous functions", "description": "function() end without a name", "examples": 2},
             {"name": "Functions as values", "description": "local f = function() end", "examples": 1},
             {"name": "DRY principle", "description": "Don't Repeat Yourself", "examples": 2},
         ],
@@ -299,8 +299,8 @@ LESSONS: List[dict] = [
         "difficulty": "Intermediate",
         "prerequisites": [8],
         "learning_objectives": [
-            "Pass data into functions using parameters",
-            "Return data with the return statement",
+            "Pass data into functions with parameters",
+            "Return data with return",
             "Multiple return values",
             "Default parameter pattern",
         ],
@@ -310,11 +310,11 @@ LESSONS: List[dict] = [
             {"name": "Return statement", "description": "Returning a value", "examples": 2},
             {"name": "Multiple returns", "description": "return a, b, c", "examples": 2},
             {"name": "Default values", "description": "param = param or default", "examples": 2},
-            {"name": "Variadic (...)", "description": "Receiving unlimited number of args", "examples": 2},
+            {"name": "Variadic (...)", "description": "Accept unlimited arguments", "examples": 2},
         ],
         "common_mistakes": [
             "Not returning anything (nil by default)",
-            "Forgetting to receive multiple returns",
+            "Forgetting to capture multiple returns",
             "Changing a parameter doesn't affect outside the function",
         ],
         "real_world": "Damage calculation, utility functions",
@@ -329,28 +329,28 @@ LESSONS: List[dict] = [
         "difficulty": "Intermediate",
         "prerequisites": [9],
         "learning_objectives": [
-            "Tạo và thao tác arrays",
-            "Index từ 1 (không phải 0)",
-            "Thêm/xóa elements",
-            "Lấy length với #",
+            "Create and manipulate arrays",
+            "Index starting from 1 (not 0)",
+            "Add/remove elements",
+            "Get length with #",
         ],
         "subtopics": [
-            {"name": "Tạo array", "description": "local arr = {1, 2, 3}", "examples": 2},
-            {"name": "Truy cập elements", "description": "arr[1], arr[2]", "examples": 2},
-            {"name": "Thay đổi elements", "description": "arr[1] = newValue", "examples": 2},
-            {"name": "table.insert", "description": "Thêm element", "examples": 2},
-            {"name": "table.remove", "description": "Xóa element", "examples": 2},
+            {"name": "Creating an array", "description": "local arr = {1, 2, 3}", "examples": 2},
+            {"name": "Accessing elements", "description": "arr[1], arr[2]", "examples": 2},
+            {"name": "Changing elements", "description": "arr[1] = newValue", "examples": 2},
+            {"name": "table.insert", "description": "Adding an element", "examples": 2},
+            {"name": "table.remove", "description": "Removing an element", "examples": 2},
             {"name": "Array length", "description": "#array", "examples": 2},
-            {"name": "Nested arrays", "description": "Array trong array", "examples": 1},
+            {"name": "Nested arrays", "description": "Arrays inside arrays", "examples": 1},
         ],
         "common_mistakes": [
-            "Index từ 0 (Lua bắt đầu từ 1)",
-            "Dùng table.insert sai cách",
-            "Quên # chỉ work với sequential indices",
+            "Indexing from 0 (Lua starts at 1)",
+            "Using table.insert incorrectly",
+            "Forgetting # only works with sequential indices",
         ],
         "real_world": "Inventory systems, player lists",
         "estimated_time": "30-35 minutes",
-        "mini_project": "Tạo inventory system đơn giản"
+        "mini_project": "Create a simple inventory system"
     },
     {
         "n": 11,
@@ -360,166 +360,166 @@ LESSONS: List[dict] = [
         "difficulty": "Intermediate",
         "prerequisites": [10],
         "learning_objectives": [
-            "Tạo key-value pairs",
-            "Truy cập với dot và bracket notation",
-            "Thêm/xóa keys",
-            "Check key exists",
+            "Create key-value pairs",
+            "Access with dot and bracket notation",
+            "Add/remove keys",
+            "Check if a key exists",
         ],
         "subtopics": [
-            {"name": "Tạo dictionary", "description": "{key = value}", "examples": 2},
+            {"name": "Creating a dictionary", "description": "{key = value}", "examples": 2},
             {"name": "Dot notation", "description": "dict.key", "examples": 2},
-            {"name": "Bracket notation", "description": "dict['key'] và dict[variable]", "examples": 2},
-            {"name": "Thêm key mới", "description": "dict.newKey = value", "examples": 2},
-            {"name": "Xóa key", "description": "dict.key = nil", "examples": 1},
-            {"name": "Check exists", "description": "if dict.key then", "examples": 2},
+            {"name": "Bracket notation", "description": "dict['key'] and dict[variable]", "examples": 2},
+            {"name": "Adding a new key", "description": "dict.newKey = value", "examples": 2},
+            {"name": "Removing a key", "description": "dict.key = nil", "examples": 1},
+            {"name": "Check if exists", "description": "if dict.key then", "examples": 2},
             {"name": "Mixed tables", "description": "Array + dictionary", "examples": 2},
         ],
         "common_mistakes": [
-            "Dùng dot cho key là biến",
-            "Không check nil trước khi truy cập nested",
-            "Nhầm giữa array và dictionary",
+            "Using dot when the key is a variable",
+            "Not checking for nil before accessing nested values",
+            "Confusing arrays and dictionaries",
         ],
         "real_world": "Player stats, game config, data storage",
         "estimated_time": "30-35 minutes",
-        "mini_project": "Tạo player stats system"
+        "mini_project": "Create a player stats system"
     },
     {
         "n": 12,
-        "title": "Loops - for và ipairs",
+        "title": "Loops - for and ipairs",
         "phase": "Fundamentals",
         "keywords": ["for", "ipairs", "loop", "iterate", "numeric", "break", "continue"],
         "difficulty": "Intermediate",
         "prerequisites": [10],
         "learning_objectives": [
             "Numeric for loop",
-            "ipairs() cho arrays",
-            "break và continue patterns",
+            "ipairs() for arrays",
+            "break and continue patterns",
             "Nested loops",
         ],
         "subtopics": [
             {"name": "Numeric for", "description": "for i = 1, 10 do", "examples": 2},
             {"name": "Step value", "description": "for i = 1, 10, 2 do", "examples": 2},
             {"name": "Counting backwards", "description": "for i = 10, 1, -1 do", "examples": 1},
-            {"name": "ipairs()", "description": "Iterate arrays", "examples": 2},
-            {"name": "break", "description": "Thoát loop sớm", "examples": 2},
-            {"name": "continue pattern", "description": "Dùng if để skip", "examples": 2},
-            {"name": "Nested loops", "description": "Loop trong loop", "examples": 2},
+            {"name": "ipairs()", "description": "Iterate over arrays", "examples": 2},
+            {"name": "break", "description": "Exit a loop early", "examples": 2},
+            {"name": "continue pattern", "description": "Using if to skip iterations", "examples": 2},
+            {"name": "Nested loops", "description": "Loops inside loops", "examples": 2},
         ],
         "common_mistakes": [
-            "Thay đổi loop variable trong loop",
-            "Infinite loop",
+            "Modifying the loop variable inside the loop",
+            "Infinite loops",
             "Off-by-one errors",
         ],
         "real_world": "Process all players, spawn items",
         "estimated_time": "30-35 minutes",
-        "mini_project": "Tạo spawn system cho nhiều objects"
+        "mini_project": "Create a spawn system for multiple objects"
     },
 
     # ===== PHASE 2: INTERMEDIATE (13-24) =====
     {
         "n": 13,
-        "title": "Loops - pairs và while",
+        "title": "Loops - pairs and while",
         "phase": "Intermediate",
         "keywords": ["pairs", "while", "do", "repeat", "until"],
         "difficulty": "Intermediate",
         "prerequisites": [11, 12],
         "learning_objectives": [
-            "pairs() cho dictionaries",
+            "pairs() for dictionaries",
             "while loops",
             "repeat...until",
             "Choosing the right loop",
         ],
         "subtopics": [
-            {"name": "pairs()", "description": "Iterate dictionaries", "examples": 2},
-            {"name": "pairs vs ipairs", "description": "Khi nào dùng cái nào", "examples": 2},
+            {"name": "pairs()", "description": "Iterate over dictionaries", "examples": 2},
+            {"name": "pairs vs ipairs", "description": "When to use which", "examples": 2},
             {"name": "while loop", "description": "while condition do", "examples": 2},
-            {"name": "Infinite while", "description": "while true do (với break)", "examples": 2},
-            {"name": "repeat until", "description": "Chạy ít nhất 1 lần", "examples": 2},
+            {"name": "Infinite while", "description": "while true do (with break)", "examples": 2},
+            {"name": "repeat until", "description": "Runs at least once", "examples": 2},
             {"name": "Loop comparison", "description": "for vs while vs repeat", "examples": 2},
         ],
         "common_mistakes": [
-            "pairs() order không đảm bảo",
-            "Infinite loop không có break/condition",
-            "Modify table while iterating",
+            "pairs() order is not guaranteed",
+            "Infinite loop without break/condition update",
+            "Modifying a table while iterating over it",
         ],
         "real_world": "Game loops, waiting for conditions",
         "estimated_time": "25-30 minutes",
-        "mini_project": "Tạo game loop với countdown"
+        "mini_project": "Create a game loop with countdown"
     },
     {
         "n": 14,
-        "title": "Colon Syntax và Methods",
+        "title": "Colon Syntax and Methods",
         "phase": "Intermediate",
         "keywords": [":", "self", "method", "colon", "dot", "object"],
         "difficulty": "Intermediate",
         "prerequisites": [8, 11],
         "learning_objectives": [
-            "Hiểu : vs . syntax",
+            "Understand : vs . syntax",
             "self parameter",
-            "Định nghĩa methods",
-            "Roblox API dùng colon",
+            "Define methods",
+            "Roblox API uses colon",
         ],
         "subtopics": [
-            {"name": "Dot vs colon", "description": "Sự khác biệt quan trọng", "examples": 3},
-            {"name": "self là gì?", "description": "Reference đến object", "examples": 2},
+            {"name": "Dot vs colon", "description": "The critical difference", "examples": 3},
+            {"name": "What is self?", "description": "Reference to the object", "examples": 2},
             {"name": "Colon auto-passes self", "description": "obj:method() = obj.method(obj)", "examples": 2},
-            {"name": "Định nghĩa methods", "description": "function obj:methodName()", "examples": 2},
+            {"name": "Defining methods", "description": "function obj:methodName()", "examples": 2},
             {"name": "Roblox uses colon", "description": "part:Destroy(), player:Kick()", "examples": 2},
         ],
         "common_mistakes": [
-            "Dùng . khi cần :",
-            "Dùng : khi cần .",
-            "Quên self trong method body",
+            "Using . when you need :",
+            "Using : when you need .",
+            "Forgetting self in the method body",
         ],
-        "real_world": "Tất cả Roblox methods dùng colon",
+        "real_world": "All Roblox methods use colon",
         "estimated_time": "25-30 minutes",
-        "mini_project": "Tạo object với methods"
+        "mini_project": "Create an object with methods"
     },
     {
         "n": 15,
-        "title": "Scope và Closures",
+        "title": "Scope and Closures",
         "phase": "Intermediate",
         "keywords": ["scope", "local", "block", "lifetime", "closure", "upvalue"],
         "difficulty": "Intermediate",
         "prerequisites": [8, 13],
         "learning_objectives": [
-            "Block scope trong Lua",
+            "Block scope in Lua",
             "Variable lifetime",
-            "Closures là gì",
+            "What closures are",
             "Practical closure uses",
         ],
         "subtopics": [
-            {"name": "Block scope", "description": "Variables trong do...end", "examples": 2},
-            {"name": "Function scope", "description": "Local trong function", "examples": 2},
-            {"name": "Variable shadowing", "description": "Cùng tên ở scope khác", "examples": 2},
-            {"name": "Closures", "description": "Function nhớ scope", "examples": 3},
-            {"name": "Upvalues", "description": "Variables từ outer scope", "examples": 2},
+            {"name": "Block scope", "description": "Variables inside do...end", "examples": 2},
+            {"name": "Function scope", "description": "Local variables inside functions", "examples": 2},
+            {"name": "Variable shadowing", "description": "Same name in different scopes", "examples": 2},
+            {"name": "Closures", "description": "Functions that remember their scope", "examples": 3},
+            {"name": "Upvalues", "description": "Variables from an outer scope", "examples": 2},
             {"name": "Practical closures", "description": "Factories, callbacks", "examples": 2},
         ],
         "common_mistakes": [
-            "Không hiểu variable bị shadowed",
-            "Closure giữ reference, không phải copy",
-            "Memory leaks từ closures",
+            "Not understanding that a variable is being shadowed",
+            "Closures hold a reference, not a copy",
+            "Memory leaks from closures",
         ],
         "real_world": "Event handlers, factory functions",
         "estimated_time": "30-35 minutes",
-        "mini_project": "Tạo counter factory với closures"
+        "mini_project": "Create a counter factory using closures"
     },
     {
         "n": 16,
-        "title": "Error Handling - pcall và xpcall",
+        "title": "Error Handling - pcall and xpcall",
         "phase": "Intermediate",
         "keywords": ["pcall", "xpcall", "error", "assert", "debug", "protected"],
         "difficulty": "Intermediate",
         "prerequisites": [9],
         "learning_objectives": [
-            "Tại sao cần error handling",
+            "Why error handling is needed",
             "pcall() protected calls",
-            "xpcall() với error handler",
-            "assert() cho validation",
+            "xpcall() with an error handler",
+            "assert() for validation",
         ],
         "subtopics": [
-            {"name": "error()", "description": "Throw errors", "examples": 2},
+            {"name": "error()", "description": "Throwing errors", "examples": 2},
             {"name": "pcall()", "description": "Protected call", "examples": 3},
             {"name": "pcall returns", "description": "success, result/error", "examples": 2},
             {"name": "xpcall()", "description": "Custom error handler", "examples": 2},
@@ -527,43 +527,43 @@ LESSONS: List[dict] = [
             {"name": "Error patterns", "description": "Try-catch style", "examples": 2},
         ],
         "common_mistakes": [
-            "Không check pcall success",
-            "Swallow errors không log",
-            "Dùng pcall cho mọi thứ",
+            "Not checking pcall success",
+            "Swallowing errors without logging",
+            "Using pcall for everything",
         ],
         "real_world": "API calls, user input validation",
         "estimated_time": "25-30 minutes",
-        "mini_project": "Tạo safe function wrapper"
+        "mini_project": "Create a safe function wrapper"
     },
     {
         "n": 17,
-        "title": "ModuleScripts và require()",
+        "title": "ModuleScripts and require()",
         "phase": "Intermediate",
         "keywords": ["modulescript", "module", "require", "return", "reusable", "organize"],
         "difficulty": "Intermediate",
         "prerequisites": [8, 11],
         "learning_objectives": [
-            "Tại sao cần ModuleScripts",
-            "Cách tạo module đúng cách",
-            "require() và caching",
-            "Organize code với modules",
+            "Why ModuleScripts are needed",
+            "How to create a module correctly",
+            "require() and caching",
+            "Organize code with modules",
         ],
         "subtopics": [
-            {"name": "ModuleScript là gì?", "description": "Reusable code container", "examples": 1},
-            {"name": "Cấu trúc module", "description": "local M = {} ... return M", "examples": 2},
-            {"name": "require()", "description": "Import module", "examples": 2},
-            {"name": "Caching behavior", "description": "require() chỉ chạy 1 lần", "examples": 2},
-            {"name": "Return table vs function", "description": "Patterns phổ biến", "examples": 2},
+            {"name": "What is a ModuleScript?", "description": "Reusable code container", "examples": 1},
+            {"name": "Module structure", "description": "local M = {} ... return M", "examples": 2},
+            {"name": "require()", "description": "Importing a module", "examples": 2},
+            {"name": "Caching behavior", "description": "require() only runs once", "examples": 2},
+            {"name": "Return table vs function", "description": "Common patterns", "examples": 2},
             {"name": "Module organization", "description": "Best practices", "examples": 2},
         ],
         "common_mistakes": [
-            "Không return gì",
-            "Return trước khi định nghĩa",
+            "Not returning anything",
+            "Returning before defining",
             "Circular dependencies",
         ],
         "real_world": "Shared utilities, config, game systems",
         "estimated_time": "30-35 minutes",
-        "mini_project": "Tạo module cho utility functions"
+        "mini_project": "Create a module for utility functions"
     },
     {
         "n": 18,
@@ -574,61 +574,61 @@ LESSONS: List[dict] = [
         "prerequisites": [11, 14],
         "learning_objectives": [
             "Instance hierarchy",
-            "Instance.new() đúng cách",
-            "Parent và Children",
-            "Tìm instances với Find methods",
+            "Instance.new() the right way",
+            "Parent and Children",
+            "Find instances with Find methods",
         ],
         "subtopics": [
-            {"name": "Instance là gì?", "description": "Objects trong Roblox", "examples": 2},
-            {"name": "Instance.new()", "description": "Tạo instance mới", "examples": 2},
-            {"name": "Parent property", "description": "Set Parent CUỐI CÙNG", "examples": 2},
-            {"name": "FindFirstChild", "description": "Tìm child an toàn", "examples": 2},
-            {"name": "WaitForChild", "description": "Đợi child load", "examples": 2},
-            {"name": "Clone()", "description": "Copy instance", "examples": 2},
-            {"name": "Destroy()", "description": "Xóa instance", "examples": 2},
+            {"name": "What is an Instance?", "description": "Objects in Roblox", "examples": 2},
+            {"name": "Instance.new()", "description": "Creating a new instance", "examples": 2},
+            {"name": "Parent property", "description": "Set Parent LAST for performance", "examples": 2},
+            {"name": "FindFirstChild", "description": "Safely find a child", "examples": 2},
+            {"name": "WaitForChild", "description": "Wait for a child to load", "examples": 2},
+            {"name": "Clone()", "description": "Copy an instance", "examples": 2},
+            {"name": "Destroy()", "description": "Remove an instance", "examples": 2},
         ],
         "common_mistakes": [
-            "Set Parent trước Properties (performance)",
-            "Dùng . thay vì FindFirstChild",
-            "Không nil check sau Find",
+            "Setting Parent before Properties (performance hit)",
+            "Using . instead of FindFirstChild",
+            "Not nil-checking after Find",
         ],
         "real_world": "Spawning objects, creating effects",
         "estimated_time": "35-40 minutes",
-        "mini_project": "Tạo object spawner"
+        "mini_project": "Create an object spawner"
     },
     {
         "n": 19,
-        "title": "Properties và CFrame Basics",
+        "title": "Properties and CFrame Basics",
         "phase": "Intermediate",
         "keywords": ["property", "position", "size", "cframe", "vector3", "color3"],
         "difficulty": "Intermediate",
         "prerequisites": [18],
         "learning_objectives": [
-            "Đọc và set properties",
-            "Vector3 cho positions/sizes",
+            "Read and set properties",
+            "Vector3 for positions/sizes",
             "CFrame basics",
-            "Color3 cho màu sắc",
+            "Color3 for colors",
         ],
         "subtopics": [
             {"name": "Reading properties", "description": "part.Position, part.Size", "examples": 2},
             {"name": "Setting properties", "description": "part.Transparency = 0.5", "examples": 2},
             {"name": "Vector3", "description": "Vector3.new(x, y, z)", "examples": 2},
             {"name": "CFrame basics", "description": "Position + Rotation", "examples": 3},
-            {"name": "CFrame.new()", "description": "Tạo CFrame", "examples": 2},
-            {"name": "Color3", "description": "RGB và fromRGB", "examples": 2},
+            {"name": "CFrame.new()", "description": "Creating a CFrame", "examples": 2},
+            {"name": "Color3", "description": "RGB and fromRGB", "examples": 2},
         ],
         "common_mistakes": [
-            "Modify Vector3 trực tiếp (immutable)",
-            "Nhầm Position với CFrame",
+            "Trying to modify Vector3 directly (it's immutable)",
+            "Confusing Position with CFrame",
             "Color values 0-255 vs 0-1",
         ],
         "real_world": "Moving objects, changing appearance",
         "estimated_time": "35-40 minutes",
-        "mini_project": "Tạo part mover với color change"
+        "mini_project": "Create a part mover with color change"
     },
     {
         "n": 20,
-        "title": "Events và Connections",
+        "title": "Events and Connections",
         "phase": "Intermediate",
         "keywords": ["event", "connect", "disconnect", "touched", "signal", "callback", "rbxScriptSignal"],
         "difficulty": "Intermediate",
@@ -637,73 +637,73 @@ LESSONS: List[dict] = [
             "Event-driven programming",
             ":Connect() method",
             "Event parameters",
-            "Disconnect và cleanup",
+            "Disconnect and cleanup",
         ],
         "subtopics": [
-            {"name": "Events là gì?", "description": "Signals khi something happens", "examples": 2},
+            {"name": "What are Events?", "description": "Signals when something happens", "examples": 2},
             {"name": ":Connect()", "description": "Listen to events", "examples": 2},
-            {"name": "Callback functions", "description": "Function chạy khi event fires", "examples": 2},
-            {"name": "Event parameters", "description": "Data passed to callback", "examples": 2},
+            {"name": "Callback functions", "description": "Function that runs when event fires", "examples": 2},
+            {"name": "Event parameters", "description": "Data passed to the callback", "examples": 2},
             {"name": "Storing connections", "description": "local conn = event:Connect()", "examples": 2},
             {"name": ":Disconnect()", "description": "Stop listening", "examples": 2},
-            {"name": ":Once()", "description": "Listen chỉ 1 lần", "examples": 1},
-            {"name": ":Wait()", "description": "Yield until event", "examples": 1},
+            {"name": ":Once()", "description": "Listen only once", "examples": 1},
+            {"name": ":Wait()", "description": "Yield until event fires", "examples": 1},
         ],
         "common_mistakes": [
-            "Không disconnect → memory leak",
-            "Connect trong loop → multiple connections",
-            "Quên event có parameters",
+            "Not disconnecting → memory leak",
+            "Connecting inside a loop → multiple connections",
+            "Forgetting that events have parameters",
         ],
         "real_world": "Collision detection, player input, UI",
         "estimated_time": "35-40 minutes",
-        "mini_project": "Tạo touch-activated door"
+        "mini_project": "Create a touch-activated door"
     },
     {
         "n": 21,
-        "title": "Player và Character",
+        "title": "Player and Character",
         "phase": "Intermediate",
         "keywords": ["player", "character", "humanoid", "playerAdded", "characterAdded"],
         "difficulty": "Intermediate",
         "prerequisites": [20],
         "learning_objectives": [
             "Player vs Character",
-            "Truy cập Players service",
+            "Access the Players service",
             "PlayerAdded event",
             "CharacterAdded event",
         ],
         "subtopics": [
             {"name": "Player object", "description": "Account/data container", "examples": 2},
-            {"name": "Character object", "description": "Avatar trong game", "examples": 2},
+            {"name": "Character object", "description": "The avatar in-game", "examples": 2},
             {"name": "Players service", "description": "game:GetService('Players')", "examples": 2},
-            {"name": "PlayerAdded", "description": "Khi player joins", "examples": 2},
-            {"name": "PlayerRemoving", "description": "Khi player leaves", "examples": 2},
-            {"name": "CharacterAdded", "description": "Khi character spawns", "examples": 2},
-            {"name": "Humanoid", "description": "Control character", "examples": 2},
+            {"name": "PlayerAdded", "description": "When a player joins", "examples": 2},
+            {"name": "PlayerRemoving", "description": "When a player leaves", "examples": 2},
+            {"name": "CharacterAdded", "description": "When a character spawns", "examples": 2},
+            {"name": "Humanoid", "description": "Controls the character", "examples": 2},
         ],
         "common_mistakes": [
-            "Access character mà nil",
-            "Không handle CharacterAdded",
-            "Player vs Character confusion",
+            "Accessing character when it's nil",
+            "Not handling CharacterAdded",
+            "Confusing Player with Character",
         ],
         "real_world": "Player join handling, respawn logic",
         "estimated_time": "35-40 minutes",
-        "mini_project": "Tạo welcome system với player data"
+        "mini_project": "Create a welcome system with player data"
     },
     {
         "n": 22,
-        "title": "Services trong Roblox",
+        "title": "Services in Roblox",
         "phase": "Intermediate",
         "keywords": ["service", "getService", "workspace", "replicatedStorage", "serverStorage"],
         "difficulty": "Intermediate",
         "prerequisites": [18],
         "learning_objectives": [
-            "Services là gì",
-            "GetService() đúng cách",
-            "Các services phổ biến",
+            "What Services are",
+            "GetService() the right way",
+            "Common services",
             "Server vs Client services",
         ],
         "subtopics": [
-            {"name": "Services là gì?", "description": "Singletons cung cấp functionality", "examples": 1},
+            {"name": "What are Services?", "description": "Singletons that provide functionality", "examples": 1},
             {"name": "GetService()", "description": "game:GetService('Name')", "examples": 2},
             {"name": "Workspace", "description": "Contains 3D objects", "examples": 2},
             {"name": "Players", "description": "All players", "examples": 1},
@@ -712,24 +712,24 @@ LESSONS: List[dict] = [
             {"name": "RunService", "description": "Game loop events", "examples": 2},
         ],
         "common_mistakes": [
-            "Access ServerStorage từ client",
-            "Không cache services",
-            "Dùng game.Workspace thay vì workspace",
+            "Accessing ServerStorage from the client",
+            "Not caching service references",
+            "Using game.Workspace instead of workspace",
         ],
         "real_world": "Access game components properly",
         "estimated_time": "25-30 minutes",
-        "mini_project": "Setup proper service references"
+        "mini_project": "Set up proper service references"
     },
     {
         "n": 23,
-        "title": "task Library và Timing",
+        "title": "task Library and Timing",
         "phase": "Intermediate",
         "keywords": ["task.wait", "task.spawn", "task.defer", "task.delay", "runservice", "heartbeat"],
         "difficulty": "Intermediate",
         "prerequisites": [13, 20],
         "learning_objectives": [
             "task vs wait()",
-            "Parallel execution với spawn",
+            "Parallel execution with spawn",
             "Frame-based timing",
             "Delta time",
         ],
@@ -737,49 +737,49 @@ LESSONS: List[dict] = [
             {"name": "task.wait()", "description": "Better than wait()", "examples": 2},
             {"name": "task.spawn()", "description": "Run in parallel", "examples": 2},
             {"name": "task.defer()", "description": "Run next frame", "examples": 2},
-            {"name": "task.delay()", "description": "Run after delay", "examples": 2},
-            {"name": "task.cancel()", "description": "Cancel scheduled task", "examples": 1},
+            {"name": "task.delay()", "description": "Run after a delay", "examples": 2},
+            {"name": "task.cancel()", "description": "Cancel a scheduled task", "examples": 1},
             {"name": "RunService.Heartbeat", "description": "Every frame", "examples": 2},
             {"name": "Delta time", "description": "Time since last frame", "examples": 2},
         ],
         "common_mistakes": [
-            "Dùng wait() thay vì task.wait()",
-            "Không handle task cancellation",
-            "Không dùng dt cho smooth movement",
+            "Using wait() instead of task.wait()",
+            "Not handling task cancellation",
+            "Not using dt for smooth movement",
         ],
         "real_world": "Smooth animations, cooldowns, timers",
         "estimated_time": "30-35 minutes",
-        "mini_project": "Tạo cooldown system"
+        "mini_project": "Create a cooldown system"
     },
     {
         "n": 24,
-        "title": "Attributes và Tags",
+        "title": "Attributes and Tags",
         "phase": "Intermediate",
         "keywords": ["attribute", "tag", "collectionService", "setAttribute", "getAttribute"],
         "difficulty": "Intermediate",
         "prerequisites": [18, 22],
         "learning_objectives": [
-            "Attributes cho custom data",
-            "Tags cho categorization",
+            "Attributes for custom data",
+            "Tags for categorization",
             "CollectionService",
-            "Khi dùng attribute vs value",
+            "When to use attributes vs values",
         ],
         "subtopics": [
-            {"name": "Attributes là gì?", "description": "Custom properties", "examples": 2},
-            {"name": "SetAttribute()", "description": "Set attribute value", "examples": 2},
-            {"name": "GetAttribute()", "description": "Get attribute value", "examples": 2},
+            {"name": "What are Attributes?", "description": "Custom properties on instances", "examples": 2},
+            {"name": "SetAttribute()", "description": "Set an attribute value", "examples": 2},
+            {"name": "GetAttribute()", "description": "Get an attribute value", "examples": 2},
             {"name": "GetAttributeChangedSignal", "description": "Listen for changes", "examples": 2},
-            {"name": "Tags là gì?", "description": "Labels for instances", "examples": 2},
+            {"name": "What are Tags?", "description": "Labels for instances", "examples": 2},
             {"name": "CollectionService", "description": "Get tagged instances", "examples": 2},
         ],
         "common_mistakes": [
-            "Attribute types giới hạn",
+            "Attribute types are limited",
             "Tag name typos",
-            "Không handle nil attributes",
+            "Not handling nil attributes",
         ],
         "real_world": "Enemy types, item rarity, game states",
         "estimated_time": "25-30 minutes",
-        "mini_project": "Tạo enemy tagging system"
+        "mini_project": "Create an enemy tagging system"
     },
 
     # ===== PHASE 3: ADVANCED (25-36) =====
@@ -791,27 +791,27 @@ LESSONS: List[dict] = [
         "difficulty": "Advanced",
         "prerequisites": [17, 22],
         "learning_objectives": [
-            "Client vs Server trong Roblox",
+            "Client vs Server in Roblox",
             "Script types",
             "Filtering Enabled",
             "Trust boundary",
         ],
         "subtopics": [
-            {"name": "Client là gì?", "description": "Player's computer", "examples": 2},
-            {"name": "Server là gì?", "description": "Roblox's computer", "examples": 2},
-            {"name": "Script (Server)", "description": "Chạy trên server", "examples": 2},
-            {"name": "LocalScript (Client)", "description": "Chạy trên client", "examples": 2},
+            {"name": "What is the Client?", "description": "The player's computer", "examples": 2},
+            {"name": "What is the Server?", "description": "Roblox's computer", "examples": 2},
+            {"name": "Script (Server)", "description": "Runs on the server", "examples": 2},
+            {"name": "LocalScript (Client)", "description": "Runs on the client", "examples": 2},
             {"name": "Filtering Enabled", "description": "Client changes don't replicate", "examples": 2},
-            {"name": "Trust boundary", "description": "NEVER trust client", "examples": 3},
+            {"name": "Trust boundary", "description": "NEVER trust the client", "examples": 3},
         ],
         "common_mistakes": [
-            "Trust client data",
-            "Game logic on client",
-            "Sensitive data to client",
+            "Trusting client data",
+            "Putting game logic on the client",
+            "Sending sensitive data to the client",
         ],
         "real_world": "Multiplayer game architecture",
         "estimated_time": "35-40 minutes",
-        "mini_project": "Design secure game system"
+        "mini_project": "Design a secure game system"
     },
     {
         "n": 26,
@@ -821,14 +821,14 @@ LESSONS: List[dict] = [
         "difficulty": "Advanced",
         "prerequisites": [25],
         "learning_objectives": [
-            "RemoteEvent là gì",
+            "What RemoteEvents are",
             "Client → Server communication",
             "Server → Client communication",
-            "Setup đúng cách",
+            "Setting them up correctly",
         ],
         "subtopics": [
-            {"name": "RemoteEvent là gì?", "description": "Cross-boundary communication", "examples": 1},
-            {"name": "Create RemoteEvent", "description": "In ReplicatedStorage", "examples": 2},
+            {"name": "What is a RemoteEvent?", "description": "Cross-boundary communication", "examples": 1},
+            {"name": "Create a RemoteEvent", "description": "In ReplicatedStorage", "examples": 2},
             {"name": "FireServer()", "description": "Client sends to server", "examples": 2},
             {"name": "OnServerEvent", "description": "Server receives", "examples": 2},
             {"name": "FireClient()", "description": "Server sends to client", "examples": 2},
@@ -836,13 +836,13 @@ LESSONS: List[dict] = [
             {"name": "OnClientEvent", "description": "Client receives", "examples": 2},
         ],
         "common_mistakes": [
-            "FireServer từ server",
-            "OnServerEvent trên client",
-            "Không pass player argument",
+            "Calling FireServer from the server",
+            "Listening to OnServerEvent on the client",
+            "Not passing the player argument",
         ],
         "real_world": "Multiplayer actions, UI updates",
         "estimated_time": "35-40 minutes",
-        "mini_project": "Tạo simple chat system"
+        "mini_project": "Create a simple chat system"
     },
     {
         "n": 27,
@@ -852,23 +852,23 @@ LESSONS: List[dict] = [
         "difficulty": "Advanced",
         "prerequisites": [26],
         "learning_objectives": [
-            "Tại sao security quan trọng",
+            "Why security is critical",
             "Validate ALL inputs",
             "Sanity checks",
             "Common exploits",
         ],
         "subtopics": [
-            {"name": "Never trust client", "description": "Rule #1", "examples": 2},
-            {"name": "Type validation", "description": "typeof() check", "examples": 2},
-            {"name": "Range validation", "description": "Giá trị hợp lý", "examples": 2},
-            {"name": "Permission checks", "description": "Can player do this?", "examples": 2},
+            {"name": "Never trust the client", "description": "Rule #1", "examples": 2},
+            {"name": "Type validation", "description": "typeof() checks", "examples": 2},
+            {"name": "Range validation", "description": "Are values reasonable?", "examples": 2},
+            {"name": "Permission checks", "description": "Can the player do this?", "examples": 2},
             {"name": "Rate limiting", "description": "Prevent spam", "examples": 2},
             {"name": "Common exploits", "description": "Examples of hacks", "examples": 3},
         ],
         "common_mistakes": [
-            "Trust client-sent data",
-            "Only validate on client",
-            "Expose sensitive endpoints",
+            "Trusting client-sent data",
+            "Only validating on the client",
+            "Exposing sensitive endpoints",
         ],
         "real_world": "Prevent cheating, secure economy",
         "estimated_time": "40-45 minutes",
@@ -884,25 +884,25 @@ LESSONS: List[dict] = [
         "learning_objectives": [
             "RemoteFunction vs RemoteEvent",
             "Request-Response pattern",
-            "Khi nào dùng RemoteFunction",
-            "Risks của InvokeClient",
+            "When to use RemoteFunctions",
+            "Risks of InvokeClient",
         ],
         "subtopics": [
-            {"name": "RemoteFunction là gì?", "description": "Returns a value", "examples": 2},
+            {"name": "What is a RemoteFunction?", "description": "Returns a value", "examples": 2},
             {"name": "InvokeServer()", "description": "Client requests, gets response", "examples": 2},
-            {"name": "OnServerInvoke", "description": "Server handles, returns", "examples": 2},
+            {"name": "OnServerInvoke", "description": "Server handles and returns", "examples": 2},
             {"name": "InvokeClient risks", "description": "NEVER use in production", "examples": 2},
             {"name": "Event vs Function", "description": "When to use which", "examples": 2},
             {"name": "Timeout handling", "description": "Handle no response", "examples": 2},
         ],
         "common_mistakes": [
-            "Use InvokeClient",
+            "Using InvokeClient",
             "No timeout handling",
-            "Return sensitive data",
+            "Returning sensitive data",
         ],
-        "real_world": "Shop purchase, data requests",
+        "real_world": "Shop purchases, data requests",
         "estimated_time": "30-35 minutes",
-        "mini_project": "Tạo shop system với RemoteFunction"
+        "mini_project": "Create a shop system with RemoteFunction"
     },
     {
         "n": 29,
@@ -912,9 +912,9 @@ LESSONS: List[dict] = [
         "difficulty": "Advanced",
         "prerequisites": [16, 21],
         "learning_objectives": [
-            "DataStore là gì",
+            "What DataStores are",
             "GetAsync/SetAsync",
-            "Error handling cho DataStore",
+            "Error handling for DataStores",
             "Rate limits",
         ],
         "subtopics": [
@@ -922,17 +922,17 @@ LESSONS: List[dict] = [
             {"name": "GetDataStore()", "description": "Get a data store", "examples": 2},
             {"name": "GetAsync()", "description": "Load data", "examples": 2},
             {"name": "SetAsync()", "description": "Save data", "examples": 2},
-            {"name": "Error handling", "description": "pcall required", "examples": 3},
+            {"name": "Error handling", "description": "pcall is required", "examples": 3},
             {"name": "Rate limits", "description": "Request budgets", "examples": 2},
         ],
         "common_mistakes": [
-            "Không pcall DataStore calls",
-            "Spam SetAsync",
-            "Save on every change",
+            "Not wrapping DataStore calls in pcall",
+            "Spamming SetAsync",
+            "Saving on every single change",
         ],
         "real_world": "Player data persistence",
         "estimated_time": "40-45 minutes",
-        "mini_project": "Basic data save system"
+        "mini_project": "Build a basic data save system"
     },
     {
         "n": 30,
@@ -949,7 +949,7 @@ LESSONS: List[dict] = [
         ],
         "subtopics": [
             {"name": "UpdateAsync()", "description": "Atomic updates", "examples": 2},
-            {"name": "Session locking", "description": "Prevent multi-server", "examples": 2},
+            {"name": "Session locking", "description": "Prevent multi-server issues", "examples": 2},
             {"name": "In-memory cache", "description": "Store data in RAM", "examples": 2},
             {"name": "Autosave loop", "description": "Periodic saves", "examples": 2},
             {"name": "Save on leave", "description": "PlayerRemoving handler", "examples": 2},
@@ -962,11 +962,11 @@ LESSONS: List[dict] = [
         ],
         "real_world": "Production-grade save systems",
         "estimated_time": "45-50 minutes",
-        "mini_project": "Complete save system với autosave"
+        "mini_project": "Complete save system with autosave"
     },
     {
         "n": 31,
-        "title": "UI Basics với ScreenGui",
+        "title": "UI Basics with ScreenGui",
         "phase": "Advanced",
         "keywords": ["screenGui", "frame", "textLabel", "textButton", "imageLabel"],
         "difficulty": "Advanced",
@@ -974,7 +974,7 @@ LESSONS: List[dict] = [
         "learning_objectives": [
             "ScreenGui structure",
             "Common UI elements",
-            "Positioning với UDim2",
+            "Positioning with UDim2",
             "UI events",
         ],
         "subtopics": [
@@ -982,22 +982,22 @@ LESSONS: List[dict] = [
             {"name": "Frame", "description": "Container/background", "examples": 2},
             {"name": "TextLabel", "description": "Display text", "examples": 2},
             {"name": "TextButton", "description": "Clickable button", "examples": 2},
-            {"name": "UDim2 positioning", "description": "Scale và Offset", "examples": 3},
+            {"name": "UDim2 positioning", "description": "Scale and Offset", "examples": 3},
             {"name": "AnchorPoint", "description": "Origin point", "examples": 2},
             {"name": "MouseButton1Click", "description": "Button event", "examples": 2},
         ],
         "common_mistakes": [
             "Wrong parent for ScreenGui",
-            "Mix Scale và Offset badly",
-            "No AnchorPoint consideration",
+            "Mixing Scale and Offset badly",
+            "Not considering AnchorPoint",
         ],
         "real_world": "Game menus, HUDs",
         "estimated_time": "35-40 minutes",
-        "mini_project": "Tạo simple menu UI"
+        "mini_project": "Create a simple menu UI"
     },
     {
         "n": 32,
-        "title": "UI Layouts và Constraints",
+        "title": "UI Layouts and Constraints",
         "phase": "Advanced",
         "keywords": ["uiListLayout", "uiGridLayout", "uiPadding", "uiCorner", "constraint"],
         "difficulty": "Advanced",
@@ -1014,21 +1014,21 @@ LESSONS: List[dict] = [
             {"name": "UIPageLayout", "description": "Swipeable pages", "examples": 1},
             {"name": "UIPadding", "description": "Inner spacing", "examples": 2},
             {"name": "UICorner", "description": "Rounded corners", "examples": 1},
-            {"name": "UIAspectRatioConstraint", "description": "Keep ratio", "examples": 2},
+            {"name": "UIAspectRatioConstraint", "description": "Keep aspect ratio", "examples": 2},
             {"name": "UISizeConstraint", "description": "Min/max size", "examples": 1},
         ],
         "common_mistakes": [
-            "Conflict với manual positioning",
+            "Conflicts with manual positioning",
             "Wrong layout order",
-            "Forget SortOrder",
+            "Forgetting SortOrder",
         ],
         "real_world": "Inventory grids, menus",
         "estimated_time": "30-35 minutes",
-        "mini_project": "Tạo inventory grid UI"
+        "mini_project": "Create an inventory grid UI"
     },
     {
         "n": 33,
-        "title": "TweenService và Animations",
+        "title": "TweenService and Animations",
         "phase": "Advanced",
         "keywords": ["tween", "tweenService", "tweenInfo", "animate", "easing"],
         "difficulty": "Advanced",
@@ -1042,20 +1042,20 @@ LESSONS: List[dict] = [
         "subtopics": [
             {"name": "TweenService", "description": "Smooth animations", "examples": 1},
             {"name": "TweenInfo", "description": "Configuration", "examples": 2},
-            {"name": "Create tween", "description": ":Create(instance, info, goals)", "examples": 2},
+            {"name": "Create a tween", "description": ":Create(instance, info, goals)", "examples": 2},
             {"name": "Easing styles", "description": "Linear, Quad, Bounce...", "examples": 2},
             {"name": "Easing direction", "description": "In, Out, InOut", "examples": 2},
             {"name": "Tween:Play()", "description": "Start animation", "examples": 2},
             {"name": "Tween.Completed", "description": "Wait for finish", "examples": 2},
         ],
         "common_mistakes": [
-            "Tween destroyed instance",
-            "Conflict tweens",
-            "Wrong property type",
+            "Tweening a destroyed instance",
+            "Conflicting tweens on the same property",
+            "Wrong property type for tween goal",
         ],
         "real_world": "UI animations, door opening",
         "estimated_time": "35-40 minutes",
-        "mini_project": "Animated UI với TweenService"
+        "mini_project": "Create animated UI with TweenService"
     },
     {
         "n": 34,
@@ -1065,27 +1065,27 @@ LESSONS: List[dict] = [
         "difficulty": "Advanced",
         "prerequisites": [14, 15],
         "learning_objectives": [
-            "OOP concepts trong Lua",
-            "Metatables cho classes",
+            "OOP concepts in Lua",
+            "Metatables for classes",
             "__index metamethod",
             "Inheritance patterns",
         ],
         "subtopics": [
-            {"name": "OOP là gì?", "description": "Objects với data và methods", "examples": 2},
+            {"name": "What is OOP?", "description": "Objects with data and methods", "examples": 2},
             {"name": "Metatables", "description": "Change table behavior", "examples": 2},
-            {"name": "__index", "description": "Property lookup", "examples": 3},
+            {"name": "__index", "description": "Property lookup fallback", "examples": 3},
             {"name": "Class pattern", "description": "Standard Lua class", "examples": 3},
             {"name": ".new() constructor", "description": "Create instances", "examples": 2},
-            {"name": "Inheritance", "description": "Extend classes", "examples": 2},
+            {"name": "Inheritance", "description": "Extending classes", "examples": 2},
         ],
         "common_mistakes": [
-            "Forget setmetatable",
-            "Wrong self in methods",
+            "Forgetting setmetatable",
+            "Wrong self reference in methods",
             "Shallow copy issues",
         ],
         "real_world": "Game entities, systems",
         "estimated_time": "45-50 minutes",
-        "mini_project": "Tạo Entity class system"
+        "mini_project": "Create an Entity class system"
     },
     {
         "n": 35,
@@ -1095,13 +1095,13 @@ LESSONS: List[dict] = [
         "difficulty": "Advanced",
         "prerequisites": [19, 22],
         "learning_objectives": [
-            "Raycast là gì",
+            "What raycasting is",
             "workspace:Raycast()",
             "RaycastParams",
             "Practical uses",
         ],
         "subtopics": [
-            {"name": "Raycasting là gì?", "description": "Invisible line detection", "examples": 2},
+            {"name": "What is raycasting?", "description": "Invisible line detection", "examples": 2},
             {"name": "workspace:Raycast()", "description": "Cast a ray", "examples": 2},
             {"name": "RaycastParams", "description": "Filter objects", "examples": 2},
             {"name": "RaycastResult", "description": "Instance, Position, Normal", "examples": 2},
@@ -1110,16 +1110,16 @@ LESSONS: List[dict] = [
         ],
         "common_mistakes": [
             "Wrong direction vector",
-            "Forget FilterDescendantsInstances",
-            "Ray too short/long",
+            "Forgetting FilterDescendantsInstances",
+            "Ray too short or too long",
         ],
         "real_world": "Shooting, ground detection, line of sight",
         "estimated_time": "40-45 minutes",
-        "mini_project": "Simple gun raycast system"
+        "mini_project": "Build a simple gun raycast system"
     },
     {
         "n": 36,
-        "title": "Physics và BodyMovers",
+        "title": "Physics and BodyMovers",
         "phase": "Advanced",
         "keywords": ["physics", "bodyVelocity", "bodyForce", "alignPosition", "linearVelocity"],
         "difficulty": "Advanced",
@@ -1139,25 +1139,25 @@ LESSONS: List[dict] = [
             {"name": "BodyVelocity (legacy)", "description": "Old but still works", "examples": 2},
         ],
         "common_mistakes": [
-            "Fight physics engine",
+            "Fighting the physics engine",
             "Wrong attachment setup",
-            "Performance with many",
+            "Performance issues with too many physics objects",
         ],
         "real_world": "Flying, knockback, vehicles",
         "estimated_time": "40-45 minutes",
-        "mini_project": "Simple flying system"
+        "mini_project": "Build a simple flying system"
     },
 
     # ===== PHASE 4: EXPERT (37-45) =====
     {
         "n": 37,
-        "title": "BindableEvents và Custom Signals",
+        "title": "BindableEvents and Custom Signals",
         "phase": "Expert",
         "keywords": ["bindableEvent", "bindableFunction", "signal", "observer", "pubsub"],
         "difficulty": "Expert",
         "prerequisites": [20, 17],
         "learning_objectives": [
-            "BindableEvents cho same-boundary",
+            "BindableEvents for same-boundary communication",
             "Custom signal implementation",
             "Observer pattern",
             "Decoupled systems",
@@ -1170,13 +1170,13 @@ LESSONS: List[dict] = [
             {"name": "Pub/sub pattern", "description": "Message broadcasting", "examples": 2},
         ],
         "common_mistakes": [
-            "Use for cross-boundary",
+            "Using for cross-boundary communication",
             "Memory leaks in signals",
             "Circular dependencies",
         ],
         "real_world": "Game event system, modular code",
         "estimated_time": "35-40 minutes",
-        "mini_project": "Build custom signal class"
+        "mini_project": "Build a custom signal class"
     },
     {
         "n": 38,
@@ -1187,26 +1187,26 @@ LESSONS: List[dict] = [
         "prerequisites": [23, 34],
         "learning_objectives": [
             "PathfindingService basics",
-            "Create và compute paths",
+            "Create and compute paths",
             "Follow waypoints",
             "Handle blocked paths",
         ],
         "subtopics": [
             {"name": "PathfindingService", "description": "NPC navigation", "examples": 1},
             {"name": "CreatePath()", "description": "Path configuration", "examples": 2},
-            {"name": "ComputeAsync()", "description": "Calculate path", "examples": 2},
+            {"name": "ComputeAsync()", "description": "Calculate a path", "examples": 2},
             {"name": "GetWaypoints()", "description": "Path points", "examples": 2},
             {"name": "Move along path", "description": "Humanoid:MoveTo", "examples": 2},
             {"name": "Blocked event", "description": "Recompute path", "examples": 2},
         ],
         "common_mistakes": [
-            "No blocked handling",
-            "Path on client",
-            "Ignore path status",
+            "No blocked path handling",
+            "Computing paths on the client",
+            "Ignoring path status",
         ],
         "real_world": "NPC AI, enemy following",
         "estimated_time": "45-50 minutes",
-        "mini_project": "NPC that follows player"
+        "mini_project": "Build an NPC that follows the player"
     },
     {
         "n": 39,
@@ -1217,12 +1217,12 @@ LESSONS: List[dict] = [
         "prerequisites": [34],
         "learning_objectives": [
             "State machine concept",
-            "Implement FSM trong Lua",
+            "Implement FSM in Lua",
             "State transitions",
             "Use cases",
         ],
         "subtopics": [
-            {"name": "FSM là gì?", "description": "Finite State Machine", "examples": 2},
+            {"name": "What is a FSM?", "description": "Finite State Machine", "examples": 2},
             {"name": "States", "description": "Possible conditions", "examples": 2},
             {"name": "Transitions", "description": "Moving between states", "examples": 2},
             {"name": "Lua implementation", "description": "Clean FSM code", "examples": 3},
@@ -1236,7 +1236,7 @@ LESSONS: List[dict] = [
         ],
         "real_world": "AI behavior, game flow",
         "estimated_time": "45-50 minutes",
-        "mini_project": "Enemy AI với state machine"
+        "mini_project": "Build enemy AI with a state machine"
     },
     {
         "n": 40,
@@ -1246,27 +1246,27 @@ LESSONS: List[dict] = [
         "difficulty": "Expert",
         "prerequisites": [16, 23],
         "learning_objectives": [
-            "Promises là gì",
+            "What Promises are",
             "Roblox Promise library",
             "Chaining promises",
             "Error handling",
         ],
         "subtopics": [
-            {"name": "Promises là gì?", "description": "Async value container", "examples": 2},
-            {"name": "Promise.new()", "description": "Create promise", "examples": 2},
+            {"name": "What are Promises?", "description": "Async value container", "examples": 2},
+            {"name": "Promise.new()", "description": "Create a promise", "examples": 2},
             {"name": ":andThen()", "description": "Chain operations", "examples": 2},
             {"name": ":catch()", "description": "Handle errors", "examples": 2},
-            {"name": ":finally()", "description": "Always run", "examples": 2},
+            {"name": ":finally()", "description": "Always runs", "examples": 2},
             {"name": "Promise.all()", "description": "Wait for multiple", "examples": 2},
         ],
         "common_mistakes": [
-            "Forget error handling",
-            "Nested promises",
+            "Forgetting error handling",
+            "Nesting promises instead of chaining",
             "Promise hell",
         ],
         "real_world": "Complex async flows",
         "estimated_time": "40-45 minutes",
-        "mini_project": "Async data loading với promises"
+        "mini_project": "Async data loading with promises"
     },
     {
         "n": 41,
@@ -1282,20 +1282,20 @@ LESSONS: List[dict] = [
             "CollectionService + Components",
         ],
         "subtopics": [
-            {"name": "Components là gì?", "description": "Reusable behaviors", "examples": 2},
+            {"name": "What are Components?", "description": "Reusable behaviors", "examples": 2},
             {"name": "Composition", "description": "Combine behaviors", "examples": 2},
             {"name": "Component lifecycle", "description": "Init/Start/Destroy", "examples": 2},
-            {"name": "Tag-based components", "description": "CollectionService", "examples": 2},
+            {"name": "Tag-based components", "description": "Using CollectionService", "examples": 2},
             {"name": "Component framework", "description": "Build your own", "examples": 3},
         ],
         "common_mistakes": [
-            "Components too coupled",
-            "No cleanup",
-            "Heavy init",
+            "Components too tightly coupled",
+            "No cleanup on destroy",
+            "Heavy initialization",
         ],
         "real_world": "Modular game objects",
         "estimated_time": "45-50 minutes",
-        "mini_project": "Build component system"
+        "mini_project": "Build a component system"
     },
     {
         "n": 42,
@@ -1315,13 +1315,13 @@ LESSONS: List[dict] = [
             {"name": "Script profiler", "description": "Find slow code", "examples": 2},
             {"name": "Memory usage", "description": "Reduce allocations", "examples": 2},
             {"name": "Object pooling", "description": "Reuse instances", "examples": 2},
-            {"name": "Spatial optimization", "description": "Only update nearby", "examples": 2},
+            {"name": "Spatial optimization", "description": "Only update nearby objects", "examples": 2},
             {"name": "Common mistakes", "description": "Performance killers", "examples": 2},
         ],
         "common_mistakes": [
             "Premature optimization",
             "Not profiling first",
-            "Optimize wrong things",
+            "Optimizing the wrong things",
         ],
         "real_world": "Smooth gameplay at scale",
         "estimated_time": "45-50 minutes",
@@ -1329,20 +1329,20 @@ LESSONS: List[dict] = [
     },
     {
         "n": 43,
-        "title": "Testing và Debugging",
+        "title": "Testing and Debugging",
         "phase": "Expert",
         "keywords": ["test", "debug", "unit test", "integration", "mock"],
         "difficulty": "Expert",
         "prerequisites": [16, 17],
         "learning_objectives": [
-            "Testing importance",
-            "Unit tests trong Lua",
+            "Why testing matters",
+            "Unit tests in Lua",
             "Debug strategies",
             "Logging best practices",
         ],
         "subtopics": [
-            {"name": "Tại sao test?", "description": "Catch bugs early", "examples": 1},
-            {"name": "Unit testing", "description": "Test functions", "examples": 2},
+            {"name": "Why test?", "description": "Catch bugs early", "examples": 1},
+            {"name": "Unit testing", "description": "Test individual functions", "examples": 2},
             {"name": "Test framework", "description": "Simple test runner", "examples": 2},
             {"name": "Mocking", "description": "Fake dependencies", "examples": 2},
             {"name": "Debug strategies", "description": "Find bugs efficiently", "examples": 2},
@@ -1350,7 +1350,7 @@ LESSONS: List[dict] = [
         ],
         "common_mistakes": [
             "No tests at all",
-            "Test implementation, not behavior",
+            "Testing implementation, not behavior",
             "Too many mocks",
         ],
         "real_world": "Professional development",
@@ -1381,15 +1381,15 @@ LESSONS: List[dict] = [
         "common_mistakes": [
             "Security by obscurity",
             "Client-side validation only",
-            "Trust client timing",
+            "Trusting client timing",
         ],
         "real_world": "Hack-proof games",
         "estimated_time": "50-55 minutes",
-        "mini_project": "Security audit một game system"
+        "mini_project": "Security audit a game system"
     },
     {
         "n": 45,
-        "title": "Architecture và Clean Code",
+        "title": "Architecture and Clean Code",
         "phase": "Expert",
         "keywords": ["architecture", "clean code", "solid", "patterns", "maintainable"],
         "difficulty": "Expert",
@@ -1397,7 +1397,7 @@ LESSONS: List[dict] = [
         "learning_objectives": [
             "Game architecture patterns",
             "Clean code principles",
-            "SOLID trong Lua",
+            "SOLID in Lua",
             "Maintainable codebase",
         ],
         "subtopics": [
@@ -1415,7 +1415,7 @@ LESSONS: List[dict] = [
         ],
         "real_world": "Large-scale game development",
         "estimated_time": "45-50 minutes",
-        "mini_project": "Refactor codebase với patterns"
+        "mini_project": "Refactor a codebase with patterns"
     },
 
     # ===== PHASE 5: MASTERY (46-50) =====
@@ -1438,7 +1438,7 @@ LESSONS: List[dict] = [
             {"name": "Combo system", "description": "Chain attacks", "examples": 2},
             {"name": "Blocking/Parry", "description": "Defense mechanics", "examples": 2},
             {"name": "Network sync", "description": "Multiplayer combat", "examples": 2},
-            {"name": "Effects/Feedback", "description": "Visual/audio", "examples": 2},
+            {"name": "Effects/Feedback", "description": "Visual/audio feedback", "examples": 2},
         ],
         "is_project": True,
         "project_requirements": [
@@ -1500,7 +1500,7 @@ LESSONS: List[dict] = [
             {"name": "Pathfinding", "description": "Navigate to target", "examples": 2},
             {"name": "Combat behavior", "description": "Attack patterns", "examples": 2},
             {"name": "Spawn system", "description": "Wave spawning", "examples": 2},
-            {"name": "Difficulty scaling", "description": "Adjust AI", "examples": 1},
+            {"name": "Difficulty scaling", "description": "Adjust AI difficulty", "examples": 1},
         ],
         "is_project": True,
         "project_requirements": [
@@ -1552,7 +1552,7 @@ LESSONS: List[dict] = [
         "difficulty": "Graduation Project",
         "prerequisites": list(range(1, 50)),
         "learning_objectives": [
-            "Apply everything learned",
+            "Apply everything you've learned",
             "Complete game development",
             "Polish and publish",
             "You are now a Roblox developer!",
@@ -1583,9 +1583,9 @@ LESSONS: List[dict] = [
 # Helper Functions
 # -----------------------------
 def get_lesson(n: int) -> Optional[dict]:
-    for l in LESSONS:
-        if l["n"] == n:
-            return l
+    for lesson in LESSONS:
+        if lesson["n"] == n:
+            return lesson
     return None
 
 
@@ -1610,7 +1610,7 @@ def extract_json(text: str) -> Optional[dict]:
         return None
     try:
         return json.loads(m.group(0))
-    except:
+    except Exception:
         return None
 
 
@@ -1638,14 +1638,9 @@ async def openrouter_chat(
     temperature: float = 0.6,
     retries: int = 4,
 ) -> str:
-    """
-    OpenRouter chat with model pool support.
-    model_pool: which models to try (CODER_MODELS, EXPLAIN_MODELS, or ALL_MODELS)
-    """
     if not OPENROUTER_API_KEY:
-        return "OpenRouter API key is missing."
+        return "⚠️ OpenRouter API key is missing."
 
-    # Default to all models
     model_pool = model_pool or ALL_MODELS
 
     url = "https://openrouter.ai/api/v1/chat/completions"
@@ -1662,7 +1657,6 @@ async def openrouter_chat(
 
     async with aiohttp.ClientSession() as session:
         for attempt in range(1, retries + 1):
-            # Pick a model we haven't tried yet
             available = [m for m in model_pool if m not in tried_models]
             if not available:
                 tried_models.clear()
@@ -1705,7 +1699,6 @@ async def openrouter_chat(
 
 
 def get_model_pool(mode: str, text: str = "") -> List[str]:
-    """Get appropriate model pool based on mode and content"""
     if mode == "coder":
         return CODER_MODELS
     elif mode == "explain":
@@ -1723,7 +1716,7 @@ def get_model_pool(mode: str, text: str = "") -> List[str]:
 def _safe_int(x, default=1) -> int:
     try:
         return int(x)
-    except:
+    except (TypeError, ValueError):
         return default
 
 
@@ -1755,7 +1748,6 @@ async def ensure_learn_fields(user_id: int, username: str):
         "learn_weak_topics": {},
         "learn_strong_topics": {},
         "learn_question_history": [],
-        # NEW: Full quiz state fields
         "learn_quiz_questions": [],
         "learn_current_quiz_index": 0,
         "learn_hints_remaining": 3,
@@ -1774,13 +1766,9 @@ async def ensure_learn_fields(user_id: int, username: str):
 
 
 # =====================================================
-# CRITICAL: SAVE ALL SESSION STATE FUNCTION
+# SAVE ALL SESSION STATE
 # =====================================================
 async def save_session_state(session: "LearnSession"):
-    """
-    Save ALL session state to database.
-    MUST be called whenever session.* is changed!
-    """
     await UserProfile.update_user(session.user_id, {
         "learn_lesson": session.lesson_number,
         "learn_phase": session.phase,
@@ -1809,7 +1797,6 @@ async def append_conversation(user_id: int, role: str, content: str):
 
 
 async def track_weakness(user_id: int, keywords: List[str], is_correct: bool):
-    """Track topics user is weak/strong at"""
     user = await UserProfile.get_user(user_id)
     if not user:
         return
@@ -1865,7 +1852,8 @@ async def update_streak(user_id: int):
                 streak += 1
             elif diff > 1:
                 streak = 1
-        except:
+            # diff == 0: same day, keep streak unchanged
+        except (ValueError, TypeError):
             streak = 1
     else:
         streak = 1
@@ -1889,7 +1877,8 @@ async def get_progress_stats(user_id: int) -> dict:
     current_lesson = user.get("learn_lesson", 1)
 
     accuracy = (correct / total_q * 100) if total_q > 0 else 0
-    progress_pct = len(completed) / max(len(LESSONS), 1) * 100
+    total_lessons = len(LESSONS) if LESSONS else 1
+    progress_pct = len(completed) / total_lessons * 100
 
     current = get_lesson(current_lesson)
     phase = current.get("phase", "Fundamentals") if current else "Fundamentals"
@@ -1898,7 +1887,7 @@ async def get_progress_stats(user_id: int) -> dict:
         "current_lesson": current_lesson,
         "current_phase": phase,
         "completed_count": len(completed),
-        "total_lessons": len(LESSONS),
+        "total_lessons": total_lessons,
         "progress_percent": round(progress_pct, 1),
         "total_questions": total_q,
         "correct_answers": correct,
@@ -1930,10 +1919,10 @@ SESSIONS: Dict[int, LearnSession] = {}
 
 
 async def rebuild_session_from_db(channel: discord.TextChannel, user_id: int) -> LearnSession:
-    """Rebuild session from database - critical for persistence!"""
     user = await ensure_learn_fields(user_id, "Unknown")
 
-    lesson = max(1, min(_safe_int(user.get("learn_lesson", 1)), len(LESSONS) or 50))
+    total = len(LESSONS) if LESSONS else 50
+    lesson = max(1, min(_safe_int(user.get("learn_lesson", 1)), total))
 
     phase = str(user.get("learn_phase", "menu"))
     if phase not in {"menu", "qna", "quiz", "practice", "final_test"}:
@@ -1967,7 +1956,7 @@ async def rebuild_session_from_db(channel: discord.TextChannel, user_id: int) ->
 
 
 # -----------------------------
-# PERSISTENT VIEWS (timeout=None + rebuild from DB)
+# PERSISTENT VIEWS (timeout=None)
 # -----------------------------
 
 class LearnPersistentPanel(discord.ui.View):
@@ -1985,7 +1974,7 @@ class LearnPersistentPanel(discord.ui.View):
         await interaction.response.defer()
         session = await self.cog.get_or_rebuild_session(interaction)
         if not self._is_controller(interaction, session):
-            return await interaction.followup.send("Not allowed.", ephemeral=True)
+            return await interaction.followup.send("❌ Not allowed.", ephemeral=True)
         await self.cog.send_lesson(interaction.channel, session, repeat=False)
 
     @discord.ui.button(label="Repeat", style=discord.ButtonStyle.secondary, emoji="🔁", custom_id="learn:repeat")
@@ -1993,18 +1982,18 @@ class LearnPersistentPanel(discord.ui.View):
         await interaction.response.defer()
         session = await self.cog.get_or_rebuild_session(interaction)
         if not self._is_controller(interaction, session):
-            return await interaction.followup.send("Not allowed.", ephemeral=True)
+            return await interaction.followup.send("❌ Not allowed.", ephemeral=True)
         await self.cog.send_lesson(interaction.channel, session, repeat=True)
 
     @discord.ui.button(label="Next Lesson", style=discord.ButtonStyle.blurple, emoji="⏭️", custom_id="learn:next")
-    async def next(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def next_lesson(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer()
         session = await self.cog.get_or_rebuild_session(interaction)
         if not self._is_controller(interaction, session):
-            return await interaction.followup.send("Not allowed.", ephemeral=True)
+            return await interaction.followup.send("❌ Not allowed.", ephemeral=True)
 
         if session.lesson_number >= len(LESSONS):
-            return await interaction.followup.send("🎉 All done! Type `final test`!")
+            return await interaction.followup.send("🎉 All lessons complete! Type `final test` to graduate!")
 
         session.lesson_number += 1
         session.phase = "menu"
@@ -2031,65 +2020,59 @@ class LearnPersistentPanel(discord.ui.View):
         filled = int(stats.get("progress_percent", 0) / 10)
         bar = "█" * filled + "░" * (10 - filled)
 
-        weak_text = ", ".join([f"{k}({v})" for k, v in weakness["weaknesses"][:5]]) or "None"
-        strong_text = ", ".join([f"{k}({v})" for k, v in weakness["strengths"][:5]]) or "None"
+        weak_text = ", ".join([f"`{k}` ({v})" for k, v in weakness["weaknesses"][:5]]) or "None yet"
+        strong_text = ", ".join([f"`{k}` ({v})" for k, v in weakness["strengths"][:5]]) or "None yet"
 
-        embed = discord.Embed(title="📊 Progress", color=BOT_COLOR)
-        embed.add_field(name="Progress", value=f"[{bar}] {stats['progress_percent']}%", inline=False)
-        embed.add_field(name="Lessons", value=f"{stats['completed_count']}/{stats['total_lessons']}", inline=True)
+        embed = discord.Embed(title="📊 Your Progress", color=BOT_COLOR)
+        embed.add_field(name="Overall", value=f"`[{bar}]` {stats['progress_percent']}%", inline=False)
+        embed.add_field(name="📚 Lessons", value=f"{stats['completed_count']}/{stats['total_lessons']}", inline=True)
         embed.add_field(name="🔥 Streak", value=f"{stats['streak']} days", inline=True)
-        embed.add_field(name="Accuracy", value=f"{stats['accuracy']}%", inline=True)
-        embed.add_field(name="⚠️ Weak", value=weak_text, inline=False)
-        embed.add_field(name="💪 Strong", value=strong_text, inline=False)
+        embed.add_field(name="🎯 Accuracy", value=f"{stats['accuracy']}%", inline=True)
+        embed.add_field(name="⚠️ Weak Topics", value=weak_text, inline=False)
+        embed.add_field(name="💪 Strong Topics", value=strong_text, inline=False)
 
         await interaction.followup.send(embed=embed, ephemeral=True)
 
-    @discord.ui.button(label="End", style=discord.ButtonStyle.danger, emoji="🗑️", custom_id="learn:end")
+    @discord.ui.button(label="End Session", style=discord.ButtonStyle.danger, emoji="🗑️", custom_id="learn:end")
     async def end(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer(ephemeral=True)
         session = await self.cog.get_or_rebuild_session(interaction)
         if not self._is_controller(interaction, session):
-            return await interaction.followup.send("Not allowed.", ephemeral=True)
+            return await interaction.followup.send("❌ Not allowed.", ephemeral=True)
 
         SESSIONS.pop(session.channel_id, None)
         session.phase = "menu"
         await save_session_state(session)
-        await interaction.followup.send("Session ended.", ephemeral=True)
+        await interaction.followup.send("✅ Session ended. Your progress is saved.", ephemeral=True)
 
 
 class QuizControlView(discord.ui.View):
-    """
-    Quiz control buttons - PERSISTENT across restarts.
-    Always rebuilds session from DB, doesn't rely on RAM.
-    """
+    """Quiz control buttons - persistent across restarts"""
 
     def __init__(self, cog: "LearnCog", session: LearnSession = None):
-        super().__init__(timeout=None)  # CRITICAL: timeout=None for persistence
+        super().__init__(timeout=None)
         self.cog = cog
-        self.session = session  # Optional, only for same-runtime convenience
+        self.session = session
 
     @discord.ui.button(label="Hint", style=discord.ButtonStyle.secondary, emoji="💡", custom_id="quiz:hint_btn")
     async def get_hint(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer(ephemeral=True)
 
-        # ALWAYS rebuild session from DB
         session = await self.cog.get_or_rebuild_session(interaction)
 
         if session.phase not in {"quiz", "final_test"}:
-            return await interaction.followup.send("💡 Hints only available during quizzes.", ephemeral=True)
+            return await interaction.followup.send("💡 Hints are only available during quizzes.", ephemeral=True)
 
         if session.hints_remaining <= 0:
             return await interaction.followup.send("❌ No hints remaining!", ephemeral=True)
 
         session.hints_remaining -= 1
 
-        # Update hints used in profile
         user = await UserProfile.get_user(session.user_id)
         await UserProfile.update_user(session.user_id, {
             "learn_hints_used": user.get("learn_hints_used", 0) + 1
         })
 
-        # Save session state
         await save_session_state(session)
 
         lesson = get_lesson(session.lesson_number)
@@ -2103,11 +2086,10 @@ class QuizControlView(discord.ui.View):
     async def skip_question(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer()
 
-        # ALWAYS rebuild session from DB
         session = await self.cog.get_or_rebuild_session(interaction)
 
         if session.phase not in {"quiz", "final_test"}:
-            return await interaction.followup.send("⏭️ Skip only available during quizzes.", ephemeral=True)
+            return await interaction.followup.send("⏭️ Skip is only available during quizzes.", ephemeral=True)
 
         await self.cog.handle_quiz_skip(interaction.channel, session)
 
@@ -2120,7 +2102,6 @@ class LearnCog(commands.Cog):
         self.bot = bot
 
     async def get_or_rebuild_session(self, interaction: discord.Interaction) -> LearnSession:
-        """Get session from RAM or rebuild from DB"""
         ch = interaction.channel
         if not isinstance(ch, discord.TextChannel):
             raise RuntimeError("Learn only works in text channels.")
@@ -2135,40 +2116,48 @@ class LearnCog(commands.Cog):
 
         try:
             owner_id = int(ch.name.split("learn-", 1)[1])
-        except:
+        except (ValueError, IndexError):
             owner_id = interaction.user.id
 
         return await rebuild_session_from_db(ch, owner_id)
 
     async def send_panel(self, channel: discord.TextChannel, user_id: int):
         user = await ensure_learn_fields(user_id, "Unknown")
-        lesson_number = _safe_int(user.get("learn_lesson", 1))
-        lesson_number = max(1, min(lesson_number, len(LESSONS) or 50))
+        total = len(LESSONS) if LESSONS else 50
+        lesson_number = max(1, min(_safe_int(user.get("learn_lesson", 1)), total))
 
         lesson = get_lesson(lesson_number)
         stats = await get_progress_stats(user_id)
 
-        bar = "█" * int(stats['progress_percent'] / 10) + "░" * (10 - int(stats['progress_percent'] / 10))
+        filled = int(stats['progress_percent'] / 10)
+        bar = "█" * filled + "░" * (10 - filled)
 
         embed = discord.Embed(
             title="📚 Learning Control Panel",
             description=(
-                f"**Progress:** [{bar}] {stats['progress_percent']}%\n"
-                f"**Streak:** 🔥 {stats['streak']} days | **Accuracy:** {stats['accuracy']}%\n\n"
-                "**Commands:**\n"
+                f"**Progress:** `[{bar}]` {stats['progress_percent']}%\n"
+                f"**Streak:** 🔥 {stats['streak']} days • **Accuracy:** 🎯 {stats['accuracy']}%\n\n"
+                "**📝 Text Commands:**\n"
                 "• `start lesson` / `next lesson` / `repeat lesson`\n"
-                "• `hint` - Get quiz hint\n"
+                "• `hint` — Get a quiz hint\n"
                 "• `my progress` / `my weaknesses`\n"
-                "• `review <number>` - Review specific lesson\n"
+                "• `review <number>` — Review a specific lesson\n"
                 "• `cheat sheet` / `practice`\n"
-                "• `final test` - Graduation exam (45+ lessons)\n"
+                "• `final test` — Graduation exam (45+ lessons required)\n"
+                "• `switch to coder` / `switch to explain` / `switch to auto`"
             ),
             color=BOT_COLOR
         )
         if lesson:
+            prereqs = lesson.get('prerequisites', [])
+            prereq_text = ", ".join([str(p) for p in prereqs]) if prereqs else "None"
             embed.add_field(
-                name=f"📖 Lesson {lesson_number}/{len(LESSONS)}",
-                value=f"**{lesson['title']}**\n{lesson.get('phase', '')} | {lesson.get('difficulty', '')}",
+                name=f"📖 Lesson {lesson_number}/{total}",
+                value=(
+                    f"**{lesson['title']}**\n"
+                    f"Phase: {lesson.get('phase', '')} • Difficulty: {lesson.get('difficulty', '')}\n"
+                    f"Prerequisites: {prereq_text}"
+                ),
                 inline=False
             )
 
@@ -2180,10 +2169,9 @@ class LearnCog(commands.Cog):
     # =====================================================
 
     async def send_lesson(self, channel: discord.TextChannel, session: LearnSession, repeat: bool = False):
-        """Send comprehensive multi-part lesson"""
         lesson = get_lesson(session.lesson_number)
         if not lesson:
-            return await channel.send("Lesson not found.")
+            return await channel.send("❌ Lesson not found.")
 
         # Reset session state
         session.phase = "qna"
@@ -2193,7 +2181,6 @@ class LearnCog(commands.Cog):
         session.hints_remaining = 3
         session.lesson_part = 0
 
-        # SAVE STATE
         await save_session_state(session)
         await update_streak(session.user_id)
 
@@ -2207,25 +2194,26 @@ class LearnCog(commands.Cog):
         if repeat:
             title = f"🔁 {title}"
 
+        objectives_text = "\n".join([f"✓ {obj}" for obj in lesson.get('learning_objectives', [])[:6]])
+
         header_embed = discord.Embed(
             title=title,
             description=(
-                f"**Phase:** {lesson.get('phase', 'N/A')} | "
-                f"**Difficulty:** {lesson.get('difficulty', 'N/A')} | "
+                f"**Phase:** {lesson.get('phase', 'N/A')} • "
+                f"**Difficulty:** {lesson.get('difficulty', 'N/A')} • "
                 f"**Time:** {lesson.get('estimated_time', 'N/A')}\n\n"
-                f"**🎯 What You'll Learn:**\n" +
-                "\n".join([f"✓ {obj}" for obj in lesson.get('learning_objectives', [])[:6]])
+                f"**🎯 What You'll Learn:**\n{objectives_text}"
             ),
             color=BOT_COLOR
         )
         await channel.send(embed=header_embed)
-        await channel.send("📚 **Loading lesson...**")
+        await channel.send("📚 **Loading lesson content...**")
 
         # Part 1: Introduction
         await self._send_lesson_introduction(channel, session, lesson)
         await asyncio.sleep(1)
 
-        # Part 2+: Subtopics
+        # Part 2+: Subtopics in chunks
         subtopics = lesson.get("subtopics", [])
         chunk_size = 2
         for i in range(0, len(subtopics), chunk_size):
@@ -2237,52 +2225,51 @@ class LearnCog(commands.Cog):
         # Final: Conclusion
         await self._send_lesson_conclusion(channel, session, lesson)
 
-        await append_conversation(session.user_id, "assistant", f"{title} - Lesson delivered")
+        await append_conversation(session.user_id, "assistant", f"{title} — Lesson delivered")
 
         # Q&A Prompt
         qna_embed = discord.Embed(
-            title="🤔 Questions?",
+            title="🤔 Any Questions?",
             description=(
-                "**Ask anything about this lesson or previous lessons!**\n\n"
-                "• Type your question\n"
+                "**Ask anything about this lesson or previous ones!**\n\n"
+                "• Type your question naturally\n"
                 "• Type `no` or `quiz` to start the quiz\n"
-                "• Type `cheat sheet` for quick reference\n"
+                "• Type `cheat sheet` for a quick reference\n"
             ),
             color=discord.Color.blue()
         )
         await channel.send(embed=qna_embed)
 
     async def _send_lesson_introduction(self, channel: discord.TextChannel, session: LearnSession, lesson: dict):
-        """Part 1: Introduction"""
         model_pool = get_model_pool(session.model_mode, lesson['title'])
 
         system = """You are an expert Roblox Lua/Luau teacher.
-Write a COMPREHENSIVE introduction:
+Write a COMPREHENSIVE introduction for the lesson:
 
 ## 🎯 HOOK
-Engaging question or scenario
+Start with an engaging question or scenario to grab attention.
 
 ## 📚 WHAT IS IT? (3-4 paragraphs)
-Define for complete beginners with analogies
+Define the concept for complete beginners using real-world analogies.
 
-## 🤔 WHY IMPORTANT? (2 paragraphs)
-Why every developer needs this
+## 🤔 WHY IS THIS IMPORTANT? (2 paragraphs)
+Explain why every Roblox developer needs to know this.
 
 ## 🎮 REAL GAME EXAMPLES
-How do popular games use this?
+Show how popular Roblox games use this concept.
 
 ## ✨ AFTER THIS LESSON YOU CAN:
-4-5 things they can build
+List 4-5 concrete things the student will be able to build.
 
-Make it EXCITING!"""
+Make it EXCITING and beginner-friendly! Use Roblox-specific examples."""
 
-        user = f"""Introduction for Lesson {lesson['n']}: {lesson['title']}
+        user_msg = f"""Write an introduction for Lesson {lesson['n']}: {lesson['title']}
 Keywords: {', '.join(lesson['keywords'])}
-Real-world: {lesson.get('real_world', '')}"""
+Real-world application: {lesson.get('real_world', '')}"""
 
         async with channel.typing():
             content = await openrouter_chat(
-                [{"role": "system", "content": system}, {"role": "user", "content": user}],
+                [{"role": "system", "content": system}, {"role": "user", "content": user_msg}],
                 model_pool=model_pool,
                 max_tokens=1800,
             )
@@ -2299,7 +2286,6 @@ Real-world: {lesson.get('real_world', '')}"""
             await channel.send(embed=embed)
 
     async def _send_lesson_subtopics(self, channel: discord.TextChannel, session: LearnSession, lesson: dict, subtopics: list, part_num: int):
-        """Part 2+: Subtopics"""
         if not subtopics:
             return
 
@@ -2312,26 +2298,27 @@ Real-world: {lesson.get('real_world', '')}"""
 Description: {st['description']}
 Required examples: {st['examples']}
 
-MUST include:
-1. Detailed explanation (6-8 sentences)
+You MUST include:
+1. Detailed explanation (6-8 sentences minimum)
 2. {st['examples']} code examples with comments on EVERY line
-3. When to use this
-4. Common mistakes
+3. When and why to use this
+4. Common mistakes to avoid
 """
 
         system = """You are an expert Roblox Lua/Luau teacher.
 Explain each subtopic thoroughly:
-- Beginner-friendly with analogies
-- EVERY code line needs a comment
-- Real Roblox game examples
-- Use ```lua blocks"""
+- Beginner-friendly language with real-world analogies
+- EVERY code line needs a descriptive comment
+- Use real Roblox game examples
+- Use ```lua code blocks
+- Be detailed and comprehensive"""
 
-        user = f"""Subtopics from Lesson {lesson['n']}: {lesson['title']}
+        user_msg = f"""Explain these subtopics from Lesson {lesson['n']}: {lesson['title']}
 {subtopics_text}"""
 
         async with channel.typing():
             content = await openrouter_chat(
-                [{"role": "system", "content": system}, {"role": "user", "content": user}],
+                [{"role": "system", "content": system}, {"role": "user", "content": user_msg}],
                 model_pool=model_pool,
                 max_tokens=2500,
             )
@@ -2347,51 +2334,51 @@ Explain each subtopic thoroughly:
             )
             await channel.send(embed=embed)
 
-    async def _send_lesson_conclusion(self, channel: discord.TextChannel, session: LearnSession, lesson: dict):
-        """Final Part: Mistakes, Tips, Project, Summary"""
-        model_pool = get_model_pool(session.model_mode, lesson['title'])
+        async def _send_lesson_conclusion(self, channel: discord.TextChannel, session: LearnSession, lesson: dict):
+            model_pool = get_model_pool(session.model_mode, lesson['title'])
 
-        mistakes = lesson.get("common_mistakes", [])
-        mistakes_text = "\n".join([f"• {m}" for m in mistakes])
+            mistakes = lesson.get("common_mistakes", [])
+            mistakes_text = "\n".join([f"• {m}" for m in mistakes])
 
-        system = """You are an expert teacher finishing a lesson.
+            system = """You are an expert teacher finishing a lesson.
+
+Write the following sections:
 
 ## ⚠️ COMMON MISTAKES
-For each: show WRONG code, explain, show CORRECT code
+For each mistake: show the WRONG code, explain why it's wrong, then show the CORRECT code.
 
-## 💡 PRO TIPS (5-6)
-Each with short code example
+## 💡 PRO TIPS (5-6 tips)
+Each with a short code example showing best practices.
 
 ## 🔧 MINI PROJECT
-Uses all concepts. Include starter code.
+A hands-on project that uses all concepts from this lesson. Include complete starter code with comments.
 
 ## 📝 SUMMARY
-6-8 bullet points + quick reference"""
+6-8 bullet points summarizing the key takeaways, plus a quick reference table."""
 
-        user = f"""Finish Lesson {lesson['n']}: {lesson['title']}
-Mistakes: {mistakes_text}
-Mini project: {lesson.get('mini_project', 'Practice exercise')}"""
+            user_msg = f"""Finish Lesson {lesson['n']}: {lesson['title']}
+Common mistakes to cover: {mistakes_text}
+Mini project idea: {lesson.get('mini_project', 'Practice exercise')}"""
 
-        async with channel.typing():
-            content = await openrouter_chat(
-                [{"role": "system", "content": system}, {"role": "user", "content": user}],
-                model_pool=model_pool,
-                max_tokens=2500,
-            )
+            async with channel.typing():
+                content = await openrouter_chat(
+                    [{"role": "system", "content": system}, {"role": "user", "content": user_msg}],
+                    model_pool=model_pool,
+                    max_tokens=2500,
+                )
 
-        await append_conversation(session.user_id, "assistant", f"CONCLUSION: {content[:1500]}")
+            await append_conversation(session.user_id, "assistant", f"CONCLUSION: {content[:1500]}")
 
-        parts = self._split_content(content, 3900)
-        for i, part in enumerate(parts):
-            embed = discord.Embed(
-                title="⚠️ Mistakes, Tips & Practice" if i == 0 else "⚠️ (continued)",
-                description=part,
-                color=discord.Color.orange()
-            )
-            await channel.send(embed=embed)
+            parts = self._split_content(content, 3900)
+            for i, part in enumerate(parts):
+                embed = discord.Embed(
+                    title="⚠️ Mistakes, Tips & Practice" if i == 0 else "⚠️ (continued)",
+                    description=part,
+                    color=discord.Color.orange()
+                )
+                await channel.send(embed=embed)
 
     async def send_project_lesson(self, channel: discord.TextChannel, session: LearnSession, lesson: dict):
-        """Project-based lesson"""
         requirements = "\n".join([f"✅ {req}" for req in lesson.get("project_requirements", [])])
 
         is_final = lesson.get("is_final", False)
@@ -2402,22 +2389,31 @@ Mini project: {lesson.get('mini_project', 'Practice exercise')}"""
             stats = await get_progress_stats(session.user_id)
             weak_text = ", ".join([k for k, v in weakness["weaknesses"][:5]]) or "None"
 
-            system = """Guide student through FINAL GRADUATION PROJECT.
-Include: celebration, personalized analysis, game design guide, code architecture, publishing tips."""
+            system = """You are guiding a student through their FINAL GRADUATION PROJECT.
+Include:
+- A celebration of how far they've come
+- Personalized analysis based on their stats
+- A complete game design guide
+- Code architecture recommendations
+- Publishing tips and best practices
+- Encouragement to keep learning"""
 
-            user = f"""Final project for student:
-Stats: {stats['completed_count']} lessons, {stats['accuracy']}% accuracy
-Weak areas: {weak_text}
-Requirements: {requirements}"""
+            user_msg = f"""Final graduation project for student:
+Stats: {stats['completed_count']} lessons completed, {stats['accuracy']}% accuracy
+Weak areas to focus on: {weak_text}
+Requirements:\n{requirements}"""
         else:
-            system = """Guide through practical project with step-by-step code."""
-            user = f"""Project: {lesson['title']}\nRequirements: {requirements}"""
+            system = """You are guiding a student through a practical project.
+Provide step-by-step instructions with complete, well-commented code.
+Break the project into clear phases."""
+
+            user_msg = f"""Project: {lesson['title']}\nRequirements:\n{requirements}"""
 
         await channel.send("🔨 **Generating project guide...**")
 
         async with channel.typing():
             content = await openrouter_chat(
-                [{"role": "system", "content": system}, {"role": "user", "content": user}],
+                [{"role": "system", "content": system}, {"role": "user", "content": user_msg}],
                 model_pool=model_pool,
                 max_tokens=3500,
             )
@@ -2427,7 +2423,7 @@ Requirements: {requirements}"""
         parts = self._split_content(content, 3900)
         for part in parts:
             embed = discord.Embed(
-                title=f"🔨 {'🎓 GRADUATION ' if is_final else ''}Project",
+                title=f"{'🎓 GRADUATION ' if is_final else '🔨 '}Project: {lesson['title']}",
                 description=part,
                 color=discord.Color.gold() if is_final else BOT_COLOR
             )
@@ -2436,10 +2432,12 @@ Requirements: {requirements}"""
         session.phase = "quiz"
         await save_session_state(session)
 
-        await channel.send("📋 **When done, describe what you built!**\nType `skip` to continue.")
+        await channel.send(
+            "📋 **When you're done, describe what you built!**\n"
+            "Type `skip` to move on to the quiz."
+        )
 
     def _split_content(self, content: str, max_length: int) -> List[str]:
-        """Split content preserving code blocks"""
         if len(content) <= max_length:
             return [content]
 
@@ -2469,29 +2467,42 @@ Requirements: {requirements}"""
     # =====================================================
 
     async def generate_hint(self, lesson: dict, quiz: dict) -> str:
-        system = "Give a helpful hint WITHOUT revealing answer. 2-3 sentences."
-        user = f"Quiz: {quiz.get('question', '')}\nAnswer: {quiz.get('answer', '')}"
+        system = (
+            "You are a helpful tutor. Give a useful hint that guides the student "
+            "toward the answer WITHOUT revealing it directly. Keep it to 2-3 sentences."
+        )
+        user_msg = (
+            f"Quiz question: {quiz.get('question', '')}\n"
+            f"Correct answer: {quiz.get('answer', '')}\n"
+            f"Topic: {lesson['title'] if lesson else 'Unknown'}"
+        )
 
         return await openrouter_chat(
-            [{"role": "system", "content": system}, {"role": "user", "content": user}],
+            [{"role": "system", "content": system}, {"role": "user", "content": user_msg}],
             model_pool=EXPLAIN_MODELS,
             max_tokens=200,
         )
 
     async def generate_quiz(self, session: LearnSession, num_questions: int = 3) -> List[dict]:
         lesson = get_lesson(session.lesson_number)
+        if not lesson:
+            return [{"question": "Explain what you learned.", "type": "concept", "answer": "", "difficulty": "medium", "related_keywords": []}]
+
         weakness = await get_weakness_analysis(session.user_id)
         weak_topics = [k for k, v in weakness["weaknesses"][:5]]
 
-        system = "Create quiz. Return ONLY valid JSON array."
-        user = f"""Create {num_questions} questions for Lesson {lesson['n']}: {lesson['title']}
+        system = (
+            "You are a quiz generator for Roblox Lua/Luau lessons. "
+            "Create quiz questions. Return ONLY a valid JSON array, nothing else."
+        )
+        user_msg = f"""Create {num_questions} questions for Lesson {lesson['n']}: {lesson['title']}
 Keywords: {', '.join(lesson['keywords'])}
-{"Weak areas: " + ', '.join(weak_topics) if weak_topics else ""}
+{"Focus on weak areas: " + ', '.join(weak_topics) if weak_topics else "General coverage"}
 
-Return: [{{"question": "...", "type": "output/fix/concept/choice", "options": null or [...], "answer": "...", "explanation": "...", "difficulty": "easy/medium/hard", "related_keywords": [...]}}]"""
+Return format: [{{"question": "...", "type": "output|fix|concept|choice", "options": null or ["A) ...", "B) ...", "C) ...", "D) ..."], "answer": "...", "explanation": "...", "difficulty": "easy|medium|hard", "related_keywords": [...]}}]"""
 
         raw = await openrouter_chat(
-            [{"role": "system", "content": system}, {"role": "user", "content": user}],
+            [{"role": "system", "content": system}, {"role": "user", "content": user_msg}],
             model_pool=EXPLAIN_MODELS,
             max_tokens=2000,
         )
@@ -2502,20 +2513,35 @@ Return: [{{"question": "...", "type": "output/fix/concept/choice", "options": nu
                 questions = json.loads(match.group(0))
                 if isinstance(questions, list) and questions:
                     return questions
-        except:
+        except (json.JSONDecodeError, TypeError):
             pass
 
-        return [{"question": f"Explain {lesson['title']}.", "type": "concept", "answer": "", "difficulty": "medium", "related_keywords": lesson['keywords'][:3]}]
+        # Fallback question
+        return [{
+            "question": f"Explain the key concepts of {lesson['title']} with a code example.",
+            "type": "concept",
+            "answer": "",
+            "explanation": "",
+            "difficulty": "medium",
+            "related_keywords": lesson['keywords'][:3]
+        }]
 
     async def grade_quiz_answer(self, session: LearnSession, quiz: dict, user_answer: str) -> dict:
-        lesson = get_lesson(session.lesson_number)
         model_pool = get_model_pool(session.model_mode, user_answer)
 
-        system = "Grade fairly. Return JSON: {\"correct\": bool, \"partial\": bool, \"score\": 0-100, \"feedback\": \"...\", \"correct_answer\": \"...\"}"
-        user = f"Question: {quiz.get('question', '')}\nExpected: {quiz.get('answer', '')}\nStudent: {user_answer}"
+        system = (
+            "You are a fair quiz grader. Grade the student's answer. "
+            'Return ONLY valid JSON: {"correct": bool, "partial": bool, "score": 0-100, '
+            '"feedback": "encouraging feedback", "correct_answer": "the correct answer"}'
+        )
+        user_msg = (
+            f"Question: {quiz.get('question', '')}\n"
+            f"Expected answer: {quiz.get('answer', '')}\n"
+            f"Student's answer: {user_answer}"
+        )
 
         raw = await openrouter_chat(
-            [{"role": "system", "content": system}, {"role": "user", "content": user}],
+            [{"role": "system", "content": system}, {"role": "user", "content": user_msg}],
             model_pool=model_pool,
             max_tokens=400,
         )
@@ -2524,10 +2550,16 @@ Return: [{{"question": "...", "type": "output/fix/concept/choice", "options": nu
             data = extract_json(raw)
             if data and "correct" in data:
                 return data
-        except:
+        except (TypeError, KeyError):
             pass
 
-        return {"correct": False, "partial": False, "score": 0, "feedback": "Couldn't grade.", "correct_answer": quiz.get("answer", "")}
+        return {
+            "correct": False,
+            "partial": False,
+            "score": 0,
+            "feedback": "Could not grade automatically. Please try rephrasing your answer.",
+            "correct_answer": quiz.get("answer", "")
+        }
 
     async def ai_answer_question(self, session: LearnSession, question: str) -> str:
         current = get_lesson(session.lesson_number)
@@ -2539,11 +2571,14 @@ Return: [{{"question": "...", "type": "output/fix/concept/choice", "options": nu
             if l:
                 context.append(f"Lesson {l['n']}: {l['title']}")
 
-        system = f"""Helpful Roblox Lua/Luau tutor.
-Student on Lesson {session.lesson_number}: {current['title'] if current else 'Unknown'}
-Covered: {', '.join(context[:15])}
+        current_title = current['title'] if current else 'Unknown'
+        system = f"""You are a helpful Roblox Lua/Luau tutor.
+The student is currently on Lesson {session.lesson_number}: {current_title}
+Lessons covered so far: {', '.join(context[:15])}
 
-Answer ANY question with code examples. Be helpful!"""
+Answer ANY question about Lua/Luau or Roblox development.
+Include code examples when relevant. Use ```lua blocks.
+Be encouraging and thorough!"""
 
         response = await openrouter_chat(
             [{"role": "system", "content": system}, {"role": "user", "content": question}],
@@ -2558,11 +2593,19 @@ Answer ANY question with code examples. Be helpful!"""
         weakness = await get_weakness_analysis(session.user_id)
         weak_topics = [k for k, v in weakness["weaknesses"][:10]]
 
-        system = "Create 10-question final exam. Return ONLY JSON array."
-        user = f"Focus on weak areas: {', '.join(weak_topics) if weak_topics else 'general review'}"
+        system = (
+            "Create a comprehensive 10-question final exam covering all Roblox Lua/Luau topics. "
+            "Return ONLY a valid JSON array."
+        )
+        user_msg = (
+            f"Focus especially on weak areas: {', '.join(weak_topics) if weak_topics else 'general review of all topics'}\n"
+            "Include mix of: output prediction, bug fixing, concept explanation, and multiple choice.\n"
+            'Format: [{{"question": "...", "type": "...", "options": null or [...], "answer": "...", '
+            '"explanation": "...", "points": 10, "related_keywords": [...]}}]'
+        )
 
         raw = await openrouter_chat(
-            [{"role": "system", "content": system}, {"role": "user", "content": user}],
+            [{"role": "system", "content": system}, {"role": "user", "content": user_msg}],
             model_pool=EXPLAIN_MODELS,
             max_tokens=3000,
         )
@@ -2570,11 +2613,19 @@ Answer ANY question with code examples. Be helpful!"""
         try:
             match = re.search(r'\[[\s\S]*\]', raw)
             if match:
-                return json.loads(match.group(0))
-        except:
+                questions = json.loads(match.group(0))
+                if isinstance(questions, list) and questions:
+                    return questions
+        except (json.JSONDecodeError, TypeError):
             pass
 
-        return [{"question": "Explain client-server security.", "type": "concept", "answer": "", "points": 10}]
+        return [{
+            "question": "Explain client-server architecture and why you should never trust the client.",
+            "type": "concept",
+            "answer": "",
+            "points": 10,
+            "related_keywords": ["client", "server", "security"]
+        }]
 
     # =====================================================
     # QUIZ HANDLING
@@ -2588,15 +2639,15 @@ Answer ANY question with code examples. Be helpful!"""
         await track_weakness(session.user_id, keywords, False)
 
         embed = discord.Embed(
-            title="⏭️ Skipped",
-            description=f"**Answer:** {quiz.get('answer', 'N/A')}",
+            title="⏭️ Question Skipped",
+            description=f"**Correct Answer:** {quiz.get('answer', 'N/A')}",
             color=discord.Color.orange()
         )
         if quiz.get("explanation"):
-            embed.add_field(name="Explanation", value=quiz['explanation'][:1000], inline=False)
+            embed.add_field(name="📝 Explanation", value=quiz['explanation'][:1000], inline=False)
         await channel.send(embed=embed)
 
-        await append_conversation(session.user_id, "assistant", f"SKIPPED: {quiz.get('answer', '')}")
+        await append_conversation(session.user_id, "assistant", f"SKIPPED — Answer: {quiz.get('answer', '')}")
 
         await self._advance_quiz(channel, session)
 
@@ -2606,7 +2657,6 @@ Answer ANY question with code examples. Be helpful!"""
             session.quiz_data = session.quiz_questions[session.current_quiz_index]
             session.hints_remaining = 3
 
-            # SAVE STATE
             await save_session_state(session)
 
             await asyncio.sleep(1.5)
@@ -2619,7 +2669,8 @@ Answer ANY question with code examples. Be helpful!"""
                 description=q.get("question", ""),
                 color=BOT_COLOR
             )
-            embed.add_field(name="Type", value=q.get("type", "").title(), inline=True)
+            embed.add_field(name="Type", value=q.get("type", "concept").title(), inline=True)
+            embed.add_field(name="Difficulty", value=q.get("difficulty", "medium").title(), inline=True)
             embed.add_field(name="💡 Hints", value=str(session.hints_remaining), inline=True)
 
             if q.get("options"):
@@ -2632,7 +2683,7 @@ Answer ANY question with code examples. Be helpful!"""
     async def _complete_quiz(self, channel: discord.TextChannel, session: LearnSession):
         lesson = get_lesson(session.lesson_number)
 
-        # Update completed lessons
+        # Mark lesson as completed
         user = await UserProfile.get_user(session.user_id)
         completed = user.get("learn_completed_lessons", [])
         if session.lesson_number not in completed:
@@ -2646,27 +2697,38 @@ Answer ANY question with code examples. Be helpful!"""
         session.current_quiz_index = 0
         session.hints_remaining = 3
 
-        # SAVE STATE
         await save_session_state(session)
 
         stats = await get_progress_stats(session.user_id)
-        bar = "█" * int(stats['progress_percent'] / 10) + "░" * (10 - int(stats['progress_percent'] / 10))
+        filled = int(stats['progress_percent'] / 10)
+        bar = "█" * filled + "░" * (10 - filled)
+
+        lesson_title = lesson['title'] if lesson else 'Unknown'
 
         embed = discord.Embed(
             title="🎉 Lesson Complete!",
-            description=f"**Lesson {session.lesson_number}: {lesson['title'] if lesson else 'Unknown'}** ✓",
+            description=f"**Lesson {session.lesson_number}: {lesson_title}** ✅",
             color=discord.Color.green()
         )
-        embed.add_field(name="Progress", value=f"[{bar}] {stats['progress_percent']}%", inline=False)
+        embed.add_field(name="📈 Progress", value=f"`[{bar}]` {stats['progress_percent']}%", inline=False)
         embed.add_field(name="🔥 Streak", value=f"{stats['streak']} days", inline=True)
-        embed.add_field(name="Accuracy", value=f"{stats['accuracy']}%", inline=True)
+        embed.add_field(name="🎯 Accuracy", value=f"{stats['accuracy']}%", inline=True)
+        embed.add_field(name="📚 Completed", value=f"{stats['completed_count']}/{stats['total_lessons']}", inline=True)
 
         if session.lesson_number < len(LESSONS):
             next_l = get_lesson(session.lesson_number + 1)
             if next_l:
-                embed.add_field(name="📖 Next", value=f"Lesson {next_l['n']}: {next_l['title']}", inline=False)
+                embed.add_field(
+                    name="📖 Up Next",
+                    value=f"Lesson {next_l['n']}: **{next_l['title']}**\nClick **Next Lesson** or type `next lesson`",
+                    inline=False
+                )
         else:
-            embed.add_field(name="🎓", value="ALL DONE! Type `final test`!", inline=False)
+            embed.add_field(
+                name="🎓 Congratulations!",
+                value="All lessons complete! Type `final test` to take the graduation exam!",
+                inline=False
+            )
 
         await channel.send(embed=embed)
 
@@ -2676,7 +2738,7 @@ Answer ANY question with code examples. Be helpful!"""
         session.phase = "quiz"
         session.hints_remaining = 3
 
-        await channel.send("🧩 **Generating quiz...**")
+        await channel.send("🧩 **Generating quiz questions...**")
 
         async with channel.typing():
             questions = await self.generate_quiz(session, 3)
@@ -2685,23 +2747,26 @@ Answer ANY question with code examples. Be helpful!"""
         session.current_quiz_index = 0
         session.quiz_data = questions[0] if questions else {}
 
-        # SAVE STATE
         await save_session_state(session)
 
         await asyncio.sleep(1)
 
         q = session.quiz_data
+        total = len(questions)
+
         embed = discord.Embed(
-            title=f"🧩 Quiz 1/{len(questions)}",
+            title=f"🧩 Quiz — Question 1/{total}",
             description=q.get("question", ""),
             color=BOT_COLOR
         )
-        embed.add_field(name="Type", value=q.get("type", "").title(), inline=True)
-        embed.add_field(name="💡", value=str(session.hints_remaining), inline=True)
+        embed.add_field(name="Type", value=q.get("type", "concept").title(), inline=True)
+        embed.add_field(name="Difficulty", value=q.get("difficulty", "medium").title(), inline=True)
+        embed.add_field(name="💡 Hints", value=str(session.hints_remaining), inline=True)
 
         if q.get("options"):
             embed.add_field(name="Options", value="\n".join(q["options"]), inline=False)
 
+        embed.set_footer(text="Type your answer • Use hint/skip buttons • Ask questions with ?")
         await channel.send(embed=embed, view=QuizControlView(self, session))
 
     # =====================================================
@@ -2712,7 +2777,7 @@ Answer ANY question with code examples. Be helpful!"""
         session.phase = "final_test"
         session.hints_remaining = 5
 
-        await channel.send("🎓 **Generating FINAL EXAM...**")
+        await channel.send("🎓 **Generating your FINAL EXAM...**")
 
         async with channel.typing():
             questions = await self.generate_final_test(session)
@@ -2721,14 +2786,18 @@ Answer ANY question with code examples. Be helpful!"""
         session.current_quiz_index = 0
         session.quiz_data = questions[0] if questions else {}
 
-        # SAVE STATE
         await save_session_state(session)
 
         stats = await get_progress_stats(session.user_id)
 
         embed = discord.Embed(
-            title="🎓 FINAL EXAM",
-            description=f"{len(questions)} questions • 5 hints • Based on YOUR weak areas",
+            title="🎓 FINAL GRADUATION EXAM",
+            description=(
+                f"**{len(questions)} questions** • **5 hints** • Based on YOUR weak areas\n\n"
+                f"📚 Lessons completed: {stats['completed_count']}\n"
+                f"🎯 Current accuracy: {stats['accuracy']}%\n\n"
+                "**Good luck! You've got this! 💪**"
+            ),
             color=discord.Color.gold()
         )
         await channel.send(embed=embed)
@@ -2737,10 +2806,13 @@ Answer ANY question with code examples. Be helpful!"""
 
         q = session.quiz_data
         q_embed = discord.Embed(
-            title=f"📝 Q1/{len(questions)}",
+            title=f"📝 Question 1/{len(questions)}",
             description=q.get("question", ""),
             color=BOT_COLOR
         )
+        q_embed.add_field(name="Type", value=q.get("type", "concept").title(), inline=True)
+        q_embed.add_field(name="💡 Hints", value=str(session.hints_remaining), inline=True)
+
         if q.get("options"):
             q_embed.add_field(name="Options", value="\n".join(q["options"]), inline=False)
 
@@ -2762,39 +2834,52 @@ Answer ANY question with code examples. Be helpful!"""
         await append_conversation(session.user_id, "assistant", f"FINAL GRADE: {json.dumps(grade)[:500]}")
 
         if is_correct:
-            embed = discord.Embed(title="✅ Correct!", color=discord.Color.green())
+            embed = discord.Embed(
+                title="✅ Correct!",
+                description=grade.get("feedback", "Great job!"),
+                color=discord.Color.green()
+            )
         else:
             embed = discord.Embed(
                 title="❌ Incorrect",
-                description=f"Answer: {grade.get('correct_answer', quiz.get('answer', ''))}",
+                description=grade.get("feedback", ""),
                 color=discord.Color.red()
+            )
+            embed.add_field(
+                name="Correct Answer",
+                value=grade.get('correct_answer', quiz.get('answer', 'N/A')),
+                inline=False
             )
         await channel.send(embed=embed)
 
+        # Next question or graduate
         if session.current_quiz_index < len(session.quiz_questions) - 1:
             session.current_quiz_index += 1
             session.quiz_data = session.quiz_questions[session.current_quiz_index]
 
-            # SAVE STATE
             await save_session_state(session)
 
             await asyncio.sleep(2)
 
             q = session.quiz_data
-            embed = discord.Embed(
-                title=f"📝 Q{session.current_quiz_index + 1}/{len(session.quiz_questions)}",
+            total = len(session.quiz_questions)
+            q_embed = discord.Embed(
+                title=f"📝 Question {session.current_quiz_index + 1}/{total}",
                 description=q.get("question", ""),
                 color=BOT_COLOR
             )
-            if q.get("options"):
-                embed.add_field(name="Options", value="\n".join(q["options"]), inline=False)
+            q_embed.add_field(name="Type", value=q.get("type", "concept").title(), inline=True)
+            q_embed.add_field(name="💡 Hints", value=str(session.hints_remaining), inline=True)
 
-            await channel.send(embed=embed, view=QuizControlView(self, session))
+            if q.get("options"):
+                q_embed.add_field(name="Options", value="\n".join(q["options"]), inline=False)
+
+            await channel.send(embed=q_embed, view=QuizControlView(self, session))
         else:
             await self._graduate_user(channel, session)
 
     async def _graduate_user(self, channel: discord.TextChannel, session: LearnSession):
-        # Update completed
+        # Mark lesson 50 as completed
         user = await UserProfile.get_user(session.user_id)
         completed = user.get("learn_completed_lessons", [])
         if 50 not in completed and len(LESSONS) >= 50:
@@ -2808,29 +2893,32 @@ Answer ANY question with code examples. Be helpful!"""
         session.current_quiz_index = 0
         session.hints_remaining = 3
 
-        # SAVE STATE
         await save_session_state(session)
 
         stats = await get_progress_stats(session.user_id)
 
+        # Celebration!
         await channel.send("🎆" * 10)
 
         embed = discord.Embed(
-            title="🎓🎉 CONGRATULATIONS! 🎉🎓",
+            title="🎓🎉 CONGRATULATIONS! YOU GRADUATED! 🎉🎓",
             description=(
-                "# YOU GRADUATED!\n\n"
-                f"• {stats['completed_count']} lessons\n"
-                f"• {stats['accuracy']}% accuracy\n"
-                f"• {stats['streak']} day streak\n\n"
-                "**You are now a Roblox Developer!**"
+                "# 🏆 You Did It!\n\n"
+                f"📚 **{stats['completed_count']}** lessons completed\n"
+                f"🎯 **{stats['accuracy']}%** overall accuracy\n"
+                f"🔥 **{stats['streak']}** day learning streak\n"
+                f"💡 **{stats.get('hints_used', 0)}** hints used\n\n"
+                "**You are now a Roblox Lua/Luau Developer!**\n\n"
+                "Keep building, keep learning, and most importantly — have fun creating amazing games! 🎮✨"
             ),
             color=discord.Color.gold()
         )
+        embed.set_footer(text="Thank you for learning with us! 💙")
         await channel.send(embed=embed)
 
-        await append_conversation(session.user_id, "assistant", "🎓 GRADUATED!")
+        await append_conversation(session.user_id, "assistant", "🎓 GRADUATED! Congratulations!")
 
-        await channel.send("🎊 **GO BUILD AMAZING GAMES!** 🎊")
+        await channel.send("🎊 **NOW GO BUILD AMAZING GAMES!** 🎊")
 
     # =====================================================
     # MESSAGE LISTENER
@@ -2847,7 +2935,7 @@ Answer ANY question with code examples. Be helpful!"""
 
         try:
             owner_id = int(message.channel.name.split("learn-", 1)[1])
-        except:
+        except (ValueError, IndexError):
             return
 
         if message.author.id != owner_id:
@@ -2860,11 +2948,12 @@ Answer ANY question with code examples. Be helpful!"""
 
         await append_conversation(owner_id, "user", raw)
 
-        # ===== COMMANDS FIRST =====
+        # ===== TEXT COMMANDS FIRST =====
         if content in TEXT_COMMANDS:
             await self._handle_text_command(message.channel, session, content)
             return
 
+        # ===== REVIEW COMMAND =====
         if content.startswith("review "):
             try:
                 num = int(content.split("review ", 1)[1])
@@ -2874,11 +2963,13 @@ Answer ANY question with code examples. Be helpful!"""
                     await self.send_lesson(message.channel, session, repeat=True)
                     session.lesson_number = old
                     await save_session_state(session)
-            except:
+                else:
+                    await message.channel.send(f"❌ Lesson number must be between 1 and {len(LESSONS)}.")
+            except (ValueError, IndexError):
                 await message.channel.send("Usage: `review 5`")
             return
 
-        # ===== PHASE HANDLING =====
+        # ===== PHASE-BASED HANDLING =====
         lesson = get_lesson(session.lesson_number)
 
         if session.phase == "qna":
@@ -2895,18 +2986,20 @@ Answer ANY question with code examples. Be helpful!"""
             else:
                 await message.channel.send(answer)
 
-            await message.channel.send("_More questions? Type `no` for quiz._")
+            await message.channel.send("_Have more questions? Type `no` or `quiz` to start the quiz._")
             return
 
         if session.phase == "quiz":
             quiz = session.quiz_data
 
-            if raw.endswith("?") or content.startswith(("what", "why", "how", "explain")):
+            # Allow questions during quiz
+            if raw.endswith("?") or content.startswith(("what", "why", "how", "explain", "can you")):
                 answer = await self.ai_answer_question(session, raw)
                 await message.channel.send(answer[:1900])
-                await message.channel.send("_Now answer the quiz!_")
+                await message.channel.send("_Now answer the quiz question above!_")
                 return
 
+            # Grade the answer
             grade = await self.grade_quiz_answer(session, quiz, raw)
             keywords = quiz.get("related_keywords", lesson.get("keywords", []) if lesson else [])
             is_correct = grade.get("correct", False)
@@ -2922,15 +3015,30 @@ Answer ANY question with code examples. Be helpful!"""
             await append_conversation(session.user_id, "assistant", f"GRADING: {json.dumps(grade)[:500]}")
 
             if is_correct:
-                embed = discord.Embed(title="✅ Correct!", description=grade.get("feedback", ""), color=discord.Color.green())
+                embed = discord.Embed(
+                    title="✅ Correct!",
+                    description=grade.get("feedback", "Well done!"),
+                    color=discord.Color.green()
+                )
+                if grade.get("score", 0) == 100:
+                    embed.set_footer(text="⭐ Perfect answer!")
                 await message.channel.send(embed=embed)
                 await self._advance_quiz(message.channel, session)
             elif grade.get("partial"):
-                embed = discord.Embed(title="🟡 Partial", description=grade.get("feedback", ""), color=discord.Color.gold())
+                embed = discord.Embed(
+                    title="🟡 Partially Correct",
+                    description=grade.get("feedback", "You're on the right track!"),
+                    color=discord.Color.gold()
+                )
+                embed.set_footer(text="Try again for full marks • Use 'hint' for help")
                 await message.channel.send(embed=embed)
             else:
-                embed = discord.Embed(title="❌ Wrong", description=grade.get("feedback", ""), color=discord.Color.red())
-                embed.set_footer(text="Try again • 'hint' • 'skip'")
+                embed = discord.Embed(
+                    title="❌ Not Quite",
+                    description=grade.get("feedback", "Keep trying!"),
+                    color=discord.Color.red()
+                )
+                embed.set_footer(text="Try again • Type 'hint' for help • Type 'skip' to see the answer")
                 await message.channel.send(embed=embed)
             return
 
@@ -2943,35 +3051,39 @@ Answer ANY question with code examples. Be helpful!"""
             return
 
         if session.phase == "menu":
-            await message.channel.send("Type `start lesson` to begin!")
+            await message.channel.send(
+                "📚 Type `start lesson` to begin, or use the buttons on the control panel above!"
+            )
 
     async def _handle_text_command(self, channel: discord.TextChannel, session: LearnSession, content: str):
         owner_id = session.user_id
         lesson = get_lesson(session.lesson_number)
 
-        # Model switching
+        # ===== MODEL SWITCHING =====
         if content in {"switch to coder", "model coder"}:
             session.model_mode = "coder"
             await save_session_state(session)
-            await channel.send("✅ **CODER** mode (code-focused models)")
+            await channel.send("✅ Switched to **CODER** mode — optimized for code generation and debugging.")
             return
 
         if content in {"switch to explain", "model explain"}:
             session.model_mode = "explain"
             await save_session_state(session)
-            await channel.send("✅ **EXPLAIN** mode (explanation-focused models)")
+            await channel.send("✅ Switched to **EXPLAIN** mode — optimized for explanations and concepts.")
             return
 
         if content in {"switch to auto", "model auto"}:
             session.model_mode = "auto"
             await save_session_state(session)
-            await channel.send("✅ **AUTO** mode (switches based on content)")
+            await channel.send("✅ Switched to **AUTO** mode — automatically picks the best model for each request.")
             return
 
+        # ===== PANEL =====
         if content in {"refresh panel", "panel"}:
             await self.send_panel(channel, owner_id)
             return
 
+        # ===== LESSON CONTROL =====
         if content in {"start lesson", "start"} and session.phase == "menu":
             await self.send_lesson(channel, session)
             return
@@ -2982,47 +3094,70 @@ Answer ANY question with code examples. Be helpful!"""
 
         if content in {"next lesson", "next"} and session.phase == "menu":
             if session.lesson_number >= len(LESSONS):
-                await channel.send("🎉 All done! Type `final test`!")
+                await channel.send("🎉 All lessons complete! Type `final test` to take the graduation exam!")
                 return
             session.lesson_number += 1
             session.phase = "menu"
             await save_session_state(session)
             next_l = get_lesson(session.lesson_number)
-            await channel.send(f"📖 **Lesson {session.lesson_number}: {next_l['title'] if next_l else 'Unknown'}**\nType `start lesson`!")
+            next_title = next_l['title'] if next_l else 'Unknown'
+            await channel.send(
+                f"📖 **Lesson {session.lesson_number}: {next_title}**\n"
+                f"Type `start lesson` or click **Start Lesson** to begin!"
+            )
             return
 
+        # ===== PROGRESS =====
         if content in {"my progress", "progress", "stats"}:
             stats = await get_progress_stats(owner_id)
             weakness = await get_weakness_analysis(owner_id)
-            bar = "█" * int(stats['progress_percent'] / 10) + "░" * (10 - int(stats['progress_percent'] / 10))
 
-            embed = discord.Embed(title="📊 Progress", color=BOT_COLOR)
-            embed.add_field(name="Progress", value=f"[{bar}] {stats['progress_percent']}%", inline=False)
-            embed.add_field(name="🔥", value=f"{stats['streak']} days", inline=True)
-            embed.add_field(name="Accuracy", value=f"{stats['accuracy']}%", inline=True)
+            filled = int(stats['progress_percent'] / 10)
+            bar = "█" * filled + "░" * (10 - filled)
+
+            embed = discord.Embed(title="📊 Your Progress", color=BOT_COLOR)
+            embed.add_field(name="Overall", value=f"`[{bar}]` {stats['progress_percent']}%", inline=False)
+            embed.add_field(name="📚 Lessons", value=f"{stats['completed_count']}/{stats['total_lessons']}", inline=True)
+            embed.add_field(name="🔥 Streak", value=f"{stats['streak']} days", inline=True)
+            embed.add_field(name="🎯 Accuracy", value=f"{stats['accuracy']}%", inline=True)
 
             if weakness["weaknesses"]:
-                embed.add_field(name="⚠️ Weak", value=", ".join([k for k, v in weakness["weaknesses"][:5]]), inline=False)
+                weak_text = ", ".join([f"`{k}`" for k, v in weakness["weaknesses"][:5]])
+                embed.add_field(name="⚠️ Weak Topics", value=weak_text, inline=False)
+            if weakness["strengths"]:
+                strong_text = ", ".join([f"`{k}`" for k, v in weakness["strengths"][:5]])
+                embed.add_field(name="💪 Strong Topics", value=strong_text, inline=False)
 
             await channel.send(embed=embed)
             return
 
+        # ===== WEAKNESS ANALYSIS =====
         if content in {"my weaknesses", "weakness analysis", "analyze"}:
             weakness = await get_weakness_analysis(owner_id)
             embed = discord.Embed(title="⚠️ Weakness Analysis", color=discord.Color.orange())
             if weakness["weaknesses"]:
-                embed.description = "\n".join([f"• **{k}**: {v}" for k, v in weakness["weaknesses"][:10]])
+                desc_lines = []
+                for k, v in weakness["weaknesses"][:10]:
+                    bar_len = min(v, 10)
+                    desc_lines.append(f"• **{k}**: {'🟥' * bar_len} ({v} mistakes)")
+                embed.description = "\n".join(desc_lines)
             else:
-                embed.description = "No weaknesses yet!"
+                embed.description = "No weaknesses detected yet! Keep taking quizzes."
+
+            if weakness["strengths"]:
+                strong_lines = [f"• **{k}**: ✅ ({v} correct)" for k, v in weakness["strengths"][:5]]
+                embed.add_field(name="💪 Your Strengths", value="\n".join(strong_lines), inline=False)
+
             await channel.send(embed=embed)
             return
 
+        # ===== HINTS =====
         if content in {"hint", "get hint", "help"}:
             if session.phase not in {"quiz", "final_test"}:
-                await channel.send("💡 Hints only in quizzes!")
+                await channel.send("💡 Hints are only available during quizzes! Start a quiz first.")
                 return
             if session.hints_remaining <= 0:
-                await channel.send("❌ No hints left!")
+                await channel.send("❌ No hints remaining for this question!")
                 return
 
             session.hints_remaining -= 1
@@ -3032,101 +3167,145 @@ Answer ANY question with code examples. Be helpful!"""
 
             hint = await self.generate_hint(lesson, session.quiz_data)
             embed = discord.Embed(title="💡 Hint", description=hint, color=discord.Color.gold())
-            embed.set_footer(text=f"Hints: {session.hints_remaining}")
+            embed.set_footer(text=f"Hints remaining: {session.hints_remaining}")
             await channel.send(embed=embed)
             return
 
+        # ===== CHEAT SHEET =====
         if content in {"cheat sheet", "cheatsheet", "reference"}:
             model_pool = get_model_pool(session.model_mode, "")
+            lesson_title = lesson['title'] if lesson else 'current topic'
+
             async with channel.typing():
                 cheat = await openrouter_chat(
-                    [{"role": "system", "content": "Quick cheat sheet with code snippets."},
-                     {"role": "user", "content": f"Cheat sheet for {lesson['title'] if lesson else 'current topic'}"}],
+                    [
+                        {"role": "system", "content": "Create a concise cheat sheet with key syntax and code snippets. Use ```lua blocks."},
+                        {"role": "user", "content": f"Quick reference cheat sheet for: {lesson_title}"}
+                    ],
                     model_pool=model_pool,
                     max_tokens=800
                 )
-            embed = discord.Embed(title="📋 Cheat Sheet", description=cheat[:4000], color=discord.Color.gold())
+
+            embed = discord.Embed(
+                title=f"📋 Cheat Sheet: {lesson_title}",
+                description=cheat[:4000],
+                color=discord.Color.gold()
+            )
             await channel.send(embed=embed)
             await append_conversation(owner_id, "assistant", f"CHEAT SHEET: {cheat[:1000]}")
             return
 
+        # ===== BOOKMARKS =====
         if content in {"bookmark", "save"}:
             user = await UserProfile.get_user(owner_id)
             bookmarks = user.get("learn_bookmarks", [])
             if session.lesson_number not in bookmarks:
                 bookmarks.append(session.lesson_number)
                 await UserProfile.update_user(owner_id, {"learn_bookmarks": bookmarks})
-                await channel.send("🔖 Bookmarked!")
+                lesson_title = lesson['title'] if lesson else 'Unknown'
+                await channel.send(f"🔖 Bookmarked **Lesson {session.lesson_number}: {lesson_title}**!")
             else:
-                await channel.send("Already bookmarked!")
+                await channel.send("🔖 This lesson is already bookmarked!")
             return
 
         if content in {"bookmarks", "my bookmarks"}:
             user = await UserProfile.get_user(owner_id)
             bookmarks = user.get("learn_bookmarks", [])
             if bookmarks:
-                text = "\n".join([f"• Lesson {n}: {get_lesson(n)['title']}" for n in bookmarks if get_lesson(n)])
-                await channel.send(f"🔖 **Bookmarks:**\n{text}")
+                lines = []
+                for n in sorted(bookmarks):
+                    l = get_lesson(n)
+                    if l:
+                        lines.append(f"• **Lesson {n}:** {l['title']}")
+                embed = discord.Embed(
+                    title="🔖 Your Bookmarks",
+                    description="\n".join(lines),
+                    color=BOT_COLOR
+                )
+                embed.set_footer(text="Type 'review <number>' to revisit a lesson")
+                await channel.send(embed=embed)
             else:
-                await channel.send("No bookmarks.")
+                await channel.send("🔖 No bookmarks yet! Type `bookmark` during a lesson to save it.")
             return
 
+        # ===== PRACTICE =====
         if content in {"practice", "exercises"}:
             model_pool = get_model_pool(session.model_mode, "")
+            lesson_title = lesson['title'] if lesson else 'current topic'
+
             async with channel.typing():
-                ex = await openrouter_chat(
-                    [{"role": "system", "content": "Create hands-on coding exercise."},
-                     {"role": "user", "content": f"Exercise for {lesson['title'] if lesson else 'current topic'}"}],
+                exercise = await openrouter_chat(
+                    [
+                        {"role": "system", "content": "Create a hands-on coding exercise with clear requirements and starter code. Use ```lua blocks."},
+                        {"role": "user", "content": f"Practice exercise for: {lesson_title}"}
+                    ],
                     model_pool=model_pool,
                     max_tokens=1000
                 )
-            embed = discord.Embed(title="💪 Practice", description=ex[:4000], color=discord.Color.green())
+
+            embed = discord.Embed(
+                title=f"💪 Practice: {lesson_title}",
+                description=exercise[:4000],
+                color=discord.Color.green()
+            )
+            embed.set_footer(text="Try it in Roblox Studio!")
             await channel.send(embed=embed)
-            await append_conversation(owner_id, "assistant", f"PRACTICE: {ex[:1000]}")
+            await append_conversation(owner_id, "assistant", f"PRACTICE: {exercise[:1000]}")
             return
 
+        # ===== SKIP (during quiz) =====
         if content in {"skip", "next question"} and session.phase in {"quiz", "final_test"}:
             await self.handle_quiz_skip(channel, session)
             return
 
+        # ===== FINAL TEST =====
         if content in {"final test"}:
             user = await UserProfile.get_user(owner_id)
-            if len(user.get("learn_completed_lessons", [])) < 45:
-                await channel.send(f"Need 45+ lessons. You have {len(user.get('learn_completed_lessons', []))}.")
+            completed_count = len(user.get("learn_completed_lessons", []))
+            if completed_count < 45:
+                await channel.send(
+                    f"📚 You need at least **45** completed lessons to take the final test.\n"
+                    f"You currently have **{completed_count}** completed. Keep going!"
+                )
                 return
             await self._start_final_test(channel, session)
             return
 
+        # ===== QUIZ START FROM QNA =====
         if content in {"no", "nope", "nah", "n", "quiz", "start quiz"} and session.phase == "qna":
             await self._start_quiz(channel, session)
             return
 
 
 # =====================================================
-# SETUP - Register BOTH persistent views
+# SETUP
 # =====================================================
 async def setup(bot: commands.Bot):
+    # Remove old command if exists
     try:
         bot.tree.remove_command("learn")
-    except:
+    except Exception:
         pass
 
     cog = LearnCog(bot)
     await bot.add_cog(cog)
 
-    # CRITICAL: Register BOTH persistent views
+    # Register persistent views (survive bot restarts)
     bot.add_view(LearnPersistentPanel(cog))
-    bot.add_view(QuizControlView(cog))  # ✅ This fixes quiz buttons after restart
+    bot.add_view(QuizControlView(cog))
 
-    @bot.tree.command(name="learn", description="Learn Roblox Lua/Luau (50 lessons)")
+    @bot.tree.command(name="learn", description="Start learning Roblox Lua/Luau — 50 comprehensive lessons!")
     async def learn_cmd(interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
 
         if not interaction.guild:
-            return await interaction.followup.send("Use in server.", ephemeral=True)
+            return await interaction.followup.send("❌ This command must be used in a server.", ephemeral=True)
 
         if not interaction.guild.me.guild_permissions.manage_channels:
-            return await interaction.followup.send("❌ Need Manage Channels.", ephemeral=True)
+            return await interaction.followup.send(
+                "❌ I need the **Manage Channels** permission to create your learning channel.",
+                ephemeral=True
+            )
 
         await ensure_learn_fields(interaction.user.id, interaction.user.name)
 
@@ -3135,25 +3314,55 @@ async def setup(bot: commands.Bot):
 
         if existing:
             await cog.send_panel(existing, interaction.user.id)
-            return await interaction.followup.send(f"✅ {existing.mention}", ephemeral=True)
+            return await interaction.followup.send(
+                f"✅ Your learning channel: {existing.mention}\nPanel refreshed!",
+                ephemeral=True
+            )
 
+        # Create private learning channel
         overwrites = {
             interaction.guild.default_role: discord.PermissionOverwrite(view_channel=False),
-            interaction.user: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
-            interaction.guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
+            interaction.user: discord.PermissionOverwrite(
+                view_channel=True,
+                send_messages=True,
+                read_message_history=True
+            ),
+            interaction.guild.me: discord.PermissionOverwrite(
+                view_channel=True,
+                send_messages=True,
+                read_message_history=True
+            ),
         }
 
-        channel = await interaction.guild.create_text_channel(name=channel_name, overwrites=overwrites)
+        channel = await interaction.guild.create_text_channel(
+            name=channel_name,
+            overwrites=overwrites
+        )
         await UserProfile.update_user(interaction.user.id, {"learn_channel_id": channel.id})
 
         session = await rebuild_session_from_db(channel, interaction.user.id)
         SESSIONS[channel.id] = session
 
+        # Welcome message
         welcome = discord.Embed(
-            title="🎮 Roblox Lua/Luau Learning!",
-            description="**50 comprehensive lessons!**\nClick Start Lesson to begin.",
+            title="🎮 Welcome to Roblox Lua/Luau Learning!",
+            description=(
+                "**50 comprehensive lessons** from beginner to expert!\n\n"
+                "📚 **5 Phases:**\n"
+                "1️⃣ Fundamentals (Lessons 1-12)\n"
+                "2️⃣ Intermediate (Lessons 13-24)\n"
+                "3️⃣ Advanced (Lessons 25-36)\n"
+                "4️⃣ Expert (Lessons 37-45)\n"
+                "5️⃣ Mastery Projects (Lessons 46-50)\n\n"
+                "Click **Start Lesson** below to begin! 🚀"
+            ),
             color=BOT_COLOR
         )
+        welcome.set_footer(text="Your progress is saved automatically. Have fun learning!")
         await channel.send(embed=welcome)
         await cog.send_panel(channel, interaction.user.id)
-        await interaction.followup.send(f"✅ {channel.mention}", ephemeral=True)
+
+        await interaction.followup.send(
+            f"✅ Created your learning channel: {channel.mention}\nHappy learning! 🎉",
+            ephemeral=True
+        )

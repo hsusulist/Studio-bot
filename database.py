@@ -13,6 +13,10 @@ TRANSACTIONS_FILE = os.path.join(DATA_DIR, "transactions.json")
 if not os.path.exists(DATA_DIR):
     os.makedirs(DATA_DIR)
 
+UPLOADS_DIR = os.path.join(DATA_DIR, "uploads")
+if not os.path.exists(UPLOADS_DIR):
+    os.makedirs(UPLOADS_DIR)
+
 def load_json(file_path, default_val):
     if os.path.exists(file_path):
         try:
