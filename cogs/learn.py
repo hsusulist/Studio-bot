@@ -24,14 +24,10 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 # Model pools for different purposes
 CODER_MODELS = [
     "qwen/qwen3-coder:free",
-    "deepseek/deepseek-chat-v3-0324:free",
 ]
 
 EXPLAIN_MODELS = [
-    "qwen/qwen3-235b-a22b:free",
-    "qwen/qwen3-32b:free",
-    "google/gemini-2.0-flash-exp:free",
-    "mistralai/mistral-small-3.1-24b-instruct:free",
+    "qwen/qwen3-next-80b-a3b-instruct:free",
 ]
 
 ALL_MODELS = CODER_MODELS + EXPLAIN_MODELS

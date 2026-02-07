@@ -5,11 +5,11 @@
         "role": null,
         "roles": [],
         "rank": "Beginner",
-        "xp": 120,
+        "xp": 140,
         "level": 1,
         "experience_months": 0,
         "voice_minutes": 0,
-        "message_count": 24,
+        "message_count": 28,
         "reputation": 0,
         "studio_credits": 500,
         "created_at": "2026-02-05T12:08:13.209546",
@@ -22,7 +22,7 @@
         "inventory": [],
         "learn_channel_id": 1469554282000027749,
         "learn_lesson": 1,
-        "learn_phase": "qna",
+        "learn_phase": "menu",
         "learn_model_mode": "auto",
         "learn_quiz_data": {},
         "learn_conversation": [
@@ -110,20 +110,111 @@
                 "ts": "2026-02-07T04:46:43.728161+00:00",
                 "role": "assistant",
                 "content": "SUBTOPICS Part 4: \u26a0\ufe0f AI temporarily unavailable. Try again.\n_(Debug: Error 404: {'error': {'message': 'No endpoints found for qwen/qwen3-32b:free.', 'code': 404}, 'user_id': 'user_38LH2AwIjT7C1kLS3wihJHzvbOK'})_"
+            },
+            {
+                "ts": "2026-02-07T09:48:14.683839+00:00",
+                "role": "assistant",
+                "content": "INTRO: \u26a0\ufe0f AI temporarily unavailable. Try again.\n_(Debug: Rate limited on mistralai/mistral-small-3.1-24b-instruct:free)_"
+            },
+            {
+                "ts": "2026-02-07T09:48:18.697314+00:00",
+                "role": "assistant",
+                "content": "INTRO: \u26a0\ufe0f AI temporarily unavailable. Try again.\n_(Debug: Error 404: {'error': {'message': 'No endpoints found for qwen/qwen3-32b:free.', 'code': 404}, 'user_id': 'user_38LH2AwIjT7C1kLS3wihJHzvbOK'})_"
+            },
+            {
+                "ts": "2026-02-07T09:48:51.222867+00:00",
+                "role": "assistant",
+                "content": "SUBTOPICS Part 2: \u26a0\ufe0f AI temporarily unavailable. Try again.\n_(Debug: Rate limited on mistralai/mistral-small-3.1-24b-instruct:free)_"
+            },
+            {
+                "ts": "2026-02-07T09:48:55.228423+00:00",
+                "role": "assistant",
+                "content": "SUBTOPICS Part 2: \u26a0\ufe0f AI temporarily unavailable. Try again.\n_(Debug: Error 404: {'error': {'message': 'No endpoints found for qwen/qwen3-32b:free.', 'code': 404}, 'user_id': 'user_38LH2AwIjT7C1kLS3wihJHzvbOK'})_"
+            },
+            {
+                "ts": "2026-02-07T09:49:26.742329+00:00",
+                "role": "assistant",
+                "content": "SUBTOPICS Part 3: \u26a0\ufe0f AI temporarily unavailable. Try again.\n_(Debug: Error 404: {'error': {'message': 'No endpoints found for qwen/qwen3-32b:free.', 'code': 404}, 'user_id': 'user_38LH2AwIjT7C1kLS3wihJHzvbOK'})_"
+            },
+            {
+                "ts": "2026-02-07T09:49:31.249913+00:00",
+                "role": "assistant",
+                "content": "SUBTOPICS Part 3: \u26a0\ufe0f AI temporarily unavailable. Try again.\n_(Debug: Error 404: {'error': {'message': 'No endpoints found for qwen/qwen3-235b-a22b:free.', 'code': 404}, 'user_id': 'user_38LH2AwIjT7C1kLS3wihJHzvbOK'})_"
+            },
+            {
+                "ts": "2026-02-07T09:50:03.282430+00:00",
+                "role": "assistant",
+                "content": "SUBTOPICS Part 4: \u26a0\ufe0f AI temporarily unavailable. Try again.\n_(Debug: Error 404: {'error': {'message': 'No endpoints found for qwen/qwen3-32b:free.', 'code': 404}, 'user_id': 'user_38LH2AwIjT7C1kLS3wihJHzvbOK'})_"
+            },
+            {
+                "ts": "2026-02-07T09:50:07.292036+00:00",
+                "role": "assistant",
+                "content": "SUBTOPICS Part 4: \u26a0\ufe0f AI temporarily unavailable. Try again.\n_(Debug: Rate limited on mistralai/mistral-small-3.1-24b-instruct:free)_"
+            },
+            {
+                "ts": "2026-02-07T09:50:39.819404+00:00",
+                "role": "assistant",
+                "content": "CONCLUSION: \u26a0\ufe0f AI temporarily unavailable. Try again.\n_(Debug: Error 404: {'error': {'message': 'No endpoints found for qwen/qwen3-32b:free.', 'code': 404}, 'user_id': 'user_38LH2AwIjT7C1kLS3wihJHzvbOK'})_"
+            },
+            {
+                "ts": "2026-02-07T09:50:42.824622+00:00",
+                "role": "assistant",
+                "content": "CONCLUSION: \u26a0\ufe0f AI temporarily unavailable. Try again.\n_(Debug: Error 404: {'error': {'message': 'No endpoints found for qwen/qwen3-32b:free.', 'code': 404}, 'user_id': 'user_38LH2AwIjT7C1kLS3wihJHzvbOK'})_"
+            },
+            {
+                "ts": "2026-02-07T09:50:44.327168+00:00",
+                "role": "assistant",
+                "content": "\ud83d\udcd6 Lesson 1: print() and Basic Output \u2014 Lesson delivered"
+            },
+            {
+                "ts": "2026-02-07T09:50:47.333577+00:00",
+                "role": "assistant",
+                "content": "\ud83d\udcd6 Lesson 1: print() and Basic Output \u2014 Lesson delivered"
+            },
+            {
+                "ts": "2026-02-07T09:52:12.476987+00:00",
+                "role": "user",
+                "content": "No"
+            },
+            {
+                "ts": "2026-02-07T09:52:14.498456+00:00",
+                "role": "user",
+                "content": "no"
+            },
+            {
+                "ts": "2026-02-07T09:53:12.044631+00:00",
+                "role": "user",
+                "content": "idk"
+            },
+            {
+                "ts": "2026-02-07T09:53:56.115559+00:00",
+                "role": "assistant",
+                "content": "GRADING: {\"correct\": false, \"partial\": false, \"score\": 0, \"feedback\": \"Could not grade automatically. Please try rephrasing your answer.\", \"correct_answer\": \"\"}"
+            },
+            {
+                "ts": "2026-02-07T09:56:18.221086+00:00",
+                "role": "assistant",
+                "content": "SKIPPED \u2014 Answer: "
             }
         ],
-        "learn_panel_message_id": 1469554319660548189,
-        "learn_completed_lessons": [],
+        "learn_panel_message_id": 1469630631351947305,
+        "learn_completed_lessons": [
+            1
+        ],
         "learn_quiz_scores": {},
-        "learn_hints_used": 0,
-        "learn_total_questions": 0,
+        "learn_hints_used": 3,
+        "learn_total_questions": 1,
         "learn_correct_answers": 0,
         "learn_bookmarks": [],
         "learn_notes": {},
         "learn_streak": 2,
-        "learn_last_activity": "2026-02-07T04:44:19.654193",
+        "learn_last_activity": "2026-02-07T09:47:42.658063",
         "learn_quiz_attempts": 0,
-        "learn_weak_topics": {},
+        "learn_weak_topics": {
+            "print": 2,
+            "output": 2,
+            "console": 2
+        },
         "learn_strong_topics": {},
         "learn_question_history": [],
         "learn_quiz_questions": [],
