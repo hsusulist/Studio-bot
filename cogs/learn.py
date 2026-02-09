@@ -23,11 +23,11 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 # Model pools for different purposes
 CODER_MODELS = [
-    "qwen/qwen3-coder:free",
+    "meta-llama/llama-3.3-70b-instruct:free",
 ]
 
 EXPLAIN_MODELS = [
-    "qwen/qwen3-next-80b-a3b-instruct:free",
+    "meta-llama/llama-3.3-70b-instruct:free",
 ]
 
 ALL_MODELS = CODER_MODELS + EXPLAIN_MODELS
@@ -1969,8 +1969,12 @@ class LearnPersistentPanel(discord.ui.View):
     async def start(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer()
         session = await self.cog.get_or_rebuild_session(interaction)
-        if not self._is_controller(interaction, session):
+        
+        # Admin bypass for learn controls
+        is_admin = interaction.user.guild_permissions.administrator
+        if not (interaction.user.id == session.user_id or is_admin):
             return await interaction.followup.send("❌ Not allowed.", ephemeral=True)
+            
         await self.cog.send_lesson(interaction.channel, session, repeat=False)
 
     @discord.ui.button(label="Repeat", style=discord.ButtonStyle.secondary, emoji="🔁", custom_id="learn:repeat")
