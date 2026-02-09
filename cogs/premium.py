@@ -173,9 +173,11 @@ class PremiumCog(commands.Cog):
             return
         
         user = await UserProfile.get_user(message.author.id)
+        is_admin = message.author.guild_permissions.administrator
         
         # Only public channels deduct credits; temp chats are free once created
-        if not is_temp_chat:
+        # Administrators chat for free
+        if not is_temp_chat and not is_admin:
             if user.get('ai_credits', 0) <= 0:
                 await message.reply(f"❌ You don't have enough AI Credits. Convert pCredits to AI Credits to chat with {AI_NAME}!")
                 return
