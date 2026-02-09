@@ -2271,7 +2271,7 @@ Real-world application: {lesson.get('real_world', '')}"""
             content = await openrouter_chat(
                 [{"role": "system", "content": system}, {"role": "user", "content": user_msg}],
                 model_pool=model_pool,
-                max_tokens=1800,
+                max_tokens=1000,
             )
 
         await append_conversation(session.user_id, "assistant", f"INTRO: {content[:1500]}")
@@ -2320,7 +2320,7 @@ Explain each subtopic thoroughly:
             content = await openrouter_chat(
                 [{"role": "system", "content": system}, {"role": "user", "content": user_msg}],
                 model_pool=model_pool,
-                max_tokens=2500,
+                max_tokens=1500,
             )
 
         await append_conversation(session.user_id, "assistant", f"SUBTOPICS Part {part_num}: {content[:1500]}")
@@ -2364,7 +2364,7 @@ Mini project idea: {lesson.get('mini_project', 'Practice exercise')}"""
             content = await openrouter_chat(
                 [{"role": "system", "content": system}, {"role": "user", "content": user_msg}],
                 model_pool=model_pool,
-                max_tokens=2500,
+                max_tokens=1500,
             )
 
         await append_conversation(session.user_id, "assistant", f"CONCLUSION: {content[:1500]}")
