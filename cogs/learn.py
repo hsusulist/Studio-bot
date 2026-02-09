@@ -23,11 +23,11 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 # Model pools for different purposes
 CODER_MODELS = [
-    "meta-llama/llama-3.3-70b-instruct:free",
+    "meta-llama/llama-3.3-70b-instruct",
 ]
 
 EXPLAIN_MODELS = [
-    "meta-llama/llama-3.3-70b-instruct:free",
+    "meta-llama/llama-3.3-70b-instruct",
 ]
 
 ALL_MODELS = CODER_MODELS + EXPLAIN_MODELS
