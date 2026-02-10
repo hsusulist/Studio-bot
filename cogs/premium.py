@@ -5,12 +5,27 @@ from database import UserProfile, db
 from config import (
     BOT_COLOR, CREDIT_TO_PCREDIT_RATE, PCREDIT_TO_AICREDIT_RATE, 
     PCREDIT_SHOP, AI_NAME, AI_CHAT_COOLDOWN_HOURS, AI_CHAT_DURATION_MINUTES,
-    OPENROUTER_API_KEY, AI_MODEL, AI_PERSONALITY
+    AI_MODEL, AI_PERSONALITY
 )
 from datetime import datetime, timedelta
 import asyncio
 import aiohttp
 import json
+import os
+from google import genai
+from google.genai import types
+
+AI_INTEGRATIONS_GEMINI_API_KEY = os.environ.get("AI_INTEGRATIONS_GEMINI_API_KEY")
+AI_INTEGRATIONS_GEMINI_BASE_URL = os.environ.get("AI_INTEGRATIONS_GEMINI_BASE_URL")
+
+# Replit's AI Integrations client
+genai_client = genai.Client(
+    api_key=AI_INTEGRATIONS_GEMINI_API_KEY,
+    http_options={
+        'api_version': '',
+        'base_url': AI_INTEGRATIONS_GEMINI_BASE_URL   
+    }
+)
 
 class PremiumShopView(discord.ui.View):
     def __init__(self, user_id: int):
@@ -54,34 +69,23 @@ class PremiumCog(commands.Cog):
         asyncio.create_task(self.session.close())
 
     async def get_ai_response(self, prompt, user_id):
-        if not OPENROUTER_API_KEY:
-            return "❌ AI is currently unavailable (API Key missing)."
-
-        headers = {
-            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-            "Content-Type": "application/json"
-        }
-        
-        data = {
-            "model": AI_MODEL,
-            "messages": [
-                {"role": "system", "content": f"You are {AI_NAME}. {AI_PERSONALITY}"},
-                {"role": "user", "content": prompt}
-            ]
-        }
+        # Using Replit's Gemini Integration
+        system_prompt = f"You are {AI_NAME}. {AI_PERSONALITY}"
+        full_prompt = f"System: {system_prompt}\nUser: {prompt}"
 
         try:
-            async with self.session.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data) as resp:
-                if resp.status == 200:
-                    result = await resp.json()
-                    return result['choices'][0]['message']['content']
-                else:
-                    error_text = await resp.text()
-                    print(f"AI API Error: {resp.status} - {error_text}")
-                    return "❌ Sorry, I encountered an error while processing your request."
+            loop = asyncio.get_event_loop()
+            response = await loop.run_in_executor(
+                None,
+                lambda: genai_client.models.generate_content(
+                    model=AI_MODEL,
+                    contents=full_prompt
+                )
+            )
+            return response.text or "❌ No response generated."
         except Exception as e:
-            print(f"AI Connection Error: {e}")
-            return "❌ I'm having trouble connecting to the AI service right now."
+            print(f"Gemini API Error: {e}")
+            return f"❌ AI Error: {str(e)}"
 
     @app_commands.command(name="convert", description="Convert 1000 credits to 1 pCredit")
     async def convert(self, interaction: discord.Interaction, amount: int = 1):

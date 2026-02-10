@@ -12,27 +12,54 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 
-from config import BOT_COLOR
+from google import genai
+from google.genai import types
+
+from config import BOT_COLOR, AI_MODEL
 from database import UserProfile
 
-
 # -----------------------------
-# OpenRouter Configuration
+# Gemini AI Configuration (Replit AI Integrations)
 # -----------------------------
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+AI_INTEGRATIONS_GEMINI_API_KEY = os.environ.get("AI_INTEGRATIONS_GEMINI_API_KEY")
+AI_INTEGRATIONS_GEMINI_BASE_URL = os.environ.get("AI_INTEGRATIONS_GEMINI_BASE_URL")
 
-# Model pools for different purposes
-CODER_MODELS = [
-    "meta-llama/llama-3.3-70b-instruct",
-]
+# Replit's AI Integrations provides Gemini-compatible API access
+client = genai.Client(
+    api_key=AI_INTEGRATIONS_GEMINI_API_KEY,
+    http_options={
+        'api_version': '',
+        'base_url': AI_INTEGRATIONS_GEMINI_BASE_URL   
+    }
+)
 
-EXPLAIN_MODELS = [
-    "meta-llama/llama-3.3-70b-instruct",
-]
+async def openrouter_chat(messages, model_pool=None, max_tokens=1000):
+    """Compatibility wrapper for Gemini AI Integrations"""
+    # Convert message list to a single prompt for Gemini
+    prompt = ""
+    for msg in messages:
+        role = "Assistant" if msg["role"] == "assistant" else msg["role"].capitalize()
+        prompt += f"{role}: {msg['content']}\n"
+    
+    try:
+        # Use asyncio to run the synchronous client call
+        loop = asyncio.get_event_loop()
+        response = await loop.run_in_executor(
+            None,
+            lambda: client.models.generate_content(
+                model=AI_MODEL,
+                contents=prompt,
+                config=types.GenerateContentConfig(max_output_tokens=max_tokens)
+            )
+        )
+        return response.text or "No response generated."
+    except Exception as e:
+        print(f"Gemini API Error: {e}")
+        return f"❌ AI Error: {str(e)}"
 
-ALL_MODELS = CODER_MODELS + EXPLAIN_MODELS
-
-MAX_CONVERSATION_MESSAGES = 150
+# Compatibility helper
+def get_model_pool(mode, topic):
+    return [AI_MODEL]
 
 
 # -----------------------------
