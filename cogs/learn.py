@@ -57,9 +57,22 @@ async def openrouter_chat(messages, model_pool=None, max_tokens=1000):
         print(f"Gemini API Error: {e}")
         return f"❌ AI Error: {str(e)}"
 
-# Compatibility helper
-def get_model_pool(mode, topic):
-    return [AI_MODEL]
+# Model pools for different purposes
+CODER_MODELS = [
+    "gemini-2.5-flash",
+]
+
+EXPLAIN_MODELS = [
+    "gemini-2.5-flash",
+]
+
+ALL_MODELS = CODER_MODELS + EXPLAIN_MODELS
+
+def get_model_pool(mode: str, text: str = "") -> List[str]:
+    """Compatibility helper to return model pools based on mode."""
+    if mode == "coder":
+        return CODER_MODELS
+    return EXPLAIN_MODELS
 
 
 # -----------------------------
@@ -1707,16 +1720,6 @@ async def openrouter_chat(
                         await asyncio.sleep(backoff)
                         backoff = min(backoff * 2, 15)
                         continue
-
-                    last_err = f"Error {resp.status}: {str(data)[:200]}"
-
-            except asyncio.TimeoutError:
-                last_err = f"Timeout on {model}"
-            except Exception as e:
-                last_err = f"Exception: {str(e)[:200]}"
-
-            await asyncio.sleep(backoff)
-            backoff = min(backoff * 2, 15)
 
     return f"⚠️ AI temporarily unavailable. Try again.\n_(Debug: {last_err})_"
 

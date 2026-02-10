@@ -222,6 +222,41 @@ class EconomyCog(commands.Cog):
         """Alias for /credits"""
         await self.credits_cmd(interaction)
 
+    @commands.command(name="give")
+    @commands.has_permissions(administrator=True)
+    async def give_cmd(self, ctx, member: discord.Member, credit_type: str, amount: int):
+        """Admin command to give credits, pcredits, or ai_credits to a user"""
+        credit_type = credit_type.lower()
+        valid_types = {
+            "credit": "studio_credits",
+            "credits": "studio_credits",
+            "pcredit": "pcredits",
+            "pcredits": "pcredits",
+            "ai": "ai_credits",
+            "ai_credit": "ai_credits",
+            "ai_credits": "ai_credits"
+        }
+        
+        if credit_type not in valid_types:
+            await ctx.send(f"❌ Invalid credit type. Use: `credit`, `pcredit`, or `ai`.")
+            return
+
+        db_field = valid_types[credit_type]
+        user = await UserProfile.get_user(member.id)
+        if not user:
+            await UserProfile.create_user(member.id, member.name)
+            user = await UserProfile.get_user(member.id)
+            
+        current_val = user.get(db_field, 0)
+        await UserProfile.update_user(member.id, {db_field: current_val + amount})
+        
+        embed = discord.Embed(
+            title="🎁 Credits Given",
+            description=f"Successfully gave **{amount} {credit_type}** to {member.mention}.",
+            color=discord.Color.green()
+        )
+        await ctx.send(embed=embed)
+
 
 async def setup(bot):
     await bot.add_cog(EconomyCog(bot))

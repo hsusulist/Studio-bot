@@ -5,11 +5,11 @@
         "role": null,
         "roles": [],
         "rank": "Beginner",
-        "xp": 325,
+        "xp": 330,
         "level": 2,
         "experience_months": 0,
         "voice_minutes": 0,
-        "message_count": 65,
+        "message_count": 66,
         "reputation": 0,
         "studio_credits": 500,
         "created_at": "2026-02-05T12:08:13.209546",
@@ -20,9 +20,9 @@
         "cards": [],
         "equipped_card": null,
         "inventory": [],
-        "learn_channel_id": 1469554282000027749,
+        "learn_channel_id": 1470777851631505563,
         "learn_lesson": 1,
-        "learn_phase": "menu",
+        "learn_phase": "qna",
         "learn_model_mode": "auto",
         "learn_quiz_data": {},
         "learn_conversation": [
@@ -197,7 +197,7 @@
                 "content": "SKIPPED \u2014 Answer: "
             }
         ],
-        "learn_panel_message_id": 1469630631351947305,
+        "learn_panel_message_id": 1470777891745824905,
         "learn_completed_lessons": [
             1
         ],
@@ -207,8 +207,8 @@
         "learn_correct_answers": 0,
         "learn_bookmarks": [],
         "learn_notes": {},
-        "learn_streak": 2,
-        "learn_last_activity": "2026-02-07T09:47:42.658063",
+        "learn_streak": 1,
+        "learn_last_activity": "2026-02-10T13:46:22.938748",
         "learn_quiz_attempts": 0,
         "learn_weak_topics": {
             "print": 2,
