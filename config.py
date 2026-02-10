@@ -60,7 +60,6 @@ PCREDIT_SHOP = {
 }
 
 # AI Settings
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-AI_MODEL = "qwen/qwen3-coder-flash"
+AI_MODEL = "gemini-2.5-flash"
 AI_NAME = "Studio Assistant"
 AI_PERSONALITY = "Helpful, professional, and knowledgeable about software development and game design."
