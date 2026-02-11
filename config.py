@@ -60,6 +60,6 @@ PCREDIT_SHOP = {
 }
 
 # AI Settings
-AI_MODEL = "gemini-2.5-flash"
-AI_NAME = "Studio Assistant"
+AI_MODEL = "gemini-3-flash"
+AI_NAME = "Assistant"
 AI_PERSONALITY = "Helpful, professional, and knowledgeable about software development and game design."

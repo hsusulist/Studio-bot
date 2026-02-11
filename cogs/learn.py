@@ -59,11 +59,11 @@ async def openrouter_chat(messages, model_pool=None, max_tokens=1000):
 
 # Model pools for different purposes
 CODER_MODELS = [
-    "gemini-2.5-flash",
+    "gemini-3-flash",
 ]
 
 EXPLAIN_MODELS = [
-    "gemini-2.5-flash",
+    "gemini-3-pro",
 ]
 
 ALL_MODELS = CODER_MODELS + EXPLAIN_MODELS
