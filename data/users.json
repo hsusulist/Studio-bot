@@ -3,13 +3,17 @@
         "_id": 1358586510831652864,
         "username": "hsusulist",
         "role": null,
-        "roles": [],
+        "roles": [
+            "Animator",
+            "Scripter",
+            "UI Designer"
+        ],
         "rank": "Beginner",
-        "xp": 330,
-        "level": 2,
+        "xp": 1035,
+        "level": 5,
         "experience_months": 0,
         "voice_minutes": 0,
-        "message_count": 66,
+        "message_count": 207,
         "reputation": 0,
         "studio_credits": 500,
         "created_at": "2026-02-05T12:08:13.209546",
@@ -20,7 +24,7 @@
         "cards": [],
         "equipped_card": null,
         "inventory": [],
-        "learn_channel_id": 1470777851631505563,
+        "learn_channel_id": 1470793944945393826,
         "learn_lesson": 1,
         "learn_phase": "qna",
         "learn_model_mode": "auto",
@@ -195,9 +199,19 @@
                 "ts": "2026-02-07T09:56:18.221086+00:00",
                 "role": "assistant",
                 "content": "SKIPPED \u2014 Answer: "
+            },
+            {
+                "ts": "2026-02-10T14:50:36.799288+00:00",
+                "role": "assistant",
+                "content": "INTRO: ## \ud83c\udfaf HOOK\n\nEver wonder how the most popular Roblox games, like Bloxburg or Adopt Me!, catch those sneaky bugs or keep track of what players are doing behind the scenes? Or perhaps you've written a script, hit 'Run', and... nothing happens! How do you peek *inside* your code and see what it's thinking, or even if it's running at all?\n\nWhat if I told you there's a magical command, a secret window into your game"
+            },
+            {
+                "ts": "2026-02-10T14:55:37.563035+00:00",
+                "role": "user",
+                "content": ":/"
             }
         ],
-        "learn_panel_message_id": 1470777891745824905,
+        "learn_panel_message_id": 1470793984594018531,
         "learn_completed_lessons": [
             1
         ],
@@ -208,7 +222,7 @@
         "learn_bookmarks": [],
         "learn_notes": {},
         "learn_streak": 1,
-        "learn_last_activity": "2026-02-10T13:46:22.938748",
+        "learn_last_activity": "2026-02-10T14:50:20.266224",
         "learn_quiz_attempts": 0,
         "learn_weak_topics": {
             "print": 2,
@@ -220,7 +234,10 @@
         "learn_quiz_questions": [],
         "learn_current_quiz_index": 0,
         "learn_hints_remaining": 3,
-        "learn_lesson_part": 0
+        "learn_lesson_part": 0,
+        "pcredits": 0,
+        "ai_credits": 10,
+        "temp_chat_cooldown": "2026-02-10T14:28:53.451856"
     },
     "1281221878257549475": {
         "_id": 1281221878257549475,
@@ -244,5 +261,55 @@
         "portfolio_games": [],
         "reviews_given": 0,
         "reviews_received": []
+    },
+    "1399340441710891018": {
+        "_id": 1399340441710891018,
+        "username": "rageplays2nd",
+        "role": null,
+        "rank": "Beginner",
+        "xp": 145,
+        "level": 1,
+        "experience_months": 0,
+        "voice_minutes": 0,
+        "message_count": 29,
+        "reputation": 0,
+        "studio_credits": 500,
+        "pcredits": 7,
+        "ai_credits": 28,
+        "max_teams": 1,
+        "max_projects": 2,
+        "temp_chat_cooldown": null,
+        "created_at": "2026-02-10T14:03:43.469896",
+        "last_quest": null,
+        "portfolio_games": [],
+        "reviews_given": 0,
+        "reviews_received": []
+    },
+    "1454075723538104453": {
+        "_id": 1454075723538104453,
+        "username": "anil022766",
+        "role": null,
+        "rank": "Beginner",
+        "xp": 400,
+        "level": 2,
+        "experience_months": 0,
+        "voice_minutes": 0,
+        "message_count": 80,
+        "reputation": 0,
+        "studio_credits": 8500,
+        "pcredits": 0,
+        "ai_credits": 19,
+        "max_teams": 1,
+        "max_projects": 2,
+        "temp_chat_cooldown": null,
+        "created_at": "2026-02-10T14:09:51.608841",
+        "last_quest": null,
+        "portfolio_games": [],
+        "reviews_given": 0,
+        "reviews_received": [],
+        "roles": [
+            "Scripter",
+            "UI Designer"
+        ]
     }
 }

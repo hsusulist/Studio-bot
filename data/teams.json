@@ -1,0 +1,28 @@
+{
+    "3baf9b00": {
+        "_id": "3baf9b00",
+        "name": "The perfect picture",
+        "project": "Idk",
+        "creator_id": 1358586510831652864,
+        "members": [
+            1358586510831652864
+        ],
+        "shared_wallet": 0,
+        "milestones": [],
+        "progress": 0,
+        "created_at": "2026-02-10T14:41:12.794690"
+    },
+    "85d28968": {
+        "_id": "85d28968",
+        "name": "The Scripters",
+        "project": "Fighting Jet",
+        "creator_id": 1358586510831652864,
+        "members": [
+            1358586510831652864
+        ],
+        "shared_wallet": 0,
+        "milestones": [],
+        "progress": 0,
+        "created_at": "2026-02-10T14:41:54.971372"
+    }
+}
