@@ -20,7 +20,7 @@
         "title": "Print",
         "description": "Idk",
         "code": "Print ()",
-        "price": 100,
+        "price": 10,
         "category": "code",
         "status": "active",
         "sold": 0,

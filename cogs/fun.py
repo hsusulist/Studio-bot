@@ -5,7 +5,9 @@ from database import UserProfile
 from config import BOT_COLOR, AI_MODEL, AI_PERSONALITY, AI_NAME
 import asyncio
 import random
+import json
 import os
+import time
 from google import genai
 
 from ai_tools import ai_handler
@@ -36,6 +38,329 @@ async def call_ai(prompt):
     except Exception as e:
         print(f"[AI Error] {e}")
         return f"❌ AI Error: {str(e)[:200]}"
+
+
+# ============================================================
+# AI TRIVIA GENERATOR
+# ============================================================
+
+TRIVIA_CATEGORIES = {
+    "scripting": {
+        "emoji": "📝",
+        "name": "Luau Scripting",
+        "description": "Roblox Luau/Lua coding questions"
+    },
+    "studio": {
+        "emoji": "🏗️",
+        "name": "Roblox Studio",
+        "description": "Studio tools, UI, and workflow"
+    },
+    "services": {
+        "emoji": "⚙️",
+        "name": "Roblox Services",
+        "description": "DataStore, RemoteEvents, TweenService, etc."
+    },
+    "physics": {
+        "emoji": "🎱",
+        "name": "Physics & Math",
+        "description": "CFrame, Vector3, raycasting, physics"
+    },
+    "ui": {
+        "emoji": "🖼️",
+        "name": "UI/UX Design",
+        "description": "GUI, ScreenGui, frames, buttons"
+    },
+    "security": {
+        "emoji": "🔒",
+        "name": "Game Security",
+        "description": "Anti-exploit, server validation, remotes"
+    },
+    "optimization": {
+        "emoji": "⚡",
+        "name": "Performance",
+        "description": "Optimization, memory, lag prevention"
+    },
+    "general": {
+        "emoji": "🎮",
+        "name": "General Roblox",
+        "description": "Platform knowledge, history, features"
+    },
+    "random": {
+        "emoji": "🎲",
+        "name": "Random",
+        "description": "Any category!"
+    }
+}
+
+TRIVIA_DIFFICULTIES = {
+    "easy": {"emoji": "🟢", "xp": 10, "credits": 5, "color": 0x2ECC71},
+    "medium": {"emoji": "🟡", "xp": 20, "credits": 10, "color": 0xF1C40F},
+    "hard": {"emoji": "🟠", "xp": 35, "credits": 20, "color": 0xE67E22},
+    "expert": {"emoji": "🔴", "xp": 50, "credits": 35, "color": 0xE74C3C},
+    "demon": {"emoji": "💀", "xp": 100, "credits": 75, "color": 0x8B0000},
+}
+
+# 40 fallback questions (20 original + 20 new)
+FALLBACK_QUESTIONS = [
+    # ===== ORIGINAL 20 =====
+    {"q": "What function creates a new Instance in Roblox?", "options": ["Instance.new()", "Create()", "Spawn()", "Make()"], "correct": 0, "category": "scripting", "difficulty": "easy", "explanation": "Instance.new() is the standard way to create new objects in Roblox."},
+    {"q": "What service handles player data saving?", "options": ["DataStoreService", "SaveService", "PlayerData", "StorageService"], "correct": 0, "category": "services", "difficulty": "easy", "explanation": "DataStoreService provides access to persistent data storage."},
+    {"q": "What property controls how fast a Humanoid walks?", "options": ["Speed", "WalkSpeed", "MoveSpeed", "RunSpeed"], "correct": 1, "category": "scripting", "difficulty": "easy", "explanation": "WalkSpeed is the property that controls movement speed, default is 16."},
+    {"q": "What event fires when a player joins the game?", "options": ["PlayerJoined", "PlayerAdded", "OnJoin", "NewPlayer"], "correct": 1, "category": "services", "difficulty": "easy", "explanation": "Players.PlayerAdded fires when a new player enters the game."},
+    {"q": "What is the max value of Transparency?", "options": ["100", "255", "1", "10"], "correct": 2, "category": "scripting", "difficulty": "easy", "explanation": "Transparency ranges from 0 (opaque) to 1 (invisible)."},
+    {"q": "Which service handles physics simulation?", "options": ["PhysicsService", "RunService", "SimService", "GameService"], "correct": 1, "category": "physics", "difficulty": "medium", "explanation": "RunService provides events like Heartbeat and RenderStepped for physics and rendering."},
+    {"q": "What does task.wait() replace?", "options": ["delay()", "wait()", "sleep()", "pause()"], "correct": 1, "category": "scripting", "difficulty": "easy", "explanation": "task.wait() is the modern replacement for the deprecated wait() function."},
+    {"q": "What property makes a Part not fall?", "options": ["Locked", "Fixed", "Anchored", "Static"], "correct": 2, "category": "physics", "difficulty": "easy", "explanation": "Anchored = true prevents a part from being affected by physics."},
+    {"q": "What is the Roblox scripting language called?", "options": ["Lua", "Luau", "RScript", "RobloxScript"], "correct": 1, "category": "general", "difficulty": "easy", "explanation": "Luau is Roblox's custom fork of Lua with type checking and performance improvements."},
+    {"q": "What service handles tweening?", "options": ["AnimService", "TweenService", "MoveService", "TransitionService"], "correct": 1, "category": "services", "difficulty": "easy", "explanation": "TweenService creates smooth property transitions over time."},
+    {"q": "What does pcall() do?", "options": ["Print call", "Protected call", "Player call", "Pause call"], "correct": 1, "category": "scripting", "difficulty": "medium", "explanation": "pcall() runs a function in protected mode, catching errors instead of crashing."},
+    {"q": "How do you get the LocalPlayer?", "options": ["game.LocalPlayer", "Players.LocalPlayer", "GetPlayer()", "LocalPlayer()"], "correct": 1, "category": "scripting", "difficulty": "easy", "explanation": "game:GetService('Players').LocalPlayer or game.Players.LocalPlayer."},
+    {"q": "What RemoteEvent method does CLIENT use to send to server?", "options": ["FireClient", "FireServer", "SendServer", "Invoke"], "correct": 1, "category": "security", "difficulty": "medium", "explanation": "Clients use :FireServer() to send data to the server via RemoteEvents."},
+    {"q": "What is the default WalkSpeed?", "options": ["10", "16", "20", "25"], "correct": 1, "category": "scripting", "difficulty": "easy", "explanation": "The default Humanoid WalkSpeed is 16 studs per second."},
+    {"q": "Which folder is only visible to the server?", "options": ["ReplicatedStorage", "ServerStorage", "Workspace", "StarterPack"], "correct": 1, "category": "security", "difficulty": "medium", "explanation": "ServerStorage contents are only accessible from server scripts."},
+    {"q": "What does :Clone() return?", "options": ["Nothing", "A copy of the instance", "The original", "An error"], "correct": 1, "category": "scripting", "difficulty": "easy", "explanation": ":Clone() creates and returns a deep copy of the instance."},
+    {"q": "What method destroys an instance?", "options": ["Remove()", "Delete()", "Destroy()", "Kill()"], "correct": 2, "category": "scripting", "difficulty": "easy", "explanation": ":Destroy() permanently removes an instance and disconnects all connections."},
+    {"q": "What does math.clamp() do?", "options": ["Rounds a number", "Constrains between min/max", "Returns absolute value", "Floors a number"], "correct": 1, "category": "scripting", "difficulty": "medium", "explanation": "math.clamp(value, min, max) constrains a value within a range."},
+    {"q": "What is HumanoidRootPart?", "options": ["The head", "The primary part of a character", "A GUI element", "A sound"], "correct": 1, "category": "scripting", "difficulty": "easy", "explanation": "HumanoidRootPart is the root/primary part that controls character position."},
+    {"q": "What does :WaitForChild() do?", "options": ["Waits forever", "Yields until child exists", "Creates a child", "Deletes a child"], "correct": 1, "category": "scripting", "difficulty": "medium", "explanation": ":WaitForChild() pauses the script until the named child instance appears."},
+
+    # ===== 20 NEW HARDER QUESTIONS =====
+    {"q": "What metamethod is called when you index a table with a missing key?", "options": ["__newindex", "__index", "__call", "__tostring"], "correct": 1, "category": "scripting", "difficulty": "hard", "explanation": "__index is invoked when accessing a key that doesn't exist in the table."},
+    {"q": "What is the maximum number of requests per minute for OrderedDataStore:GetSortedAsync()?", "options": ["60", "30", "5", "100"], "correct": 2, "category": "services", "difficulty": "expert", "explanation": "OrderedDataStore:GetSortedAsync() has a limit of 5 requests per minute per key."},
+    {"q": "What CFrame method returns only the rotational component?", "options": ["CFrame.Angles()", "CFrame:GetComponents()", "CFrame.Rotation", "CFrame:ToEulerAngles()"], "correct": 2, "category": "physics", "difficulty": "hard", "explanation": "CFrame.Rotation returns a copy of the CFrame with position zeroed out, keeping only rotation."},
+    {"q": "In a client-server model, where should RemoteEvent data validation happen?", "options": ["Client only", "Both equally", "Server only", "Neither"], "correct": 2, "category": "security", "difficulty": "medium", "explanation": "NEVER trust client data. Always validate on the server since clients can be exploited."},
+    {"q": "What happens when you call :Destroy() on a player's character?", "options": ["Player is kicked", "Character respawns after delay", "Nothing happens", "Server crashes"], "correct": 1, "category": "scripting", "difficulty": "hard", "explanation": "Destroying a character triggers CharacterRemoving and the player respawns after RespawnTime."},
+    {"q": "What is the purpose of CollectionService?", "options": ["Collect garbage", "Tag instances for batch operations", "Manage collections UI", "Handle microtransactions"], "correct": 1, "category": "services", "difficulty": "hard", "explanation": "CollectionService lets you tag instances and iterate over all instances with a given tag."},
+    {"q": "What does workspace.StreamingEnabled control?", "options": ["Audio streaming", "Instance streaming/replication", "Video playback", "Data transfer speed"], "correct": 1, "category": "optimization", "difficulty": "hard", "explanation": "StreamingEnabled controls content streaming, only loading parts of the map near the player."},
+    {"q": "What Roblox API yields (pauses) the current thread?", "options": ["game.Loaded", "task.spawn()", "workspace:Raycast()", "MarketplaceService:GetProductInfo()"], "correct": 3, "category": "services", "difficulty": "expert", "explanation": "GetProductInfo() is an async HTTP call that yields the thread until the response arrives."},
+    {"q": "What is the difference between task.spawn() and coroutine.wrap()?", "options": ["No difference", "task.spawn runs on next frame, coroutine.wrap runs immediately", "task.spawn uses Roblox scheduler, coroutine.wrap uses Lua scheduler", "They are aliases"], "correct": 2, "category": "scripting", "difficulty": "expert", "explanation": "task.spawn uses Roblox's task scheduler with error handling; coroutine.wrap uses raw Lua coroutines."},
+    {"q": "What property prevents a MeshPart from being modified by exploiters?", "options": ["Locked", "Archivable = false", "There is no such property", "SecurityLevel"], "correct": 2, "category": "security", "difficulty": "hard", "explanation": "There's no property that prevents client-side modification. Server validation is the only real protection."},
+    {"q": "What does the '__mode' metamethod field control?", "options": ["Script execution mode", "Weak reference behavior", "Network replication", "Rendering priority"], "correct": 1, "category": "scripting", "difficulty": "expert", "explanation": "__mode = 'k', 'v', or 'kv' makes table keys/values weak references for garbage collection."},
+    {"q": "How many DataStore budget units does SetAsync consume?", "options": ["1", "5", "6", "10"], "correct": 2, "category": "services", "difficulty": "expert", "explanation": "SetAsync costs 6 budget units (write request) in the DataStore budget system."},
+    {"q": "What is the maximum Part size in studs (one axis)?", "options": ["512", "1024", "2048", "4096"], "correct": 2, "category": "studio", "difficulty": "hard", "explanation": "Individual parts can be up to 2048 studs in any single dimension."},
+    {"q": "What does Terrain:WriteVoxels() do?", "options": ["Writes save data", "Edits terrain voxels in bulk", "Creates voxel models", "Generates terrain heightmap"], "correct": 1, "category": "studio", "difficulty": "expert", "explanation": "WriteVoxels() efficiently modifies terrain data in bulk using Region3 and material/occupancy arrays."},
+    {"q": "What is the render step order: PreRender, PreAnimation, PreSimulation?", "options": ["PreRender → PreAnimation → PreSimulation", "PreAnimation → PreSimulation → PreRender", "PreSimulation → PreAnimation → PreRender", "PreAnimation → PreRender → PreSimulation"], "correct": 1, "category": "optimization", "difficulty": "expert", "explanation": "The order is PreAnimation → PreSimulation → PreRender in the Roblox task scheduler pipeline."},
+    {"q": "What does HttpService:JSONEncode(math.huge) return?", "options": ["'Infinity'", "null", "Error is thrown", "'inf'"], "correct": 2, "category": "scripting", "difficulty": "expert", "explanation": "math.huge (infinity) is not valid JSON. JSONEncode throws an error for non-finite numbers."},
+    {"q": "How many players can a single RemoteEvent:FireClient() target?", "options": ["All players", "1 specific player", "Up to 50", "Server only"], "correct": 1, "category": "security", "difficulty": "medium", "explanation": "FireClient(player, ...) targets exactly one specific player. Use FireAllClients() for all."},
+    {"q": "What is the maximum string length DataStore can save per key?", "options": ["260,000 chars", "4,194,304 chars", "65,536 chars", "1,000,000 chars"], "correct": 1, "category": "services", "difficulty": "expert", "explanation": "DataStore values can be up to 4,194,304 characters (4MB) when serialized as JSON."},
+    {"q": "What does Actor in Roblox enable?", "options": ["NPC AI system", "Parallel Luau execution", "Animation playback", "Voice chat"], "correct": 1, "category": "optimization", "difficulty": "hard", "explanation": "Actors enable Parallel Luau, allowing scripts to run on multiple threads for better performance."},
+    {"q": "What is the frame budget (in ms) to maintain 60 FPS?", "options": ["33.33ms", "16.67ms", "8.33ms", "25ms"], "correct": 1, "category": "optimization", "difficulty": "hard", "explanation": "At 60 FPS, each frame has ~16.67ms (1000ms / 60 frames) of budget."},
+]
+
+# Tracking which questions each user has already seen
+_user_question_history = {}  # user_id -> set of question hashes
+_recent_ai_questions = []
+_MAX_RECENT = 50
+
+# Trivia cooldown tracking (wrong answer = 20 min cooldown)
+_trivia_cooldowns = {}  # user_id -> timestamp when cooldown expires
+
+
+def _question_hash(q: dict) -> str:
+    """Create a hash for a question to track if user has seen it"""
+    return str(hash(q.get("q", "")))
+
+
+def _get_unseen_fallback(user_id: int, category: str = None, difficulty: str = None) -> dict:
+    """Get a fallback question the user hasn't seen yet"""
+    seen = _user_question_history.get(user_id, set())
+
+    # Filter by category and difficulty if specified
+    pool = FALLBACK_QUESTIONS.copy()
+    if category and category != "random":
+        filtered = [q for q in pool if q.get("category") == category]
+        if filtered:
+            pool = filtered
+    if difficulty:
+        filtered = [q for q in pool if q.get("difficulty") == difficulty]
+        if filtered:
+            pool = filtered
+
+    # Find unseen questions
+    unseen = [q for q in pool if _question_hash(q) not in seen]
+
+    if unseen:
+        question = random.choice(unseen).copy()
+    else:
+        # All seen — reset and pick random
+        question = random.choice(pool).copy()
+
+    # Mark as seen
+    if user_id not in _user_question_history:
+        _user_question_history[user_id] = set()
+    _user_question_history[user_id].add(_question_hash(question))
+
+    return question
+
+
+def _check_all_fallbacks_seen(user_id: int) -> bool:
+    """Check if user has seen all 40 fallback questions"""
+    seen = _user_question_history.get(user_id, set())
+    all_hashes = {_question_hash(q) for q in FALLBACK_QUESTIONS}
+    return all_hashes.issubset(seen)
+
+
+async def generate_ai_trivia(user_id: int, category: str = "random", difficulty: str = "medium", force_ai: bool = False) -> dict:
+    """Generate a trivia question — uses fallbacks first, then AI when exhausted"""
+    global _recent_ai_questions
+
+    if category == "random":
+        actual_category = random.choice([k for k in TRIVIA_CATEGORIES.keys() if k != "random"])
+    else:
+        actual_category = category
+
+    cat_info = TRIVIA_CATEGORIES.get(actual_category, TRIVIA_CATEGORIES["general"])
+
+    # Check if all fallback questions have been seen
+    all_seen = _check_all_fallbacks_seen(user_id)
+
+    if not all_seen and not force_ai:
+        # Still have unseen fallback questions — use those
+        question = _get_unseen_fallback(user_id, actual_category, difficulty)
+        question["ai_generated"] = False
+
+        # Count remaining
+        seen = _user_question_history.get(user_id, set())
+        all_hashes = {_question_hash(q) for q in FALLBACK_QUESTIONS}
+        remaining = len(all_hashes - seen)
+        question["remaining_fallbacks"] = remaining
+
+        return question
+
+    # All fallbacks exhausted OR force_ai — generate with AI
+    # When generating AI questions, make them DEMON HARD
+    demon_difficulty = difficulty
+    if all_seen:
+        demon_difficulty = "demon"
+
+    recent_context = ""
+    if _recent_ai_questions:
+        recent_qs = [q.get("q", "") for q in _recent_ai_questions[-15:]]
+        recent_context = f"\n\nDO NOT repeat these recent questions:\n" + "\n".join(f"- {q}" for q in recent_qs)
+
+    # User's seen questions to avoid
+    seen = _user_question_history.get(user_id, set())
+    seen_fallback_qs = [q["q"] for q in FALLBACK_QUESTIONS if _question_hash(q) in seen]
+    if seen_fallback_qs:
+        recent_context += "\n\nUser has already answered these, make something COMPLETELY DIFFERENT:\n"
+        recent_context += "\n".join(f"- {q}" for q in seen_fallback_qs[-10:])
+
+    if demon_difficulty == "demon":
+        difficulty_instruction = (
+            "DIFFICULTY: 💀 DEMON — THIS IS THE HARDEST POSSIBLE DIFFICULTY.\n\n"
+            "DEMON DIFFICULTY RULES:\n"
+            "- Questions must be EXTREMELY obscure and specific\n"
+            "- Test deep internal knowledge that only expert Roblox engineers would know\n"
+            "- Include trick answers that LOOK correct but aren't\n"
+            "- Ask about exact numbers, limits, internal behaviors, edge cases\n"
+            "- Topics: internal scheduler timing, exact API limits, undocumented behaviors,\n"
+            "  memory layout, replication internals, engine-specific quirks\n"
+            "- Wrong answers should be VERY plausible — designed to fool even experienced devs\n"
+            "- The question should make someone go 'wait, I've never thought about that'\n"
+            "- Example topics:\n"
+            "  * Exact throttle rates for specific API calls\n"
+            "  * Order of internal engine events\n"
+            "  * Memory consumption of specific instance types\n"
+            "  * Undocumented behavior of deprecated functions\n"
+            "  * Edge cases in physics simulation\n"
+            "  * Exact limits (max instances, string lengths, etc.)\n"
+            "  * Differences between similar-looking APIs\n"
+            "  * Race conditions and timing issues\n"
+            "  * Serialization quirks\n"
+            "  * Behavior differences between client/server\n\n"
+            "THIS SHOULD BE NEARLY IMPOSSIBLE. If you think it's too easy, make it harder.\n"
+            "Wrong answer penalty: 20 MINUTE COOLDOWN. Make it worth that punishment.\n"
+        )
+    else:
+        difficulty_guide = {
+            "easy": "Basic concepts any beginner would know",
+            "medium": "Intermediate knowledge, common patterns",
+            "hard": "Advanced concepts, edge cases, best practices",
+            "expert": "Deep internals, obscure features, optimization tricks",
+        }
+        difficulty_instruction = f"DIFFICULTY: {demon_difficulty.upper()} — {difficulty_guide.get(demon_difficulty, 'Advanced')}\n"
+
+    prompt = (
+        f"Generate a Roblox development trivia question.\n\n"
+        f"CATEGORY: {cat_info['name']} — {cat_info['description']}\n"
+        f"{difficulty_instruction}\n"
+        f"Respond in EXACT JSON format (no markdown, raw JSON only):\n"
+        f'{{"q": "question text", "options": ["correct answer", "wrong1", "wrong2", "wrong3"], '
+        f'"correct": 0, "explanation": "brief explanation of the answer", '
+        f'"category": "{actual_category}", "difficulty": "{demon_difficulty}", '
+        f'"fun_fact": "optional interesting related fact"}}\n\n'
+        f"RULES:\n"
+        f"1. Question must be about {cat_info['name']}\n"
+        f"2. Exactly 4 options\n"
+        f"3. 'correct' is the INDEX (0-3) of the correct answer\n"
+        f"4. RANDOMIZE where the correct answer appears (NOT always index 0)\n"
+        f"5. Wrong answers should be VERY plausible — designed to trick people\n"
+        f"6. Explanation should be educational and concise\n"
+        f"7. Question should be specific and testable, not vague\n"
+        f"8. ONLY output JSON, nothing else"
+        f"{recent_context}"
+    )
+
+    try:
+        result = await call_ai(prompt)
+
+        if result.startswith("❌"):
+            raise Exception("AI call failed")
+
+        cleaned = result.strip()
+        if cleaned.startswith("```"):
+            cleaned = cleaned.split("\n", 1)[1]
+        if cleaned.endswith("```"):
+            cleaned = cleaned[:-3]
+        cleaned = cleaned.strip()
+
+        start = cleaned.find("{")
+        end = cleaned.rfind("}") + 1
+        if start >= 0 and end > start:
+            question = json.loads(cleaned[start:end])
+
+            required = ["q", "options", "correct"]
+            if not all(k in question for k in required):
+                raise Exception("Missing required fields")
+
+            if not isinstance(question["options"], list) or len(question["options"]) != 4:
+                raise Exception("Need exactly 4 options")
+
+            correct_idx = int(question["correct"])
+            if correct_idx < 0 or correct_idx > 3:
+                raise Exception("Invalid correct index")
+
+            question.setdefault("explanation", "")
+            question.setdefault("category", actual_category)
+            question.setdefault("difficulty", demon_difficulty)
+            question.setdefault("fun_fact", "")
+            question["ai_generated"] = True
+            question["remaining_fallbacks"] = 0
+
+            _recent_ai_questions.append(question)
+            if len(_recent_ai_questions) > _MAX_RECENT:
+                _recent_ai_questions.pop(0)
+
+            # Track for this user
+            if user_id not in _user_question_history:
+                _user_question_history[user_id] = set()
+            _user_question_history[user_id].add(_question_hash(question))
+
+            return question
+
+        raise Exception("Could not parse JSON")
+
+    except Exception as e:
+        print(f"[AI Trivia] Generation failed: {e}, using fallback")
+        question = _get_unseen_fallback(user_id, actual_category, difficulty)
+        question["ai_generated"] = False
+        return question
+
+
+async def generate_ai_duel_question(difficulty: str = "medium") -> dict:
+    """Generate a duel question using AI"""
+    question = await generate_ai_trivia(0, category="random", difficulty=difficulty, force_ai=True)
+    return question
 
 
 # ==================== SNIPPET BOXES ====================
@@ -105,35 +430,8 @@ def roll_snippet():
     return "common", SNIPPET_BOXES["common"], random.choice(SNIPPET_BOXES["common"]["snippets"])
 
 
-# ==================== DUEL QUESTIONS ====================
-DUEL_QUESTIONS = [
-    {"q": "What function creates a new Instance in Roblox?", "options": ["Instance.new()", "Create()", "Spawn()", "Make()"], "correct": 0},
-    {"q": "What service handles player data saving?", "options": ["DataStoreService", "SaveService", "PlayerData", "StorageService"], "correct": 0},
-    {"q": "What property controls how fast a Humanoid walks?", "options": ["Speed", "WalkSpeed", "MoveSpeed", "RunSpeed"], "correct": 1},
-    {"q": "What event fires when a player joins the game?", "options": ["PlayerJoined", "PlayerAdded", "OnJoin", "NewPlayer"], "correct": 1},
-    {"q": "What is the max value of Transparency?", "options": ["100", "255", "1", "10"], "correct": 2},
-    {"q": "Which service handles physics simulation?", "options": ["PhysicsService", "RunService", "SimService", "GameService"], "correct": 1},
-    {"q": "What does task.wait() replace?", "options": ["delay()", "wait()", "sleep()", "pause()"], "correct": 1},
-    {"q": "What property makes a Part not fall?", "options": ["Locked", "Fixed", "Anchored", "Static"], "correct": 2},
-    {"q": "What is the Roblox scripting language called?", "options": ["Lua", "Luau", "RScript", "RobloxScript"], "correct": 1},
-    {"q": "What service handles tweening?", "options": ["AnimService", "TweenService", "MoveService", "TransitionService"], "correct": 1},
-    {"q": "What does pcall() do?", "options": ["Print call", "Protected call", "Player call", "Pause call"], "correct": 1},
-    {"q": "How do you get the LocalPlayer?", "options": ["game.LocalPlayer", "Players.LocalPlayer", "GetPlayer()", "LocalPlayer()"], "correct": 1},
-    {"q": "What RemoteEvent method does CLIENT use to send to server?", "options": ["FireClient", "FireServer", "SendServer", "Invoke"], "correct": 1},
-    {"q": "What is the default WalkSpeed?", "options": ["10", "16", "20", "25"], "correct": 1},
-    {"q": "Which folder is only visible to the server?", "options": ["ReplicatedStorage", "ServerStorage", "Workspace", "StarterPack"], "correct": 1},
-    {"q": "What does :Clone() return?", "options": ["Nothing", "A copy of the instance", "The original", "An error"], "correct": 1},
-    {"q": "What method destroys an instance?", "options": ["Remove()", "Delete()", "Destroy()", "Kill()"], "correct": 2},
-    {"q": "What does math.clamp() do?", "options": ["Rounds a number", "Constrains a value between min and max", "Returns absolute value", "Floors a number"], "correct": 1},
-    {"q": "What is HumanoidRootPart?", "options": ["The head", "The primary part of a character", "A GUI element", "A sound"], "correct": 1},
-    {"q": "What does :WaitForChild() do?", "options": ["Waits forever", "Yields until child exists", "Creates a child", "Deletes a child"], "correct": 1},
-]
-
-
 # ==================== DUEL VIEW ====================
 class DuelAcceptView(discord.ui.View):
-    """View for opponent to accept or decline a duel"""
-
     def __init__(self, challenger_id: int, opponent_id: int, bet: int):
         super().__init__(timeout=30)
         self.challenger_id = challenger_id
@@ -146,7 +444,6 @@ class DuelAcceptView(discord.ui.View):
         if interaction.user.id != self.opponent_id:
             await interaction.response.send_message("❌ This duel isn't for you!", ephemeral=True)
             return
-
         self.accepted = True
         button.disabled = True
         self.children[1].disabled = True
@@ -158,7 +455,6 @@ class DuelAcceptView(discord.ui.View):
         if interaction.user.id != self.opponent_id:
             await interaction.response.send_message("❌ This duel isn't for you!", ephemeral=True)
             return
-
         self.accepted = False
         button.disabled = True
         self.children[0].disabled = True
@@ -185,7 +481,7 @@ class DuelAnswerView(discord.ui.View):
 
         for i, option in enumerate(question["options"]):
             button = discord.ui.Button(
-                label=option,
+                label=option[:80],
                 style=discord.ButtonStyle.blurple,
                 custom_id=f"duel_{i}_{random.randint(10000, 99999)}"
             )
@@ -211,14 +507,13 @@ class DuelAnswerView(discord.ui.View):
 
             if len(self.answers) == 2:
                 self.stop()
-
         return callback
 
 
 # ==================== BOUNTY VIEW ====================
 class BountyClaimView(discord.ui.View):
     def __init__(self, bounty_id, creator_id, reward):
-        super().__init__(timeout=86400)  # 24 hour timeout instead of None
+        super().__init__(timeout=86400)
         self.bounty_id = bounty_id
         self.creator_id = creator_id
         self.reward = reward
@@ -234,15 +529,8 @@ class BountyClaimView(discord.ui.View):
             return
 
         self.claimed_by = interaction.user.id
-
-        # Give reward to claimer
         await UserProfile.add_credits(interaction.user.id, self.reward)
 
-        button.disabled = True
-        button.label = f"Claimed by {interaction.user.display_name}"
-        button.style = discord.ButtonStyle.grey
-
-        # Disable cancel button too
         for child in self.children:
             child.disabled = True
 
@@ -282,9 +570,141 @@ class BountyClaimView(discord.ui.View):
         self.stop()
 
     async def on_timeout(self):
-        """Refund if bounty expires unclaimed"""
         if not self.claimed_by:
             await UserProfile.add_credits(self.creator_id, self.reward)
+
+
+# ==================== TRIVIA VIEWS ====================
+
+class TriviaCategoryView(discord.ui.View):
+    def __init__(self, user_id: int, difficulty: str = "medium"):
+        super().__init__(timeout=30)
+        self.user_id = user_id
+        self.difficulty = difficulty
+        self.selected_category = None
+
+        categories = list(TRIVIA_CATEGORIES.items())
+        for i, (key, info) in enumerate(categories):
+            row = i // 5
+            style = discord.ButtonStyle.primary if key == "random" else discord.ButtonStyle.secondary
+            btn = discord.ui.Button(
+                label=info["name"][:20],
+                emoji=info["emoji"],
+                style=style,
+                custom_id=f"cat_{key}_{random.randint(1000, 9999)}",
+                row=row
+            )
+            btn.callback = self._make_callback(key)
+            self.add_item(btn)
+
+    def _make_callback(self, category_key):
+        async def callback(interaction: discord.Interaction):
+            if interaction.user.id != self.user_id:
+                await interaction.response.send_message("❌ Not your trivia!", ephemeral=True)
+                return
+            self.selected_category = category_key
+            for child in self.children:
+                child.disabled = True
+            await interaction.response.edit_message(view=self)
+            self.stop()
+        return callback
+
+
+class TriviaAnswerView(discord.ui.View):
+    def __init__(self, question: dict, user_id: int, difficulty: str):
+        timeout = 30 if difficulty == "demon" else 20
+        super().__init__(timeout=timeout)
+        self.question = question
+        self.user_id = user_id
+        self.difficulty = difficulty
+        self.user_answer = None
+        self.answered = False
+
+        labels = ["A", "B", "C", "D"]
+
+        for i, option in enumerate(question["options"][:4]):
+            btn = discord.ui.Button(
+                label=f"{labels[i]}. {option[:70]}",
+                style=discord.ButtonStyle.primary,
+                custom_id=f"trivia_ans_{i}_{random.randint(1000, 9999)}",
+                row=i // 2
+            )
+            btn.callback = self._make_callback(i)
+            self.add_item(btn)
+
+    def _make_callback(self, index):
+        async def callback(interaction: discord.Interaction):
+            if interaction.user.id != self.user_id:
+                await interaction.response.send_message("❌ Not your trivia!", ephemeral=True)
+                return
+            if self.answered:
+                await interaction.response.send_message("❌ Already answered!", ephemeral=True)
+                return
+
+            self.answered = True
+            self.user_answer = index
+
+            correct_idx = self.question["correct"]
+            labels = ["A", "B", "C", "D"]
+
+            for j, child in enumerate(self.children):
+                child.disabled = True
+                if j == correct_idx:
+                    child.style = discord.ButtonStyle.success
+                    child.label = f"✅ {labels[j]}. {self.question['options'][j][:55]}"
+                elif j == index and j != correct_idx:
+                    child.style = discord.ButtonStyle.danger
+                    child.label = f"❌ {labels[j]}. {self.question['options'][j][:55]}"
+                else:
+                    child.style = discord.ButtonStyle.secondary
+
+            await interaction.response.edit_message(view=self)
+            self.stop()
+        return callback
+
+
+class TriviaStreakView(discord.ui.View):
+    def __init__(self, user_id: int, streak: int, category: str, difficulty: str):
+        super().__init__(timeout=15)
+        self.user_id = user_id
+        self.streak = streak
+        self.category = category
+        self.difficulty = difficulty
+        self.continue_playing = None
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("❌ Not your trivia!", ephemeral=True)
+            return False
+        return True
+
+    @discord.ui.button(label="Next Question!", emoji="▶️", style=discord.ButtonStyle.success)
+    async def next_question(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.continue_playing = True
+        for child in self.children:
+            child.disabled = True
+        await interaction.response.edit_message(view=self)
+        self.stop()
+
+    @discord.ui.button(label="Cash Out", emoji="💰", style=discord.ButtonStyle.secondary)
+    async def cash_out(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.continue_playing = False
+        for child in self.children:
+            child.disabled = True
+        await interaction.response.edit_message(view=self)
+        self.stop()
+
+    @discord.ui.button(label="Harder!", emoji="🔥", style=discord.ButtonStyle.danger)
+    async def go_harder(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.continue_playing = True
+        diff_order = ["easy", "medium", "hard", "expert", "demon"]
+        current_idx = diff_order.index(self.difficulty) if self.difficulty in diff_order else 1
+        if current_idx < len(diff_order) - 1:
+            self.difficulty = diff_order[current_idx + 1]
+        for child in self.children:
+            child.disabled = True
+        await interaction.response.edit_message(view=self)
+        self.stop()
 
 
 # ==================== UNBOX ANIMATION ====================
@@ -297,9 +717,8 @@ UNBOX_FRAMES = [
 ]
 
 
-# ==================== HELPER: SAFE ADMIN CHECK ====================
+# ==================== HELPERS ====================
 def is_user_admin(interaction: discord.Interaction) -> bool:
-    """Safely check if user is admin"""
     try:
         if interaction.guild and hasattr(interaction.user, 'guild_permissions'):
             return interaction.user.guild_permissions.administrator
@@ -308,9 +727,7 @@ def is_user_admin(interaction: discord.Interaction) -> bool:
     return False
 
 
-# ==================== HELPER: CHECK AND DEDUCT AI CREDITS ====================
 async def check_ai_credits(interaction: discord.Interaction, cost: int = 1) -> bool:
-    """Check if user has enough AI credits. Returns True if ok to proceed."""
     if is_user_admin(interaction):
         return True
 
@@ -342,19 +759,30 @@ async def check_ai_credits(interaction: discord.Interaction, cost: int = 1) -> b
 
 
 async def refund_ai_credits(user_id: int, cost: int = 1):
-    """Refund AI credits on error"""
     user = await UserProfile.get_user(user_id)
     if user:
         current = user.get("ai_credits", 0)
-        await UserProfile.update_user(user_id, {
-            "ai_credits": current + cost
-        })
+        await UserProfile.update_user(user_id, {"ai_credits": current + cost})
+
+
+def format_cooldown_remaining(user_id: int) -> str:
+    """Get formatted remaining cooldown time"""
+    if user_id not in _trivia_cooldowns:
+        return ""
+    remaining = _trivia_cooldowns[user_id] - time.time()
+    if remaining <= 0:
+        del _trivia_cooldowns[user_id]
+        return ""
+    minutes = int(remaining // 60)
+    seconds = int(remaining % 60)
+    return f"{minutes}m {seconds}s"
 
 
 # ==================== FUN COG ====================
 class FunCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self._trivia_locks = set()
 
     # ========== 1. AI ROAST ==========
     @app_commands.command(name="ai-roast", description="💀 AI roasts a user based on their profile")
@@ -369,25 +797,16 @@ class FunCog(commands.Cog):
         profile = await UserProfile.get_user(user.id)
         if not profile:
             await interaction.followup.send(
-                f"❌ {user.display_name} doesn't have a profile yet! "
-                f"Tell them to use `/start`."
+                f"❌ {user.display_name} doesn't have a profile yet! Tell them to use `/start`."
             )
             return
 
-        # Check AI credits (1 credit for roast)
         if not await check_ai_credits(interaction, 1):
             return
 
         roles = profile.get("roles", profile.get("role", "None"))
         if isinstance(roles, list):
             roles = ", ".join(roles) if roles else "None"
-        rank = profile.get("rank", "Beginner")
-        level = profile.get("level", 1)
-        xp = profile.get("xp", 0)
-        credits = profile.get("studio_credits", 0)
-        messages = profile.get("message_count", 0)
-        reputation = profile.get("reputation", 0)
-        voice = profile.get("voice_minutes", 0)
 
         prompt = (
             f"System: {AI_PERSONALITY}\n\n"
@@ -396,35 +815,27 @@ class FunCog(commands.Cog):
             f"3-4 sentences max. Be creative and specific to their stats.\n\n"
             f"TARGET: {user.display_name}\n"
             f"Roles: {roles}\n"
-            f"Rank: {rank} | Level: {level} | XP: {xp}\n"
-            f"Credits: {credits} | Messages: {messages} | Rep: {reputation}\n"
-            f"Voice Minutes: {voice}"
+            f"Rank: {profile.get('rank', 'Beginner')} | Level: {profile.get('level', 1)} | XP: {profile.get('xp', 0)}\n"
+            f"Credits: {profile.get('studio_credits', 0)} | Messages: {profile.get('message_count', 0)} | Rep: {profile.get('reputation', 0)}\n"
+            f"Voice Minutes: {profile.get('voice_minutes', 0)}"
         )
 
         try:
             roast = await call_ai(prompt)
-
             if roast.startswith("❌"):
                 await refund_ai_credits(interaction.user.id, 1)
                 await interaction.followup.send(roast)
                 return
 
-            embed = discord.Embed(
-                title=f"💀 AI ROAST — {user.display_name}",
-                description=roast[:2000],
-                color=0xE74C3C
-            )
+            embed = discord.Embed(title=f"💀 AI ROAST — {user.display_name}", description=roast[:2000], color=0xE74C3C)
             embed.set_thumbnail(url=user.display_avatar.url)
             embed.add_field(
                 name="Victim's Stats",
-                value=f"Level {level} | {rank} | 💰 {credits} Credits | 💬 {messages} msgs",
+                value=f"Level {profile.get('level', 1)} | {profile.get('rank', 'Beginner')} | 💰 {profile.get('studio_credits', 0)} Credits",
                 inline=False
             )
-            embed.set_footer(
-                text=f"Roasted by {AI_NAME} • Requested by {interaction.user.display_name} • 1 AI Credit"
-            )
+            embed.set_footer(text=f"Roasted by {AI_NAME} • Requested by {interaction.user.display_name} • 1 AI Credit")
             await interaction.followup.send(embed=embed)
-
         except Exception as e:
             await refund_ai_credits(interaction.user.id, 1)
             await interaction.followup.send(f"❌ Roast failed: {str(e)[:200]}")
@@ -438,13 +849,8 @@ class FunCog(commands.Cog):
         if reward < 100 or reward > 50000:
             await interaction.followup.send("❌ Reward must be between **100** and **50,000** Credits!")
             return
-
-        if len(task) < 10:
-            await interaction.followup.send("❌ Task description must be at least 10 characters!")
-            return
-
-        if len(task) > 500:
-            await interaction.followup.send("❌ Task description must be under 500 characters!")
+        if len(task) < 10 or len(task) > 500:
+            await interaction.followup.send("❌ Task must be 10-500 characters!")
             return
 
         user = await UserProfile.get_user(interaction.user.id)
@@ -454,33 +860,19 @@ class FunCog(commands.Cog):
 
         current_credits = user.get("studio_credits", 0)
         if current_credits < reward:
-            await interaction.followup.send(
-                f"❌ Not enough credits! You need **{reward}** but have **{current_credits}**."
-            )
+            await interaction.followup.send(f"❌ Not enough credits! You have **{current_credits}**.")
             return
 
-        # Deduct credits (escrow)
-        await UserProfile.update_user(interaction.user.id, {
-            "studio_credits": current_credits - reward
-        })
+        await UserProfile.update_user(interaction.user.id, {"studio_credits": current_credits - reward})
 
         bounty_id = f"bounty_{interaction.user.id}_{random.randint(10000, 99999)}"
 
         embed = discord.Embed(
             title="💰 Dev Bounty Posted!",
-            description=(
-                f"**Task:** {task}\n\n"
-                f"**Reward:** 💰 {reward} Credits\n"
-                f"**Posted by:** {interaction.user.mention}\n"
-                f"**Expires:** 24 hours"
-            ),
+            description=f"**Task:** {task}\n\n**Reward:** 💰 {reward} Credits\n**Posted by:** {interaction.user.mention}\n**Expires:** 24 hours",
             color=0xF1C40F
         )
-        embed.add_field(
-            name="How to claim",
-            value="Click 🎯 **Claim Bounty** below!\nThe poster will verify completion.",
-            inline=False
-        )
+        embed.add_field(name="How to claim", value="Click 🎯 **Claim Bounty** below!", inline=False)
         embed.set_footer(text=f"Bounty ID: {bounty_id}")
 
         view = BountyClaimView(bounty_id, interaction.user.id, reward)
@@ -498,17 +890,11 @@ class FunCog(commands.Cog):
 
         current_credits = user.get("studio_credits", 0)
         if current_credits < 500:
-            await interaction.followup.send(
-                f"❌ You need **500 Credits** to unbox! You have **{current_credits}**.\n"
-                f"Earn more through `/daily` and `/quest`!"
-            )
+            await interaction.followup.send(f"❌ You need **500 Credits**! You have **{current_credits}**.")
             return
 
-        await UserProfile.update_user(interaction.user.id, {
-            "studio_credits": current_credits - 500
-        })
+        await UserProfile.update_user(interaction.user.id, {"studio_credits": current_credits - 500})
 
-        # Animated unboxing
         msg = await interaction.followup.send(UNBOX_FRAMES[0], wait=True)
         for frame in UNBOX_FRAMES[1:]:
             await asyncio.sleep(0.8)
@@ -518,31 +904,23 @@ class FunCog(commands.Cog):
                 pass
 
         rarity, rarity_data, snippet = roll_snippet()
-
-        # Bonus XP for rare+ unboxes
         xp_bonus = {"common": 5, "uncommon": 10, "rare": 25, "epic": 50, "legendary": 100}
         bonus = xp_bonus.get(rarity, 5)
         await UserProfile.add_xp(interaction.user.id, bonus)
+
+        code_text = snippet['code'][:900]
+        if len(snippet['code']) > 900:
+            code_text += "\n-- ... (truncated)"
 
         embed = discord.Embed(
             title=f"{rarity_data['emoji']} {rarity.upper()} — {snippet['name']}!",
             description=f"**{snippet['desc']}**",
             color=rarity_data["color"]
         )
-
-        code_text = snippet['code']
-        if len(code_text) > 900:
-            code_text = code_text[:900] + "\n-- ... (truncated)"
-
         embed.add_field(name="📝 Code", value=f"```lua\n{code_text}\n```", inline=False)
-        embed.add_field(
-            name="Rarity",
-            value=f"{rarity_data['emoji']} {rarity.upper()} ({rarity_data['chance']}% chance)",
-            inline=True
-        )
+        embed.add_field(name="Rarity", value=f"{rarity_data['emoji']} {rarity.upper()} ({rarity_data['chance']}%)", inline=True)
         embed.add_field(name="Bonus XP", value=f"✨ +{bonus}", inline=True)
         embed.set_footer(text=f"Unboxed by {interaction.user.display_name} | 500 Credits spent")
-
         await msg.edit(content=None, embed=embed)
 
     # ========== 4. FLEX WEALTH ==========
@@ -556,7 +934,6 @@ class FunCog(commands.Cog):
             await interaction.followup.send("❌ No users found!")
             return
 
-        # Sort by total wealth (pcredits * 1000 + studio_credits) for fair ranking
         users = sorted(
             _memory_users.values(),
             key=lambda x: (x.get("pcredits", 0) * 1000) + x.get("studio_credits", 0),
@@ -567,45 +944,31 @@ class FunCog(commands.Cog):
             await interaction.followup.send("❌ No users found!")
             return
 
-        embed = discord.Embed(
-            title="💎💰 WEALTH LEADERBOARD 💰💎",
-            description="*The richest devs in the studio*\n",
-            color=0xF1C40F
-        )
+        embed = discord.Embed(title="💎💰 WEALTH LEADERBOARD 💰💎", description="*The richest devs in the studio*\n", color=0xF1C40F)
 
         medals = ["👑", "💎", "🥇", "🥈", "🥉", "💰", "💰", "💰", "💰", "💰"]
         for i, u in enumerate(users):
-            pcredits = u.get('pcredits', 0)
-            credits = u.get('studio_credits', 0)
-            ai_credits = u.get('ai_credits', 0)
-            total = (pcredits * 1000) + credits
-
+            total = (u.get('pcredits', 0) * 1000) + u.get('studio_credits', 0)
             embed.add_field(
                 name=f"{medals[i]} #{i + 1} — {u.get('username', 'Unknown')}",
-                value=(
-                    f"💎 {pcredits} pCredits | 💰 {credits} Credits | 🤖 {ai_credits} AI\n"
-                    f"📊 Total Value: **{total:,}** Credits"
-                ),
+                value=f"💎 {u.get('pcredits', 0)} pCredits | 💰 {u.get('studio_credits', 0)} Credits | 🤖 {u.get('ai_credits', 0)} AI\n📊 Total: **{total:,}**",
                 inline=False
             )
 
-        embed.set_footer(text="💸 Get rich or die coding 💸 | Total = (pCredits × 1000) + Credits")
+        embed.set_footer(text="Total = (pCredits × 1000) + Credits")
         await interaction.followup.send(embed=embed)
 
-    # ========== 5. CODE DUEL ==========
+    # ========== 5. CODE DUEL (AI QUESTIONS) ==========
     @app_commands.command(name="code-duel", description="⚔️ Challenge someone to a Luau knowledge duel")
     @app_commands.describe(opponent="Who to challenge", bet="Credits to bet (50-10000)")
     async def code_duel(self, interaction: discord.Interaction, opponent: discord.Member, bet: int = 100):
         await interaction.response.defer()
 
-        if opponent.bot:
-            await interaction.followup.send("❌ Can't duel a bot!")
-            return
-        if opponent.id == interaction.user.id:
-            await interaction.followup.send("❌ Can't duel yourself!")
+        if opponent.bot or opponent.id == interaction.user.id:
+            await interaction.followup.send("❌ Invalid opponent!")
             return
         if bet < 50 or bet > 10000:
-            await interaction.followup.send("❌ Bet must be between **50** and **10,000** Credits!")
+            await interaction.followup.send("❌ Bet must be **50-10,000** Credits!")
             return
 
         challenger = await UserProfile.get_user(interaction.user.id)
@@ -618,212 +981,149 @@ class FunCog(commands.Cog):
             await UserProfile.create_user(opponent.id, opponent.name)
             opp_profile = await UserProfile.get_user(opponent.id)
 
-        challenger_credits = challenger.get("studio_credits", 0)
-        opp_credits = opp_profile.get("studio_credits", 0)
-
-        if challenger_credits < bet:
-            await interaction.followup.send(
-                f"❌ You don't have **{bet}** Credits! You have **{challenger_credits}**."
-            )
+        if challenger.get("studio_credits", 0) < bet:
+            await interaction.followup.send(f"❌ You don't have **{bet}** Credits!")
             return
-        if opp_credits < bet:
-            await interaction.followup.send(
-                f"❌ {opponent.display_name} doesn't have **{bet}** Credits!"
-            )
+        if opp_profile.get("studio_credits", 0) < bet:
+            await interaction.followup.send(f"❌ {opponent.display_name} doesn't have **{bet}** Credits!")
             return
 
-        # Ask opponent to accept first
         accept_embed = discord.Embed(
             title="⚔️ Duel Challenge!",
-            description=(
-                f"**{interaction.user.display_name}** challenges **{opponent.display_name}**!\n"
-                f"💰 **Bet:** {bet} Credits\n\n"
-                f"{opponent.mention}, do you accept?"
-            ),
+            description=f"**{interaction.user.display_name}** vs **{opponent.display_name}**\n💰 **Bet:** {bet} Credits | 🤖 AI Question\n\n{opponent.mention}, accept?",
             color=0xE74C3C
         )
         accept_view = DuelAcceptView(interaction.user.id, opponent.id, bet)
         await interaction.followup.send(embed=accept_embed, view=accept_view)
-
         await accept_view.wait()
 
         if not accept_view.accepted:
             if accept_view.accepted is None:
-                # Timed out
-                timeout_embed = discord.Embed(
-                    title="⚔️ Duel Expired",
-                    description=f"{opponent.display_name} didn't respond in time.",
-                    color=0x95A5A6
-                )
                 try:
-                    await interaction.edit_original_response(embed=timeout_embed, view=None)
+                    await interaction.edit_original_response(
+                        embed=discord.Embed(title="⚔️ Duel Expired", description=f"{opponent.display_name} didn't respond.", color=0x95A5A6),
+                        view=None
+                    )
                 except Exception:
                     pass
             return
 
-        # Re-fetch balances to prevent exploit
+        # Re-verify
         challenger = await UserProfile.get_user(interaction.user.id)
         opp_profile = await UserProfile.get_user(opponent.id)
-        challenger_credits = challenger.get("studio_credits", 0)
-        opp_credits = opp_profile.get("studio_credits", 0)
-
-        if challenger_credits < bet or opp_credits < bet:
-            await interaction.channel.send("❌ Someone doesn't have enough credits anymore! Duel cancelled.")
+        if challenger.get("studio_credits", 0) < bet or opp_profile.get("studio_credits", 0) < bet:
+            await interaction.channel.send("❌ Someone doesn't have enough credits! Cancelled.")
             return
 
-        # Start the duel
-        question = random.choice(DUEL_QUESTIONS)
+        duel_diff = "expert" if bet >= 5000 else "hard" if bet >= 2000 else "medium" if bet >= 500 else "easy"
+
+        loading_msg = await interaction.channel.send(
+            embed=discord.Embed(title="⚔️ Generating...", description="🤖 AI is crafting a question...", color=0xE74C3C)
+        )
+
+        question = await generate_ai_duel_question(duel_diff)
+        diff_info = TRIVIA_DIFFICULTIES.get(duel_diff, TRIVIA_DIFFICULTIES["medium"])
+        cat_info = TRIVIA_CATEGORIES.get(question.get("category", "general"), TRIVIA_CATEGORIES["general"])
+        ai_badge = "🤖 AI" if question.get("ai_generated") else "📚 Classic"
+
         duel_embed = discord.Embed(
             title="⚔️ CODE DUEL — FIGHT!",
             description=(
                 f"**{interaction.user.display_name}** vs **{opponent.display_name}**\n"
-                f"💰 **Bet:** {bet} Credits\n\n"
-                f"**Question:**\n{question['q']}\n\n"
-                f"⏱️ Both players click your answer! (15 seconds)"
+                f"💰 {bet} | {diff_info['emoji']} {duel_diff.title()} | {cat_info['emoji']} {cat_info['name']} | {ai_badge}\n\n"
+                f"**{question['q']}**\n\n⏱️ 15 seconds!"
             ),
             color=0xE74C3C
         )
 
         answer_view = DuelAnswerView(question, interaction.user.id, opponent.id, bet)
-        duel_msg = await interaction.channel.send(embed=duel_embed, view=answer_view)
-
+        await loading_msg.edit(embed=duel_embed, view=answer_view)
         await answer_view.wait()
 
         ca = answer_view.answers.get(interaction.user.id)
         oa = answer_view.answers.get(opponent.id)
         correct_text = question["options"][question["correct"]]
 
-        # Determine winner
-        winner_id = None
-        loser_id = None
-        result_title = ""
-        result_desc = ""
+        winner_id, loser_id, result_title, result_desc = None, None, "", ""
 
         if not ca and not oa:
-            result_title = "⚔️ Draw!"
-            result_desc = f"Neither player answered!\nNo credits exchanged.\n✅ Answer: **{correct_text}**"
-
+            result_title, result_desc = "⚔️ Draw!", "Neither answered!"
         elif not ca:
-            winner_id = opponent.id
-            loser_id = interaction.user.id
+            winner_id, loser_id = opponent.id, interaction.user.id
             result_title = f"⚔️ {opponent.display_name} WINS!"
-            result_desc = (
-                f"{interaction.user.display_name} didn't answer!\n"
-                f"💰 {opponent.display_name} wins **{bet} Credits**!\n"
-                f"✅ Answer: **{correct_text}**"
-            )
-
+            result_desc = f"{interaction.user.display_name} didn't answer! 💰 **{bet}** Credits won!"
         elif not oa:
-            winner_id = interaction.user.id
-            loser_id = opponent.id
+            winner_id, loser_id = interaction.user.id, opponent.id
             result_title = f"⚔️ {interaction.user.display_name} WINS!"
-            result_desc = (
-                f"{opponent.display_name} didn't answer!\n"
-                f"💰 {interaction.user.display_name} wins **{bet} Credits**!\n"
-                f"✅ Answer: **{correct_text}**"
-            )
-
+            result_desc = f"{opponent.display_name} didn't answer! 💰 **{bet}** Credits won!"
         elif ca["correct"] and not oa["correct"]:
-            winner_id = interaction.user.id
-            loser_id = opponent.id
+            winner_id, loser_id = interaction.user.id, opponent.id
             result_title = f"⚔️ {interaction.user.display_name} WINS!"
-            result_desc = f"💰 Wins **{bet} Credits**!\n✅ Answer: **{correct_text}**"
-
+            result_desc = f"💰 **{bet}** Credits won!"
         elif not ca["correct"] and oa["correct"]:
-            winner_id = opponent.id
-            loser_id = interaction.user.id
+            winner_id, loser_id = opponent.id, interaction.user.id
             result_title = f"⚔️ {opponent.display_name} WINS!"
-            result_desc = f"💰 Wins **{bet} Credits**!\n✅ Answer: **{correct_text}**"
-
+            result_desc = f"💰 **{bet}** Credits won!"
         elif ca["correct"] and oa["correct"]:
-            # Both correct — fastest wins
             if ca["time"] < oa["time"]:
-                winner_id = interaction.user.id
-                loser_id = opponent.id
+                winner_id, loser_id = interaction.user.id, opponent.id
                 result_title = f"⚔️ {interaction.user.display_name} WINS!"
-                result_desc = f"Both correct but **faster**! ⚡\n💰 Wins **{bet} Credits**!"
+                result_desc = "Both correct — **faster**! ⚡"
             elif oa["time"] < ca["time"]:
-                winner_id = opponent.id
-                loser_id = interaction.user.id
+                winner_id, loser_id = opponent.id, interaction.user.id
                 result_title = f"⚔️ {opponent.display_name} WINS!"
-                result_desc = f"Both correct but **faster**! ⚡\n💰 Wins **{bet} Credits**!"
+                result_desc = "Both correct — **faster**! ⚡"
             else:
-                result_title = "⚔️ Perfect Draw!"
-                result_desc = f"Both correct at the exact same time!\nNo credits exchanged.\n✅ Answer: **{correct_text}**"
+                result_title, result_desc = "⚔️ Perfect Draw!", "Same time!"
         else:
-            result_title = "⚔️ Draw!"
-            result_desc = f"Both wrong! No credits exchanged.\n✅ Answer: **{correct_text}**"
+            result_title, result_desc = "⚔️ Draw!", "Both wrong!"
 
-        # Transfer credits
         if winner_id and loser_id:
-            # Re-fetch to prevent race conditions
-            winner_data = await UserProfile.get_user(winner_id)
-            loser_data = await UserProfile.get_user(loser_id)
+            w = await UserProfile.get_user(winner_id)
+            l = await UserProfile.get_user(loser_id)
+            if w and l:
+                actual = min(bet, l.get("studio_credits", 0))
+                if actual > 0:
+                    await UserProfile.update_user(loser_id, {"studio_credits": l.get("studio_credits", 0) - actual})
+                    await UserProfile.update_user(winner_id, {"studio_credits": w.get("studio_credits", 0) + actual})
 
-            if winner_data and loser_data:
-                loser_credits = loser_data.get("studio_credits", 0)
-                winner_credits = winner_data.get("studio_credits", 0)
-
-                # Make sure loser can still pay
-                actual_bet = min(bet, loser_credits)
-                if actual_bet > 0:
-                    await UserProfile.update_user(loser_id, {
-                        "studio_credits": loser_credits - actual_bet
-                    })
-                    await UserProfile.update_user(winner_id, {
-                        "studio_credits": winner_credits + actual_bet
-                    })
-
-        color = 0x2ECC71 if winner_id else 0x95A5A6
-        result_embed = discord.Embed(title=result_title, description=result_desc, color=color)
+        result_embed = discord.Embed(title=result_title, description=result_desc, color=0x2ECC71 if winner_id else 0x95A5A6)
+        result_embed.add_field(name="✅ Answer", value=f"**{correct_text}**", inline=False)
+        if question.get("explanation"):
+            result_embed.add_field(name="📖 Explanation", value=question["explanation"][:500], inline=False)
+        if question.get("fun_fact"):
+            result_embed.add_field(name="💡 Fun Fact", value=question["fun_fact"][:300], inline=False)
         await interaction.channel.send(embed=result_embed)
 
-    # ========== 6. AI FIX (1 AI Credit) ==========
+    # ========== 6. AI FIX ==========
     @app_commands.command(name="ai-fix", description="🔧 AI rewrites your code optimized (1 AI Credit)")
     @app_commands.describe(code="Paste your code here")
     async def ai_fix(self, interaction: discord.Interaction, code: str):
         await interaction.response.defer()
 
         if len(code.strip()) < 5:
-            await interaction.followup.send("❌ Code is too short! Paste some actual code.")
+            await interaction.followup.send("❌ Code is too short!")
             return
-
         if not await check_ai_credits(interaction, 1):
             return
 
         prompt = (
             f"System: {AI_PERSONALITY}\n\n"
-            f"TASK: Rewrite this Roblox Lua/Luau code to be optimized, clean, and bug-free.\n"
-            f"Show the improved version with clear comments explaining changes.\n\n"
+            f"TASK: Rewrite this Roblox Lua/Luau code optimized, clean, bug-free.\n\n"
             f"ORIGINAL:\n```lua\n{code[:3000]}\n```\n\n"
-            f"Provide:\n"
-            f"1. Brief list of fixes/improvements (2-4 bullet points)\n"
-            f"2. Complete improved code in a lua code block\n"
-            f"3. One-line performance note"
+            f"Provide:\n1. Fixes (2-4 bullets)\n2. Complete code\n3. Performance note"
         )
 
         try:
             result = await call_ai(prompt)
-
             if result.startswith("❌"):
                 await refund_ai_credits(interaction.user.id, 1)
                 await interaction.followup.send(result)
                 return
 
-            embed = discord.Embed(
-                title="🔧 Code Optimized!",
-                description=f"By {AI_NAME} • Cost: 1 AI Credit",
-                color=0x3498DB
-            )
-            embed.set_footer(text=f"Requested by {interaction.user.display_name}")
-
+            embed = discord.Embed(title="🔧 Code Optimized!", description=f"By {AI_NAME} • 1 AI Credit", color=0x3498DB)
             msg = await interaction.followup.send(embed=embed, wait=True)
-            await ai_handler.send_response(
-                message=msg,
-                ai_text=result,
-                user_name=interaction.user.display_name
-            )
-
+            await ai_handler.send_response(message=msg, ai_text=result, user_name=interaction.user.display_name)
         except Exception as e:
             await refund_ai_credits(interaction.user.id, 1)
             await interaction.followup.send(f"❌ Error: {str(e)[:200]}")
@@ -834,154 +1134,94 @@ class FunCog(commands.Cog):
     async def dev_confession(self, interaction: discord.Interaction, confession: str):
         await interaction.response.defer(ephemeral=True)
 
-        if len(confession.strip()) < 10:
-            await interaction.followup.send("❌ Confession must be at least 10 characters!", ephemeral=True)
-            return
-
-        if len(confession) > 500:
-            await interaction.followup.send("❌ Confession must be under 500 characters!", ephemeral=True)
+        if len(confession.strip()) < 10 or len(confession) > 500:
+            await interaction.followup.send("❌ Must be 10-500 characters!", ephemeral=True)
             return
 
         prompt = (
-            f"System: {AI_PERSONALITY}\n\n"
-            f"A dev confessed: \"{confession}\"\n\n"
-            f"Write a SHORT funny reaction (1-2 sentences max). Be witty and relatable to game devs."
+            f"System: {AI_PERSONALITY}\n\nA dev confessed: \"{confession}\"\n\n"
+            f"Write a SHORT funny reaction (1-2 sentences). Be witty and game-dev themed."
         )
 
         try:
             ai_comment = await call_ai(prompt)
-
-            embed = discord.Embed(
-                title="🤫 Anonymous Dev Confession",
-                description=f"*\"{confession}\"*",
-                color=0x9B59B6
-            )
+            embed = discord.Embed(title="🤫 Anonymous Dev Confession", description=f"*\"{confession}\"*", color=0x9B59B6)
             embed.add_field(
                 name=f"💬 {AI_NAME}'s Take",
                 value=ai_comment[:1024] if not ai_comment.startswith("❌") else "No comment. 😶",
                 inline=False
             )
             embed.set_footer(text="Someone in this server wrote this... 👀")
-
             await interaction.channel.send(embed=embed)
             await interaction.followup.send("✅ Posted anonymously!", ephemeral=True)
-
         except Exception as e:
-            await interaction.followup.send(f"❌ Failed to post: {str(e)[:200]}", ephemeral=True)
+            await interaction.followup.send(f"❌ Failed: {str(e)[:200]}", ephemeral=True)
 
-    # ========== 8. AI PREDICT GAME (1 AI Credit) ==========
-    @app_commands.command(name="ai-predict-game", description="🔮 AI predicts if your game will hit 1M plays (1 AI Credit)")
+    # ========== 8. AI PREDICT GAME ==========
+    @app_commands.command(name="ai-predict-game", description="🔮 AI predicts game success (1 AI Credit)")
     @app_commands.describe(idea="Describe your game idea")
     async def ai_predict_game(self, interaction: discord.Interaction, idea: str):
         await interaction.response.defer()
 
         if len(idea.strip()) < 10:
-            await interaction.followup.send("❌ Describe your idea in at least 10 characters!")
+            await interaction.followup.send("❌ Need at least 10 characters!")
             return
-
         if not await check_ai_credits(interaction, 1):
             return
 
         prompt = (
-            f"System: {AI_PERSONALITY}\n\n"
-            f"TASK: Analyze this Roblox game idea and predict success. Be honest but helpful.\n\n"
-            f"IDEA: {idea[:1000]}\n\n"
-            f"Provide:\n"
-            f"1. SUCCESS CHANCE: percentage (be realistic)\n"
-            f"2. VERDICT: 🟢 Go for it / 🟡 Needs work / 🔴 Risky\n"
-            f"3. STRENGTHS: 2-3 bullet points\n"
-            f"4. WEAKNESSES: 2-3 bullet points\n"
-            f"5. COMPETITION: Similar games on Roblox\n"
-            f"6. MONETIZATION: Best strategy\n"
-            f"7. DEV TIME: Estimated hours/weeks\n"
-            f"8. KILLER TIP: One actionable advice"
+            f"System: {AI_PERSONALITY}\n\nTASK: Analyze this Roblox game idea.\n\nIDEA: {idea[:1000]}\n\n"
+            f"Provide:\n1. SUCCESS CHANCE %\n2. VERDICT: 🟢/🟡/🔴\n3. STRENGTHS\n4. WEAKNESSES\n"
+            f"5. COMPETITION\n6. MONETIZATION\n7. DEV TIME\n8. KILLER TIP"
         )
 
         try:
             result = await call_ai(prompt)
-
             if result.startswith("❌"):
                 await refund_ai_credits(interaction.user.id, 1)
                 await interaction.followup.send(result)
                 return
 
-            embed = discord.Embed(
-                title="🔮 Game Prediction",
-                description=f"**Idea:** {idea[:200]}{'...' if len(idea) > 200 else ''}",
-                color=0x9B59B6
-            )
-            embed.set_footer(
-                text=f"By {AI_NAME} • {interaction.user.display_name} • 1 AI Credit"
-            )
-
+            embed = discord.Embed(title="🔮 Game Prediction", description=f"**Idea:** {idea[:200]}", color=0x9B59B6)
+            embed.set_footer(text=f"By {AI_NAME} • {interaction.user.display_name} • 1 AI Credit")
             msg = await interaction.followup.send(embed=embed, wait=True)
-            await ai_handler.send_response(
-                message=msg,
-                ai_text=result,
-                user_name=interaction.user.display_name
-            )
-
+            await ai_handler.send_response(message=msg, ai_text=result, user_name=interaction.user.display_name)
         except Exception as e:
             await refund_ai_credits(interaction.user.id, 1)
             await interaction.followup.send(f"❌ Error: {str(e)[:200]}")
 
-    # ========== 9. IDEAS (1 AI Credit) ==========
-    @app_commands.command(name="ideas", description="💡 AI generates trending game ideas (1 AI Credit)")
-    @app_commands.describe(keyword="Theme or keyword (optional)")
+    # ========== 9. IDEAS ==========
+    @app_commands.command(name="ideas", description="💡 AI generates game ideas (1 AI Credit)")
+    @app_commands.describe(keyword="Theme (optional)")
     async def ideas(self, interaction: discord.Interaction, keyword: str = None):
         await interaction.response.defer()
 
         if not await check_ai_credits(interaction, 1):
             return
 
-        kw = f"based on the theme '{keyword}'" if keyword else "based on current Roblox trends in 2024-2025"
+        kw = f"based on '{keyword}'" if keyword else "based on 2024-2025 Roblox trends"
         prompt = (
-            f"System: {AI_PERSONALITY}\n\n"
-            f"TASK: Generate 3 creative and unique Roblox game ideas {kw}.\n\n"
-            f"For each idea provide:\n"
-            f"1. 🎮 NAME (creative title)\n"
-            f"2. 📝 DESCRIPTION (2-3 sentences)\n"
-            f"3. 🎯 GENRE\n"
-            f"4. 📊 PREDICTED PLAYS (first month)\n"
-            f"5. ⏱️ DEV TIME (realistic)\n"
-            f"6. 💰 MONETIZATION (gamepass ideas)\n"
-            f"7. 🔥 WHY IT WOULD WORK"
+            f"System: {AI_PERSONALITY}\n\nTASK: Generate 3 Roblox game ideas {kw}.\n\n"
+            f"For each: 🎮 NAME, 📝 DESCRIPTION, 🎯 GENRE, 📊 PREDICTED PLAYS, ⏱️ DEV TIME, 💰 MONETIZATION, 🔥 WHY IT WORKS"
         )
 
         try:
             result = await call_ai(prompt)
-
             if result.startswith("❌"):
                 await refund_ai_credits(interaction.user.id, 1)
                 await interaction.followup.send(result)
                 return
 
-            embed = discord.Embed(
-                title="💡 Game Ideas Generator",
-                description=f"**Theme:** {keyword or 'Trending 2024-2025'}",
-                color=0xF1C40F
-            )
-            embed.set_footer(
-                text=f"By {AI_NAME} • {interaction.user.display_name} • 1 AI Credit"
-            )
-
+            embed = discord.Embed(title="💡 Game Ideas", description=f"**Theme:** {keyword or 'Trending'}", color=0xF1C40F)
             msg = await interaction.followup.send(embed=embed, wait=True)
-            await ai_handler.send_response(
-                message=msg,
-                ai_text=result,
-                user_name=interaction.user.display_name
-            )
-
+            await ai_handler.send_response(message=msg, ai_text=result, user_name=interaction.user.display_name)
         except Exception as e:
             await refund_ai_credits(interaction.user.id, 1)
             await interaction.followup.send(f"❌ Error: {str(e)[:200]}")
 
-    # ========== 10. COIN FLIP (NEW) ==========
+    # ========== 10. COIN FLIP ==========
     @app_commands.command(name="coinflip", description="🪙 Flip a coin and bet credits!")
-    @app_commands.describe(
-        choice="Heads or Tails",
-        bet="Credits to bet (0 for free flip)"
-    )
+    @app_commands.describe(choice="Heads or Tails", bet="Credits to bet (0 for free)")
     @app_commands.choices(choice=[
         app_commands.Choice(name="Heads", value="heads"),
         app_commands.Choice(name="Tails", value="tails"),
@@ -995,25 +1235,16 @@ class FunCog(commands.Cog):
             user = await UserProfile.get_user(interaction.user.id)
 
         current_credits = user.get("studio_credits", 0)
-
-        if bet < 0:
-            await interaction.followup.send("❌ Bet can't be negative!")
+        if bet < 0 or bet > 5000:
+            await interaction.followup.send("❌ Bet must be 0-5,000!")
             return
-
-        if bet > 5000:
-            await interaction.followup.send("❌ Max bet is **5,000** Credits!")
-            return
-
         if bet > 0 and current_credits < bet:
-            await interaction.followup.send(
-                f"❌ Not enough credits! You have **{current_credits}** but bet **{bet}**."
-            )
+            await interaction.followup.send(f"❌ Not enough! You have **{current_credits}**.")
             return
 
         result = random.choice(["heads", "tails"])
         won = result == choice
 
-        # Animate
         msg = await interaction.followup.send("🪙 Flipping...", wait=True)
         await asyncio.sleep(1)
         await msg.edit(content="🪙 Flipping... 🌀")
@@ -1023,122 +1254,359 @@ class FunCog(commands.Cog):
 
         if bet > 0:
             if won:
-                await UserProfile.update_user(interaction.user.id, {
-                    "studio_credits": current_credits + bet
-                })
+                await UserProfile.update_user(interaction.user.id, {"studio_credits": current_credits + bet})
                 embed = discord.Embed(
                     title=f"{result_emoji} {result.upper()}! — YOU WIN!",
-                    description=f"💰 You won **{bet}** Credits!\nNew balance: **{current_credits + bet}** Credits",
+                    description=f"💰 Won **{bet}** Credits! Balance: **{current_credits + bet}**",
                     color=0x2ECC71
                 )
             else:
-                await UserProfile.update_user(interaction.user.id, {
-                    "studio_credits": current_credits - bet
-                })
+                await UserProfile.update_user(interaction.user.id, {"studio_credits": current_credits - bet})
                 embed = discord.Embed(
                     title=f"{result_emoji} {result.upper()}! — YOU LOSE!",
-                    description=f"💸 You lost **{bet}** Credits!\nNew balance: **{current_credits - bet}** Credits",
+                    description=f"💸 Lost **{bet}** Credits! Balance: **{current_credits - bet}**",
                     color=0xE74C3C
                 )
         else:
             embed = discord.Embed(
                 title=f"{result_emoji} {result.upper()}!",
-                description=f"{'✅ You guessed right!' if won else '❌ Wrong guess!'}",
+                description=f"{'✅ Correct!' if won else '❌ Wrong!'}",
                 color=0x2ECC71 if won else 0xE74C3C
             )
 
-        embed.add_field(name="Your Pick", value=choice.title(), inline=True)
+        embed.add_field(name="Pick", value=choice.title(), inline=True)
         embed.add_field(name="Result", value=result.title(), inline=True)
-        embed.set_footer(text=f"Flipped by {interaction.user.display_name}")
-
         await msg.edit(content=None, embed=embed)
 
-    # ========== 11. DEV TRIVIA (NEW - Free) ==========
-    @app_commands.command(name="trivia", description="🧠 Quick Roblox dev trivia question (free!)")
-    async def trivia(self, interaction: discord.Interaction):
+    # ========== 11. AI TRIVIA (FULLY UPGRADED) ==========
+    @app_commands.command(name="trivia", description="🧠 AI trivia with categories, streaks, and 💀 DEMON mode!")
+    @app_commands.describe(difficulty="Question difficulty", category="Question category")
+    @app_commands.choices(
+        difficulty=[
+            app_commands.Choice(name="🟢 Easy", value="easy"),
+            app_commands.Choice(name="🟡 Medium", value="medium"),
+            app_commands.Choice(name="🟠 Hard", value="hard"),
+            app_commands.Choice(name="🔴 Expert", value="expert"),
+            app_commands.Choice(name="💀 Demon", value="demon"),
+        ]
+    )
+    async def trivia(self, interaction: discord.Interaction, difficulty: str = "medium", category: str = None):
         await interaction.response.defer()
 
-        question = random.choice(DUEL_QUESTIONS)
+        user_id = interaction.user.id
 
-        embed = discord.Embed(
-            title="🧠 Dev Trivia!",
-            description=f"**{question['q']}**\n\n⏱️ You have 15 seconds!",
-            color=0x3498DB
-        )
-
-        view = TriviaView(question, interaction.user.id)
-        await interaction.followup.send(embed=embed, view=view)
-
-        await view.wait()
-
-        answer = view.user_answer
-        correct_text = question["options"][question["correct"]]
-
-        if answer is None:
-            result = discord.Embed(
-                title="⏱️ Time's Up!",
-                description=f"✅ The answer was: **{correct_text}**",
-                color=0x95A5A6
-            )
-        elif answer == question["correct"]:
-            # Give small XP reward
-            await UserProfile.add_xp(interaction.user.id, 15)
-            await UserProfile.add_credits(interaction.user.id, 5)
-            result = discord.Embed(
-                title="✅ Correct!",
-                description=f"**{correct_text}**\n\n✨ +15 XP | 💰 +5 Credits",
-                color=0x2ECC71
-            )
-        else:
-            result = discord.Embed(
-                title="❌ Wrong!",
+        # Check cooldown
+        cooldown_remaining = format_cooldown_remaining(user_id)
+        if cooldown_remaining:
+            embed = discord.Embed(
+                title="💀 DEMON COOLDOWN ACTIVE",
                 description=(
-                    f"You picked: **{question['options'][answer]}**\n"
-                    f"✅ Correct answer: **{correct_text}**"
+                    f"You got a question wrong! You must wait before trying again.\n\n"
+                    f"⏰ **Time remaining:** {cooldown_remaining}\n\n"
+                    f"*The demons don't forgive easily...*"
                 ),
-                color=0xE74C3C
+                color=0x8B0000
+            )
+            embed.set_footer(text="Wrong answers on demon/AI questions = 20 minute cooldown")
+            await interaction.followup.send(embed=embed, ephemeral=True)
+            return
+
+        if user_id in self._trivia_locks:
+            await interaction.followup.send("❌ You already have a trivia in progress!", ephemeral=True)
+            return
+
+        self._trivia_locks.add(user_id)
+        try:
+            await self._run_trivia_session(interaction, difficulty, category)
+        finally:
+            self._trivia_locks.discard(user_id)
+
+    async def _run_trivia_session(self, interaction: discord.Interaction, difficulty: str, category: str = None):
+        user_id = interaction.user.id
+        streak = 0
+        total_xp = 0
+        total_credits = 0
+        current_difficulty = difficulty
+
+        # Category picker if none specified
+        if not category:
+            # Show question pool status
+            all_seen = _check_all_fallbacks_seen(user_id)
+            seen_count = len(_user_question_history.get(user_id, set()))
+            total_fallbacks = len(FALLBACK_QUESTIONS)
+
+            pool_status = ""
+            if all_seen:
+                pool_status = (
+                    f"\n\n💀 **ALL {total_fallbacks} QUESTIONS COMPLETED!**\n"
+                    f"AI will now generate 💀 **DEMON-HARD** questions!\n"
+                    f"⚠️ Wrong answer = **20 MINUTE COOLDOWN**"
+                )
+            else:
+                pool_status = f"\n\n📊 Progress: **{seen_count}/{total_fallbacks}** questions answered"
+
+            picker_embed = discord.Embed(
+                title="🧠 AI Trivia — Pick a Category!",
+                description=(
+                    f"**Difficulty:** {TRIVIA_DIFFICULTIES.get(current_difficulty, TRIVIA_DIFFICULTIES['medium'])['emoji']} "
+                    f"{current_difficulty.title()}"
+                    f"{pool_status}"
+                ),
+                color=0x5865F2
             )
 
-        result.set_footer(text=f"Player: {interaction.user.display_name}")
-        await interaction.channel.send(embed=result)
+            for key, info in TRIVIA_CATEGORIES.items():
+                picker_embed.add_field(name=f"{info['emoji']} {info['name']}", value=info['description'], inline=True)
 
+            picker_view = TriviaCategoryView(user_id, current_difficulty)
+            await interaction.followup.send(embed=picker_embed, view=picker_view)
+            await picker_view.wait()
 
-# ==================== TRIVIA VIEW ====================
-class TriviaView(discord.ui.View):
-    def __init__(self, question, user_id):
-        super().__init__(timeout=15)
-        self.question = question
-        self.user_id = user_id
-        self.user_answer = None
+            if picker_view.selected_category is None:
+                await interaction.channel.send(f"⏱️ {interaction.user.mention} Trivia timed out!")
+                return
+            category = picker_view.selected_category
 
-        for i, option in enumerate(question["options"]):
-            button = discord.ui.Button(
-                label=option,
-                style=discord.ButtonStyle.blurple,
-                custom_id=f"trivia_{i}_{random.randint(10000, 99999)}"
+        # Main trivia loop
+        while True:
+            # Check cooldown each round
+            cooldown_remaining = format_cooldown_remaining(user_id)
+            if cooldown_remaining:
+                cooldown_embed = discord.Embed(
+                    title="💀 COOLDOWN ACTIVATED",
+                    description=(
+                        f"You got a demon question wrong!\n\n"
+                        f"⏰ **Wait:** {cooldown_remaining}\n\n"
+                        f"**Session Stats:**\n"
+                        f"🔥 Streak: {streak} | ✨ {total_xp} XP | 💰 {total_credits} Credits"
+                    ),
+                    color=0x8B0000
+                )
+                await interaction.channel.send(embed=cooldown_embed)
+                break
+
+            diff_info = TRIVIA_DIFFICULTIES.get(current_difficulty, TRIVIA_DIFFICULTIES["medium"])
+            cat_info = TRIVIA_CATEGORIES.get(category if category != "random" else "general", TRIVIA_CATEGORIES["general"])
+
+            # Check if all fallbacks are seen
+            all_seen = _check_all_fallbacks_seen(user_id)
+            is_demon_mode = all_seen or current_difficulty == "demon"
+
+            # Loading
+            streak_text = f" | 🔥 Streak: {streak}" if streak > 0 else ""
+            demon_warning = "\n💀 **DEMON MODE** — Wrong = 20 min cooldown!" if is_demon_mode else ""
+
+            loading_embed = discord.Embed(
+                title="🧠 Generating Question...",
+                description=(
+                    f"{'💀' if is_demon_mode else '🤖'} "
+                    f"{'Summoning a DEMON question...' if is_demon_mode else 'Preparing question...'}"
+                    f"{streak_text}{demon_warning}"
+                ),
+                color=0x8B0000 if is_demon_mode else diff_info["color"]
             )
-            button.callback = self.make_callback(i)
-            self.add_item(button)
+            loading_msg = await interaction.channel.send(embed=loading_embed)
 
-    def make_callback(self, index):
-        async def callback(interaction: discord.Interaction):
-            if interaction.user.id != self.user_id:
-                await interaction.response.send_message("❌ Not your trivia!", ephemeral=True)
-                return
-            if self.user_answer is not None:
-                await interaction.response.send_message("❌ Already answered!", ephemeral=True)
-                return
+            # Generate question
+            if is_demon_mode:
+                question = await generate_ai_trivia(user_id, category, "demon", force_ai=True)
+            else:
+                question = await generate_ai_trivia(user_id, category, current_difficulty)
 
-            self.user_answer = index
+            ai_generated = question.get("ai_generated", False)
+            remaining = question.get("remaining_fallbacks", 0)
+            q_difficulty = question.get("difficulty", current_difficulty)
+            is_demon_q = q_difficulty == "demon" or is_demon_mode
 
-            # Disable all buttons
-            for child in self.children:
-                child.disabled = True
+            actual_diff_info = TRIVIA_DIFFICULTIES.get(q_difficulty, diff_info)
+            actual_cat = TRIVIA_CATEGORIES.get(question.get("category", "general"), TRIVIA_CATEGORIES["general"])
 
-            await interaction.response.edit_message(view=self)
-            self.stop()
+            # Badge
+            if is_demon_q:
+                badge = "💀 DEMON"
+            elif ai_generated:
+                badge = "🤖 AI-Generated"
+            else:
+                badge = f"📚 Classic ({remaining} left)"
 
-        return callback
+            # Streak bonus text
+            streak_bonus = ""
+            if streak > 0:
+                multiplier = 1 + (streak * 0.25)
+                streak_bonus = f"\n🔥 **Streak: {streak}** — x{multiplier:.2f} rewards!"
+
+            # Demon warning
+            penalty_warning = ""
+            if is_demon_q:
+                penalty_warning = "\n\n⚠️ **WRONG ANSWER = 20 MINUTE COOLDOWN**"
+
+            # Timer
+            timer = 30 if is_demon_q else 20
+
+            question_embed = discord.Embed(
+                title=f"{'💀' if is_demon_q else '🧠'} {'DEMON TRIVIA' if is_demon_q else 'Dev Trivia'} — {actual_cat['emoji']} {actual_cat['name']}",
+                description=(
+                    f"{actual_diff_info['emoji']} **{q_difficulty.title()}** | {badge}\n\n"
+                    f"**{question['q']}**"
+                    f"{streak_bonus}"
+                    f"{penalty_warning}\n\n"
+                    f"⏱️ {timer} seconds!"
+                ),
+                color=actual_diff_info["color"]
+            )
+
+            if streak > 0:
+                question_embed.set_footer(text=f"🔥 Streak: {streak} | ✨ {total_xp} XP | 💰 {total_credits} Credits")
+
+            answer_view = TriviaAnswerView(question, user_id, q_difficulty)
+            await loading_msg.edit(embed=question_embed, view=answer_view)
+            await answer_view.wait()
+
+            answer = answer_view.user_answer
+            correct_idx = question["correct"]
+            correct_text = question["options"][correct_idx]
+            explanation = question.get("explanation", "")
+            fun_fact = question.get("fun_fact", "")
+
+            if answer is None:
+                # Timeout
+                result = discord.Embed(
+                    title="⏱️ Time's Up!",
+                    description=f"✅ Answer: **{correct_text}**",
+                    color=0x95A5A6
+                )
+                if explanation:
+                    result.add_field(name="📖 Explanation", value=explanation[:500], inline=False)
+                if streak > 0:
+                    result.add_field(
+                        name="🔥 Streak Ended!",
+                        value=f"Final: **{streak}** | ✨ {total_xp} XP | 💰 {total_credits} Credits",
+                        inline=False
+                    )
+
+                # Apply cooldown if demon
+                if is_demon_q:
+                    _trivia_cooldowns[user_id] = time.time() + (20 * 60)
+                    result.add_field(
+                        name="💀 DEMON PUNISHMENT",
+                        value="⏰ **20 minute cooldown** applied for not answering!",
+                        inline=False
+                    )
+                    result.color = 0x8B0000
+
+                await interaction.channel.send(embed=result)
+                break
+
+            elif answer == correct_idx:
+                # CORRECT
+                streak += 1
+                multiplier = 1 + ((streak - 1) * 0.25)
+                base_xp = actual_diff_info["xp"]
+                base_credits = actual_diff_info["credits"]
+                earned_xp = int(base_xp * multiplier)
+                earned_credits = int(base_credits * multiplier)
+
+                total_xp += earned_xp
+                total_credits += earned_credits
+
+                await UserProfile.add_xp(user_id, earned_xp)
+                await UserProfile.add_credits(user_id, earned_credits)
+
+                title_prefix = "💀 DEMON SLAYED!" if is_demon_q else "✅ Correct!"
+
+                result = discord.Embed(
+                    title=f"{title_prefix} 🔥 Streak: {streak}",
+                    description=(
+                        f"**{correct_text}**\n\n"
+                        f"✨ +{earned_xp} XP | 💰 +{earned_credits} Credits"
+                        f"{f' (x{multiplier:.2f} bonus!)' if multiplier > 1 else ''}"
+                    ),
+                    color=0x57F287 if is_demon_q else 0x2ECC71
+                )
+                if explanation:
+                    result.add_field(name="📖 Explanation", value=explanation[:500], inline=False)
+                if fun_fact:
+                    result.add_field(name="💡 Fun Fact", value=fun_fact[:300], inline=False)
+                result.add_field(
+                    name="📊 Session",
+                    value=f"🔥 {streak} | ✨ {total_xp} XP | 💰 {total_credits} Credits",
+                    inline=False
+                )
+
+                if is_demon_q:
+                    result.set_footer(text="You survived the demon... for now. 💀")
+                await interaction.channel.send(embed=result)
+
+                # Continue?
+                continue_view = TriviaStreakView(user_id, streak, category, current_difficulty)
+                continue_msg = await interaction.channel.send(f"🔥 **{streak} streak!** Keep going?", view=continue_view)
+                await continue_view.wait()
+
+                if continue_view.continue_playing is None or continue_view.continue_playing is False:
+                    cashout_embed = discord.Embed(
+                        title=f"💰 Session Complete!",
+                        description=(
+                            f"**Final Streak:** 🔥 {streak}\n"
+                            f"**Total XP:** ✨ {total_xp}\n"
+                            f"**Total Credits:** 💰 {total_credits}\n"
+                            f"**Difficulty:** {actual_diff_info['emoji']} {current_difficulty.title()}"
+                        ),
+                        color=0xF1C40F
+                    )
+                    await interaction.channel.send(embed=cashout_embed)
+                    break
+                else:
+                    current_difficulty = continue_view.difficulty
+                    continue
+
+            else:
+                # WRONG
+                wrong_text = question["options"][answer]
+
+                result = discord.Embed(
+                    title=f"{'💀 DEMON WINS!' if is_demon_q else '❌ Wrong!'}",
+                    description=(
+                        f"You picked: **{wrong_text}**\n"
+                        f"✅ Correct: **{correct_text}**"
+                    ),
+                    color=0x8B0000 if is_demon_q else 0xE74C3C
+                )
+                if explanation:
+                    result.add_field(name="📖 Explanation", value=explanation[:500], inline=False)
+                if fun_fact:
+                    result.add_field(name="💡 Fun Fact", value=fun_fact[:300], inline=False)
+
+                if streak > 0:
+                    result.add_field(
+                        name="🔥 Streak Ended!",
+                        value=f"Final: **{streak}** | ✨ {total_xp} XP | 💰 {total_credits} Credits",
+                        inline=False
+                    )
+
+                # Apply cooldown if demon/AI question
+                if is_demon_q:
+                    _trivia_cooldowns[user_id] = time.time() + (20 * 60)  # 20 minutes
+                    result.add_field(
+                        name="💀 DEMON PUNISHMENT",
+                        value=(
+                            "⏰ **20 MINUTE COOLDOWN** applied!\n"
+                            "You cannot play trivia for 20 minutes.\n\n"
+                            "*The demons feast on your failure...*"
+                        ),
+                        inline=False
+                    )
+
+                await interaction.channel.send(embed=result)
+                break
+
+    @trivia.autocomplete("category")
+    async def trivia_category_autocomplete(self, interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+        choices = []
+        for key, info in TRIVIA_CATEGORIES.items():
+            name = f"{info['emoji']} {info['name']}"
+            if current.lower() in name.lower() or current.lower() in key.lower() or not current:
+                choices.append(app_commands.Choice(name=name, value=key))
+        return choices[:25]
 
 
 async def setup(bot):
