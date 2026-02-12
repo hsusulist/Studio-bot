@@ -827,7 +827,7 @@ class ProfileCog(commands.Cog):
 
         await interaction.followup.send(embed=embed, view=view)
 
-    @app_commands.command(name="rank", description="Check your current rank and progression")
+    @app_commands.command(name="myrank", description="Check your current rank and progression")
     @app_commands.describe(user="User to check (leave empty for yourself)")
     async def rank_cmd(self, interaction: discord.Interaction, user: discord.User = None):
         await interaction.response.defer()
@@ -843,7 +843,7 @@ class ProfileCog(commands.Cog):
 
         await interaction.followup.send(embed=embed)
 
-    @app_commands.command(name="stats", description="View detailed stats")
+    @app_commands.command(name="mystats", description="View detailed stats")
     @app_commands.describe(user="User to check (leave empty for yourself)")
     async def stats_cmd(self, interaction: discord.Interaction, user: discord.User = None):
         await interaction.response.defer()
@@ -859,7 +859,7 @@ class ProfileCog(commands.Cog):
 
         await interaction.followup.send(embed=embed)
 
-    @app_commands.command(name="economy", description="View your economy and wealth")
+    @app_commands.command(name="wallet", description="View your economy and wealth")
     @app_commands.describe(user="User to check (leave empty for yourself)")
     async def economy_cmd(self, interaction: discord.Interaction, user: discord.User = None):
         await interaction.response.defer()
