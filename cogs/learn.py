@@ -7,7 +7,6 @@ from dataclasses import dataclass, field
 from typing import Dict, Optional, List
 from datetime import datetime
 
-import aiohttp
 import discord
 from discord.ext import commands
 from discord import app_commands
@@ -19,30 +18,30 @@ from config import BOT_COLOR, AI_MODEL
 from database import UserProfile
 
 # -----------------------------
-# Gemini AI Configuration (Replit AI Integrations)
+# Gemini AI Configuration
 # -----------------------------
 AI_INTEGRATIONS_GEMINI_API_KEY = os.environ.get("AI_INTEGRATIONS_GEMINI_API_KEY")
 AI_INTEGRATIONS_GEMINI_BASE_URL = os.environ.get("AI_INTEGRATIONS_GEMINI_BASE_URL")
 
-# Replit's AI Integrations provides Gemini-compatible API access
 client = genai.Client(
     api_key=AI_INTEGRATIONS_GEMINI_API_KEY,
     http_options={
         'api_version': '',
-        'base_url': AI_INTEGRATIONS_GEMINI_BASE_URL   
+        'base_url': AI_INTEGRATIONS_GEMINI_BASE_URL
     }
 )
 
+MAX_CONVERSATION_MESSAGES = 50
+
+
 async def openrouter_chat(messages, model_pool=None, max_tokens=1000):
     """Compatibility wrapper for Gemini AI Integrations"""
-    # Convert message list to a single prompt for Gemini
     prompt = ""
     for msg in messages:
         role = "Assistant" if msg["role"] == "assistant" else msg["role"].capitalize()
         prompt += f"{role}: {msg['content']}\n"
-    
+
     try:
-        # Use asyncio to run the synchronous client call
         loop = asyncio.get_event_loop()
         response = await loop.run_in_executor(
             None,
@@ -57,26 +56,20 @@ async def openrouter_chat(messages, model_pool=None, max_tokens=1000):
         print(f"Gemini API Error: {e}")
         return f"❌ AI Error: {str(e)}"
 
-# Model pools for different purposes
-CODER_MODELS = [
-    "gemini-3-flash",
-]
 
-EXPLAIN_MODELS = [
-    "gemini-3-pro",
-]
-
+CODER_MODELS = ["gemini-3-pro"]
+EXPLAIN_MODELS = ["gemini-3-flash"]
 ALL_MODELS = CODER_MODELS + EXPLAIN_MODELS
 
+
 def get_model_pool(mode: str, text: str = "") -> List[str]:
-    """Compatibility helper to return model pools based on mode."""
     if mode == "coder":
         return CODER_MODELS
     return EXPLAIN_MODELS
 
 
 # -----------------------------
-# 50 LESSONS - Complete Roblox Lua/Luau Curriculum
+# 50 LESSONS - Paste your lessons here
 # -----------------------------
 LESSONS: List[dict] = [
     # ===== PHASE 1: FUNDAMENTALS (1-12) =====
@@ -1615,6 +1608,7 @@ LESSONS: List[dict] = [
     },
 ]
 
+
 # -----------------------------
 # Helper Functions
 # -----------------------------
@@ -1650,14 +1644,19 @@ def extract_json(text: str) -> Optional[dict]:
         return None
 
 
-# List of ALL text commands - bypass AI relevance check
 TEXT_COMMANDS = {
     "start", "start lesson", "repeat", "repeat lesson", "next", "next lesson",
     "hint", "get hint", "help", "cheat sheet", "cheatsheet", "reference",
     "my progress", "progress", "stats", "bookmark", "save", "bookmarks",
     "my bookmarks", "practice", "exercises", "skip", "next question",
     "refresh panel", "panel", "switch to coder", "model coder",
+    "switch to explain", "model explain", "switch to auto", "model auto",
+    "my weaknesses", "weakness analysis", "analyze", "final test",
+    "no", "nope", "nah", "n", "quiz", "start quiz",
 }
+
+
+# -----------------------------
 # Persistent Storage Helpers
 # -----------------------------
 def _safe_int(x, default=1) -> int:
@@ -1712,9 +1711,6 @@ async def ensure_learn_fields(user_id: int, username: str):
     return user
 
 
-# =====================================================
-# SAVE ALL SESSION STATE
-# =====================================================
 async def save_session_state(session: "LearnSession"):
     await UserProfile.update_user(session.user_id, {
         "learn_lesson": session.lesson_number,
@@ -1799,7 +1795,6 @@ async def update_streak(user_id: int):
                 streak += 1
             elif diff > 1:
                 streak = 1
-            # diff == 0: same day, keep streak unchanged
         except (ValueError, TypeError):
             streak = 1
     else:
@@ -1814,7 +1809,13 @@ async def update_streak(user_id: int):
 async def get_progress_stats(user_id: int) -> dict:
     user = await UserProfile.get_user(user_id)
     if not user:
-        return {}
+        return {
+            "current_lesson": 1, "current_phase": "Fundamentals",
+            "completed_count": 0, "total_lessons": max(len(LESSONS), 1),
+            "progress_percent": 0, "total_questions": 0,
+            "correct_answers": 0, "accuracy": 0,
+            "hints_used": 0, "streak": 0
+        }
 
     completed = user.get("learn_completed_lessons", [])
     total_q = user.get("learn_total_questions", 0)
@@ -1824,7 +1825,7 @@ async def get_progress_stats(user_id: int) -> dict:
     current_lesson = user.get("learn_lesson", 1)
 
     accuracy = (correct / total_q * 100) if total_q > 0 else 0
-    total_lessons = len(LESSONS) if LESSONS else 1
+    total_lessons = max(len(LESSONS), 1)
     progress_pct = len(completed) / total_lessons * 100
 
     current = get_lesson(current_lesson)
@@ -1868,7 +1869,7 @@ SESSIONS: Dict[int, LearnSession] = {}
 async def rebuild_session_from_db(channel: discord.TextChannel, user_id: int) -> LearnSession:
     user = await ensure_learn_fields(user_id, "Unknown")
 
-    total = len(LESSONS) if LESSONS else 50
+    total = max(len(LESSONS), 1)
     lesson = max(1, min(_safe_int(user.get("learn_lesson", 1)), total))
 
     phase = str(user.get("learn_phase", "menu"))
@@ -1903,29 +1904,28 @@ async def rebuild_session_from_db(channel: discord.TextChannel, user_id: int) ->
 
 
 # -----------------------------
-# PERSISTENT VIEWS (timeout=None)
+# PERSISTENT VIEWS
 # -----------------------------
-
 class LearnPersistentPanel(discord.ui.View):
-    """Main control panel - persists across restarts"""
-
     def __init__(self, cog: "LearnCog"):
         super().__init__(timeout=None)
         self.cog = cog
 
     def _is_controller(self, interaction: discord.Interaction, session: LearnSession) -> bool:
-        return interaction.user.id == session.user_id or interaction.user.guild_permissions.administrator
+        is_admin = False
+        try:
+            if interaction.guild and hasattr(interaction.user, 'guild_permissions'):
+                is_admin = interaction.user.guild_permissions.administrator
+        except Exception:
+            pass
+        return interaction.user.id == session.user_id or is_admin
 
     @discord.ui.button(label="Start Lesson", style=discord.ButtonStyle.success, emoji="▶️", custom_id="learn:start")
     async def start(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer()
         session = await self.cog.get_or_rebuild_session(interaction)
-        
-        # Admin bypass for learn controls
-        is_admin = interaction.user.guild_permissions.administrator
-        if not (interaction.user.id == session.user_id or is_admin):
+        if not self._is_controller(interaction, session):
             return await interaction.followup.send("❌ Not allowed.", ephemeral=True)
-            
         await self.cog.send_lesson(interaction.channel, session, repeat=False)
 
     @discord.ui.button(label="Repeat", style=discord.ButtonStyle.secondary, emoji="🔁", custom_id="learn:repeat")
@@ -1943,7 +1943,11 @@ class LearnPersistentPanel(discord.ui.View):
         if not self._is_controller(interaction, session):
             return await interaction.followup.send("❌ Not allowed.", ephemeral=True)
 
-        if session.lesson_number >= len(LESSONS):
+        total = len(LESSONS)
+        if total == 0:
+            return await interaction.followup.send("❌ No lessons available yet!")
+
+        if session.lesson_number >= total:
             return await interaction.followup.send("🎉 All lessons complete! Type `final test` to graduate!")
 
         session.lesson_number += 1
@@ -1956,8 +1960,9 @@ class LearnPersistentPanel(discord.ui.View):
         await save_session_state(session)
 
         lesson = get_lesson(session.lesson_number)
+        title = lesson['title'] if lesson else 'Unknown'
         await interaction.followup.send(
-            f"📖 **Lesson {session.lesson_number}: {lesson['title']}**\n"
+            f"📖 **Lesson {session.lesson_number}: {title}**\n"
             f"Click **Start Lesson** to begin!"
         )
 
@@ -1998,8 +2003,6 @@ class LearnPersistentPanel(discord.ui.View):
 
 
 class QuizControlView(discord.ui.View):
-    """Quiz control buttons - persistent across restarts"""
-
     def __init__(self, cog: "LearnCog", session: LearnSession = None):
         super().__init__(timeout=None)
         self.cog = cog
@@ -2008,21 +2011,20 @@ class QuizControlView(discord.ui.View):
     @discord.ui.button(label="Hint", style=discord.ButtonStyle.secondary, emoji="💡", custom_id="quiz:hint_btn")
     async def get_hint(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer(ephemeral=True)
-
         session = await self.cog.get_or_rebuild_session(interaction)
 
         if session.phase not in {"quiz", "final_test"}:
-            return await interaction.followup.send("💡 Hints are only available during quizzes.", ephemeral=True)
-
+            return await interaction.followup.send("💡 Hints only available during quizzes.", ephemeral=True)
         if session.hints_remaining <= 0:
             return await interaction.followup.send("❌ No hints remaining!", ephemeral=True)
 
         session.hints_remaining -= 1
 
         user = await UserProfile.get_user(session.user_id)
-        await UserProfile.update_user(session.user_id, {
-            "learn_hints_used": user.get("learn_hints_used", 0) + 1
-        })
+        if user:
+            await UserProfile.update_user(session.user_id, {
+                "learn_hints_used": user.get("learn_hints_used", 0) + 1
+            })
 
         await save_session_state(session)
 
@@ -2036,11 +2038,10 @@ class QuizControlView(discord.ui.View):
     @discord.ui.button(label="Skip", style=discord.ButtonStyle.secondary, emoji="⏭️", custom_id="quiz:skip_btn")
     async def skip_question(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer()
-
         session = await self.cog.get_or_rebuild_session(interaction)
 
         if session.phase not in {"quiz", "final_test"}:
-            return await interaction.followup.send("⏭️ Skip is only available during quizzes.", ephemeral=True)
+            return await interaction.followup.send("⏭️ Skip only available during quizzes.", ephemeral=True)
 
         await self.cog.handle_quiz_skip(interaction.channel, session)
 
@@ -2074,7 +2075,7 @@ class LearnCog(commands.Cog):
 
     async def send_panel(self, channel: discord.TextChannel, user_id: int):
         user = await ensure_learn_fields(user_id, "Unknown")
-        total = len(LESSONS) if LESSONS else 50
+        total = max(len(LESSONS), 1)
         lesson_number = max(1, min(_safe_int(user.get("learn_lesson", 1)), total))
 
         lesson = get_lesson(lesson_number)
@@ -2111,18 +2112,31 @@ class LearnCog(commands.Cog):
                 ),
                 inline=False
             )
+        else:
+            embed.add_field(
+                name=f"📖 Lesson {lesson_number}/{total}",
+                value="Ready to start!",
+                inline=False
+            )
 
         msg = await channel.send(embed=embed, view=LearnPersistentPanel(self))
         await UserProfile.update_user(user_id, {"learn_panel_message_id": msg.id})
 
     # =====================================================
-    # LESSON SENDING - MULTI-PART
+    # LESSON SENDING - FIXED
     # =====================================================
-
     async def send_lesson(self, channel: discord.TextChannel, session: LearnSession, repeat: bool = False):
         lesson = get_lesson(session.lesson_number)
         if not lesson:
-            return await channel.send("❌ Lesson not found.")
+            total = len(LESSONS)
+            if total == 0:
+                await channel.send("❌ No lessons are loaded yet!")
+            else:
+                await channel.send(
+                    f"❌ Lesson {session.lesson_number} not found. "
+                    f"There are **{total}** lessons available (1-{total})."
+                )
+            return
 
         # Reset session state
         session.phase = "qna"
@@ -2135,7 +2149,7 @@ class LearnCog(commands.Cog):
         await save_session_state(session)
         await update_streak(session.user_id)
 
-        # Project lesson?
+        # Project lesson
         if lesson.get("is_project"):
             await self.send_project_lesson(channel, session, lesson)
             return
@@ -2158,23 +2172,43 @@ class LearnCog(commands.Cog):
             color=BOT_COLOR
         )
         await channel.send(embed=header_embed)
-        await channel.send("📚 **Loading lesson content...**")
+
+        loading_msg = await channel.send("📚 **Generating lesson content... Please wait!** ⏳")
 
         # Part 1: Introduction
-        await self._send_lesson_introduction(channel, session, lesson)
+        try:
+            await self._send_lesson_introduction(channel, session, lesson)
+        except Exception as e:
+            print(f"[Learn] Introduction error: {e}")
+            await channel.send(f"⚠️ Error generating introduction: {str(e)[:150]}")
+
         await asyncio.sleep(1)
 
-        # Part 2+: Subtopics in chunks
+        # Part 2+: Subtopics
         subtopics = lesson.get("subtopics", [])
         chunk_size = 2
         for i in range(0, len(subtopics), chunk_size):
             chunk = subtopics[i:i + chunk_size]
             part_num = (i // chunk_size) + 2
-            await self._send_lesson_subtopics(channel, session, lesson, chunk, part_num)
+            try:
+                await self._send_lesson_subtopics(channel, session, lesson, chunk, part_num)
+            except Exception as e:
+                print(f"[Learn] Subtopics part {part_num} error: {e}")
+                await channel.send(f"⚠️ Error generating part {part_num}: {str(e)[:150]}")
             await asyncio.sleep(1)
 
-        # Final: Conclusion
-        await self._send_lesson_conclusion(channel, session, lesson)
+        # Conclusion
+        try:
+            await self._send_lesson_conclusion(channel, session, lesson)
+        except Exception as e:
+            print(f"[Learn] Conclusion error: {e}")
+            await channel.send(f"⚠️ Error generating conclusion: {str(e)[:150]}")
+
+        # Delete loading message
+        try:
+            await loading_msg.delete()
+        except Exception:
+            pass
 
         await append_conversation(session.user_id, "assistant", f"{title} — Lesson delivered")
 
@@ -2182,7 +2216,7 @@ class LearnCog(commands.Cog):
         qna_embed = discord.Embed(
             title="🤔 Any Questions?",
             description=(
-                "**Ask anything about this lesson or previous ones!**\n\n"
+                "**Ask anything about this lesson!**\n\n"
                 "• Type your question naturally\n"
                 "• Type `no` or `quiz` to start the quiz\n"
                 "• Type `cheat sheet` for a quick reference\n"
@@ -2192,7 +2226,7 @@ class LearnCog(commands.Cog):
         await channel.send(embed=qna_embed)
 
     async def _send_lesson_introduction(self, channel: discord.TextChannel, session: LearnSession, lesson: dict):
-        model_pool = get_model_pool(session.model_mode, lesson['title'])
+        model_pool = get_model_pool(session.model_mode, lesson.get('title', ''))
 
         system = """You are an expert Roblox Lua/Luau teacher.
 Write a COMPREHENSIVE introduction for the lesson:
@@ -2214,9 +2248,14 @@ List 4-5 concrete things the student will be able to build.
 
 Make it EXCITING and beginner-friendly! Use Roblox-specific examples."""
 
-        user_msg = f"""Write an introduction for Lesson {lesson['n']}: {lesson['title']}
-Keywords: {', '.join(lesson['keywords'])}
-Real-world application: {lesson.get('real_world', '')}"""
+        keywords_str = ', '.join(lesson.get('keywords', []))
+        real_world = lesson.get('real_world', 'General Roblox development')
+
+        user_msg = (
+            f"Write an introduction for Lesson {lesson['n']}: {lesson['title']}\n"
+            f"Keywords: {keywords_str}\n"
+            f"Real-world application: {real_world}"
+        )
 
         async with channel.typing():
             content = await openrouter_chat(
@@ -2224,6 +2263,10 @@ Real-world application: {lesson.get('real_world', '')}"""
                 model_pool=model_pool,
                 max_tokens=1000,
             )
+
+        if not content or content.startswith("❌"):
+            await channel.send(f"⚠️ Could not generate introduction: {content or 'Empty response'}")
+            return
 
         await append_conversation(session.user_id, "assistant", f"INTRO: {content[:1500]}")
 
@@ -2240,18 +2283,18 @@ Real-world application: {lesson.get('real_world', '')}"""
         if not subtopics:
             return
 
-        model_pool = get_model_pool(session.model_mode, lesson['title'])
+        model_pool = get_model_pool(session.model_mode, lesson.get('title', ''))
 
         subtopics_text = ""
         for st in subtopics:
             subtopics_text += f"""
-### SUBTOPIC: {st['name']}
-Description: {st['description']}
-Required examples: {st['examples']}
+### SUBTOPIC: {st.get('name', 'Unknown')}
+Description: {st.get('description', '')}
+Required examples: {st.get('examples', 1)}
 
 You MUST include:
 1. Detailed explanation (6-8 sentences minimum)
-2. {st['examples']} code examples with comments on EVERY line
+2. {st.get('examples', 1)} code examples with comments on EVERY line
 3. When and why to use this
 4. Common mistakes to avoid
 """
@@ -2264,8 +2307,10 @@ Explain each subtopic thoroughly:
 - Use ```lua code blocks
 - Be detailed and comprehensive"""
 
-        user_msg = f"""Explain these subtopics from Lesson {lesson['n']}: {lesson['title']}
-{subtopics_text}"""
+        user_msg = (
+            f"Explain these subtopics from Lesson {lesson['n']}: {lesson['title']}\n"
+            f"{subtopics_text}"
+        )
 
         async with channel.typing():
             content = await openrouter_chat(
@@ -2273,6 +2318,10 @@ Explain each subtopic thoroughly:
                 model_pool=model_pool,
                 max_tokens=1500,
             )
+
+        if not content or content.startswith("❌"):
+            await channel.send(f"⚠️ Could not generate subtopics part {part_num}: {content or 'Empty'}")
+            return
 
         await append_conversation(session.user_id, "assistant", f"SUBTOPICS Part {part_num}: {content[:1500]}")
 
@@ -2286,10 +2335,11 @@ Explain each subtopic thoroughly:
             await channel.send(embed=embed)
 
     async def _send_lesson_conclusion(self, channel: discord.TextChannel, session: LearnSession, lesson: dict):
-        model_pool = get_model_pool(session.model_mode, lesson['title'])
+        model_pool = get_model_pool(session.model_mode, lesson.get('title', ''))
 
         mistakes = lesson.get("common_mistakes", [])
-        mistakes_text = "\n".join([f"• {m}" for m in mistakes])
+        mistakes_text = "\n".join([f"• {m}" for m in mistakes]) if mistakes else "No common mistakes listed"
+        mini_project = lesson.get('mini_project', 'Practice exercise')
 
         system = """You are an expert teacher finishing a lesson.
 
@@ -2307,9 +2357,11 @@ A hands-on project that uses all concepts from this lesson. Include complete sta
 ## 📝 SUMMARY
 6-8 bullet points summarizing the key takeaways, plus a quick reference table."""
 
-        user_msg = f"""Finish Lesson {lesson['n']}: {lesson['title']}
-Common mistakes to cover: {mistakes_text}
-Mini project idea: {lesson.get('mini_project', 'Practice exercise')}"""
+        user_msg = (
+            f"Finish Lesson {lesson['n']}: {lesson['title']}\n"
+            f"Common mistakes to cover: {mistakes_text}\n"
+            f"Mini project idea: {mini_project}"
+        )
 
         async with channel.typing():
             content = await openrouter_chat(
@@ -2317,6 +2369,10 @@ Mini project idea: {lesson.get('mini_project', 'Practice exercise')}"""
                 model_pool=model_pool,
                 max_tokens=1500,
             )
+
+        if not content or content.startswith("❌"):
+            await channel.send(f"⚠️ Could not generate conclusion: {content or 'Empty'}")
+            return
 
         await append_conversation(session.user_id, "assistant", f"CONCLUSION: {content[:1500]}")
 
@@ -2331,9 +2387,8 @@ Mini project idea: {lesson.get('mini_project', 'Practice exercise')}"""
 
     async def send_project_lesson(self, channel: discord.TextChannel, session: LearnSession, lesson: dict):
         requirements = "\n".join([f"✅ {req}" for req in lesson.get("project_requirements", [])])
-
         is_final = lesson.get("is_final", False)
-        model_pool = get_model_pool(session.model_mode, lesson['title'])
+        model_pool = get_model_pool(session.model_mode, lesson.get('title', ''))
 
         if is_final:
             weakness = await get_weakness_analysis(session.user_id)
@@ -2349,18 +2404,20 @@ Include:
 - Publishing tips and best practices
 - Encouragement to keep learning"""
 
-            user_msg = f"""Final graduation project for student:
-Stats: {stats['completed_count']} lessons completed, {stats['accuracy']}% accuracy
-Weak areas to focus on: {weak_text}
-Requirements:\n{requirements}"""
+            user_msg = (
+                f"Final graduation project for student:\n"
+                f"Stats: {stats['completed_count']} lessons completed, {stats['accuracy']}% accuracy\n"
+                f"Weak areas: {weak_text}\n"
+                f"Requirements:\n{requirements}"
+            )
         else:
             system = """You are guiding a student through a practical project.
 Provide step-by-step instructions with complete, well-commented code.
 Break the project into clear phases."""
 
-            user_msg = f"""Project: {lesson['title']}\nRequirements:\n{requirements}"""
+            user_msg = f"Project: {lesson['title']}\nRequirements:\n{requirements}"
 
-        await channel.send("🔨 **Generating project guide...**")
+        loading = await channel.send("🔨 **Generating project guide...**")
 
         async with channel.typing():
             content = await openrouter_chat(
@@ -2368,6 +2425,15 @@ Break the project into clear phases."""
                 model_pool=model_pool,
                 max_tokens=3500,
             )
+
+        try:
+            await loading.delete()
+        except Exception:
+            pass
+
+        if not content or content.startswith("❌"):
+            await channel.send(f"⚠️ Could not generate project: {content or 'Empty'}")
+            return
 
         await append_conversation(session.user_id, "assistant", f"PROJECT: {content[:1500]}")
 
@@ -2389,6 +2455,9 @@ Break the project into clear phases."""
         )
 
     def _split_content(self, content: str, max_length: int) -> List[str]:
+        if not content:
+            return ["No content generated."]
+
         if len(content) <= max_length:
             return [content]
 
@@ -2416,16 +2485,17 @@ Break the project into clear phases."""
     # =====================================================
     # AI METHODS
     # =====================================================
-
     async def generate_hint(self, lesson: dict, quiz: dict) -> str:
+        lesson_title = lesson['title'] if lesson else 'Unknown topic'
+
         system = (
             "You are a helpful tutor. Give a useful hint that guides the student "
             "toward the answer WITHOUT revealing it directly. Keep it to 2-3 sentences."
         )
         user_msg = (
-            f"Quiz question: {quiz.get('question', '')}\n"
-            f"Correct answer: {quiz.get('answer', '')}\n"
-            f"Topic: {lesson['title'] if lesson else 'Unknown'}"
+            f"Quiz question: {quiz.get('question', 'Unknown question')}\n"
+            f"Correct answer: {quiz.get('answer', 'Unknown')}\n"
+            f"Topic: {lesson_title}"
         )
 
         return await openrouter_chat(
@@ -2437,20 +2507,32 @@ Break the project into clear phases."""
     async def generate_quiz(self, session: LearnSession, num_questions: int = 3) -> List[dict]:
         lesson = get_lesson(session.lesson_number)
         if not lesson:
-            return [{"question": "Explain what you learned.", "type": "concept", "answer": "", "difficulty": "medium", "related_keywords": []}]
+            return [{
+                "question": "Explain what you learned in this lesson.",
+                "type": "concept", "answer": "", "explanation": "",
+                "difficulty": "medium", "related_keywords": []
+            }]
 
         weakness = await get_weakness_analysis(session.user_id)
         weak_topics = [k for k, v in weakness["weaknesses"][:5]]
+        keywords_str = ', '.join(lesson.get('keywords', []))
+        weak_focus = f"Focus on weak areas: {', '.join(weak_topics)}" if weak_topics else "General coverage"
 
         system = (
             "You are a quiz generator for Roblox Lua/Luau lessons. "
-            "Create quiz questions. Return ONLY a valid JSON array, nothing else."
+            "Create quiz questions. Return ONLY a valid JSON array, nothing else. "
+            "No markdown, no explanation, just the JSON array."
         )
-        user_msg = f"""Create {num_questions} questions for Lesson {lesson['n']}: {lesson['title']}
-Keywords: {', '.join(lesson['keywords'])}
-{"Focus on weak areas: " + ', '.join(weak_topics) if weak_topics else "General coverage"}
 
-Return format: [{{"question": "...", "type": "output|fix|concept|choice", "options": null or ["A) ...", "B) ...", "C) ...", "D) ..."], "answer": "...", "explanation": "...", "difficulty": "easy|medium|hard", "related_keywords": [...]}}]"""
+        user_msg = (
+            f"Create {num_questions} questions for Lesson {lesson['n']}: {lesson['title']}\n"
+            f"Keywords: {keywords_str}\n"
+            f"{weak_focus}\n\n"
+            f'Return format: [{{"question": "...", "type": "output|fix|concept|choice", '
+            f'"options": null or ["A) ...", "B) ...", "C) ...", "D) ..."], '
+            f'"answer": "...", "explanation": "...", '
+            f'"difficulty": "easy|medium|hard", "related_keywords": [...]}}]'
+        )
 
         raw = await openrouter_chat(
             [{"role": "system", "content": system}, {"role": "user", "content": user_msg}],
@@ -2463,26 +2545,46 @@ Return format: [{{"question": "...", "type": "output|fix|concept|choice", "optio
             if match:
                 questions = json.loads(match.group(0))
                 if isinstance(questions, list) and questions:
-                    return questions
-        except (json.JSONDecodeError, TypeError):
-            pass
+                    validated = []
+                    for q in questions:
+                        if isinstance(q, dict) and q.get("question"):
+                            q.setdefault("type", "concept")
+                            q.setdefault("answer", "")
+                            q.setdefault("explanation", "")
+                            q.setdefault("difficulty", "medium")
+                            q.setdefault("related_keywords", lesson.get('keywords', [])[:3])
+                            validated.append(q)
+                    if validated:
+                        return validated
+        except (json.JSONDecodeError, TypeError) as e:
+            print(f"[Learn] Quiz JSON parse error: {e}")
 
-        # Fallback question
-        return [{
-            "question": f"Explain the key concepts of {lesson['title']} with a code example.",
-            "type": "concept",
-            "answer": "",
-            "explanation": "",
-            "difficulty": "medium",
-            "related_keywords": lesson['keywords'][:3]
-        }]
+        # Fallback
+        kw = lesson.get('keywords', ['this concept'])
+        return [
+            {
+                "question": f"What does {kw[0]} do in Lua/Luau? Give an example.",
+                "type": "concept", "answer": "", "explanation": "",
+                "difficulty": "medium", "related_keywords": kw[:3]
+            },
+            {
+                "question": f"Write a simple code example using {lesson['title']}.",
+                "type": "concept", "answer": "", "explanation": "",
+                "difficulty": "medium", "related_keywords": kw[:3]
+            },
+            {
+                "question": f"Name 2 common mistakes when using {kw[0]}.",
+                "type": "concept", "answer": "", "explanation": "",
+                "difficulty": "easy", "related_keywords": kw[:3]
+            }
+        ]
 
     async def grade_quiz_answer(self, session: LearnSession, quiz: dict, user_answer: str) -> dict:
         model_pool = get_model_pool(session.model_mode, user_answer)
 
         system = (
             "You are a fair quiz grader. Grade the student's answer. "
-            'Return ONLY valid JSON: {"correct": bool, "partial": bool, "score": 0-100, '
+            'Return ONLY valid JSON, no markdown: {"correct": bool, "partial": bool, "score": 0-100, '
             '"feedback": "encouraging feedback", "correct_answer": "the correct answer"}'
         )
         user_msg = (
@@ -2504,10 +2606,17 @@ Return format: [{{"question": "...", "type": "output|fix|concept|choice", "optio
         except (TypeError, KeyError):
             pass
 
+        # Fallback: try to detect from text
+        raw_lower = (raw or "").lower()
+        if "correct" in raw_lower and "incorrect" not in raw_lower and "not correct" not in raw_lower:
+            return {
+                "correct": True, "partial": False, "score": 80,
+                "feedback": "Looks correct! Good job!",
+                "correct_answer": quiz.get("answer", "")
+            }
+
         return {
-            "correct": False,
-            "partial": False,
-            "score": 0,
+            "correct": False, "partial": False, "score": 0,
             "feedback": "Could not grade automatically. Please try rephrasing your answer.",
             "correct_answer": quiz.get("answer", "")
         }
@@ -2517,19 +2626,22 @@ Return format: [{{"question": "...", "type": "output|fix|concept|choice", "optio
         model_pool = get_model_pool(session.model_mode, question)
 
         context = []
-        for i in range(1, min(session.lesson_number + 5, len(LESSONS) + 1)):
+        total = len(LESSONS)
+        for i in range(1, min(session.lesson_number + 5, total + 1)):
             l = get_lesson(i)
             if l:
                 context.append(f"Lesson {l['n']}: {l['title']}")
 
         current_title = current['title'] if current else 'Unknown'
-        system = f"""You are a helpful Roblox Lua/Luau tutor.
-The student is currently on Lesson {session.lesson_number}: {current_title}
-Lessons covered so far: {', '.join(context[:15])}
 
-Answer ANY question about Lua/Luau or Roblox development.
-Include code examples when relevant. Use ```lua blocks.
-Be encouraging and thorough!"""
+        system = (
+            f"You are a helpful Roblox Lua/Luau tutor.\n"
+            f"The student is on Lesson {session.lesson_number}: {current_title}\n"
+            f"Lessons covered: {', '.join(context[:15])}\n\n"
+            f"Answer ANY question about Lua/Luau or Roblox development.\n"
+            f"Include code examples when relevant. Use ```lua blocks.\n"
+            f"Be encouraging and thorough!"
+        )
 
         response = await openrouter_chat(
             [{"role": "system", "content": system}, {"role": "user", "content": question}],
@@ -2543,14 +2655,15 @@ Be encouraging and thorough!"""
     async def generate_final_test(self, session: LearnSession) -> List[dict]:
         weakness = await get_weakness_analysis(session.user_id)
         weak_topics = [k for k, v in weakness["weaknesses"][:10]]
+        weak_focus = ', '.join(weak_topics) if weak_topics else 'general review'
 
         system = (
             "Create a comprehensive 10-question final exam covering all Roblox Lua/Luau topics. "
-            "Return ONLY a valid JSON array."
+            "Return ONLY a valid JSON array. No markdown."
         )
         user_msg = (
-            f"Focus especially on weak areas: {', '.join(weak_topics) if weak_topics else 'general review of all topics'}\n"
-            "Include mix of: output prediction, bug fixing, concept explanation, and multiple choice.\n"
+            f"Focus on weak areas: {weak_focus}\n"
+            "Mix of: output prediction, bug fixing, concept explanation, multiple choice.\n"
             'Format: [{{"question": "...", "type": "...", "options": null or [...], "answer": "...", '
             '"explanation": "...", "points": 10, "related_keywords": [...]}}]'
         )
@@ -2566,27 +2679,31 @@ Be encouraging and thorough!"""
             if match:
                 questions = json.loads(match.group(0))
                 if isinstance(questions, list) and questions:
+                    for q in questions:
+                        q.setdefault("type", "concept")
+                        q.setdefault("answer", "")
+                        q.setdefault("points", 10)
+                        q.setdefault("related_keywords", [])
                     return questions
         except (json.JSONDecodeError, TypeError):
             pass
 
         return [{
             "question": "Explain client-server architecture and why you should never trust the client.",
-            "type": "concept",
-            "answer": "",
-            "points": 10,
+            "type": "concept", "answer": "", "points": 10,
             "related_keywords": ["client", "server", "security"]
         }]
 
     # =====================================================
     # QUIZ HANDLING
     # =====================================================
-
     async def handle_quiz_skip(self, channel: discord.TextChannel, session: LearnSession):
         quiz = session.quiz_data
         lesson = get_lesson(session.lesson_number)
 
-        keywords = quiz.get("related_keywords", lesson.get("keywords", []) if lesson else [])
+        keywords = quiz.get("related_keywords", [])
+        if not keywords and lesson:
+            keywords = lesson.get("keywords", [])
         await track_weakness(session.user_id, keywords, False)
 
         embed = discord.Embed(
@@ -2594,12 +2711,12 @@ Be encouraging and thorough!"""
             description=f"**Correct Answer:** {quiz.get('answer', 'N/A')}",
             color=discord.Color.orange()
         )
-        if quiz.get("explanation"):
-            embed.add_field(name="📝 Explanation", value=quiz['explanation'][:1000], inline=False)
+        explanation = quiz.get("explanation")
+        if explanation:
+            embed.add_field(name="📝 Explanation", value=str(explanation)[:1000], inline=False)
         await channel.send(embed=embed)
 
         await append_conversation(session.user_id, "assistant", f"SKIPPED — Answer: {quiz.get('answer', '')}")
-
         await self._advance_quiz(channel, session)
 
     async def _advance_quiz(self, channel: discord.TextChannel, session: LearnSession):
@@ -2609,7 +2726,6 @@ Be encouraging and thorough!"""
             session.hints_remaining = 3
 
             await save_session_state(session)
-
             await asyncio.sleep(1.5)
 
             total = len(session.quiz_questions)
@@ -2624,8 +2740,9 @@ Be encouraging and thorough!"""
             embed.add_field(name="Difficulty", value=q.get("difficulty", "medium").title(), inline=True)
             embed.add_field(name="💡 Hints", value=str(session.hints_remaining), inline=True)
 
-            if q.get("options"):
-                embed.add_field(name="Options", value="\n".join(q["options"]), inline=False)
+            options = q.get("options")
+            if options and isinstance(options, list):
+                embed.add_field(name="Options", value="\n".join(str(o) for o in options), inline=False)
 
             await channel.send(embed=embed, view=QuizControlView(self, session))
         else:
@@ -2634,20 +2751,23 @@ Be encouraging and thorough!"""
     async def _complete_quiz(self, channel: discord.TextChannel, session: LearnSession):
         lesson = get_lesson(session.lesson_number)
 
-        # Mark lesson as completed
         user = await UserProfile.get_user(session.user_id)
-        completed = user.get("learn_completed_lessons", [])
-        if session.lesson_number not in completed:
-            completed.append(session.lesson_number)
-            await UserProfile.update_user(session.user_id, {"learn_completed_lessons": completed})
+        if user:
+            completed = user.get("learn_completed_lessons", [])
+            if session.lesson_number not in completed:
+                completed.append(session.lesson_number)
+                await UserProfile.update_user(session.user_id, {"learn_completed_lessons": completed})
 
-        # Reset session
+        # Rewards
+        await UserProfile.add_xp(session.user_id, 50)
+        await UserProfile.add_credits(session.user_id, 75)
+
+        # Reset
         session.phase = "menu"
         session.quiz_data = {}
         session.quiz_questions = []
         session.current_quiz_index = 0
         session.hints_remaining = 3
-
         await save_session_state(session)
 
         stats = await get_progress_stats(session.user_id)
@@ -2655,18 +2775,20 @@ Be encouraging and thorough!"""
         bar = "█" * filled + "░" * (10 - filled)
 
         lesson_title = lesson['title'] if lesson else 'Unknown'
+        total = max(len(LESSONS), 1)
 
         embed = discord.Embed(
             title="🎉 Lesson Complete!",
             description=f"**Lesson {session.lesson_number}: {lesson_title}** ✅",
             color=discord.Color.green()
         )
+        embed.add_field(name="🎁 Rewards", value="✨ +50 XP | 💰 +75 Credits", inline=False)
         embed.add_field(name="📈 Progress", value=f"`[{bar}]` {stats['progress_percent']}%", inline=False)
         embed.add_field(name="🔥 Streak", value=f"{stats['streak']} days", inline=True)
         embed.add_field(name="🎯 Accuracy", value=f"{stats['accuracy']}%", inline=True)
         embed.add_field(name="📚 Completed", value=f"{stats['completed_count']}/{stats['total_lessons']}", inline=True)
 
-        if session.lesson_number < len(LESSONS):
+        if session.lesson_number < total:
             next_l = get_lesson(session.lesson_number + 1)
             if next_l:
                 embed.add_field(
@@ -2677,30 +2799,44 @@ Be encouraging and thorough!"""
         else:
             embed.add_field(
                 name="🎓 Congratulations!",
-                value="All lessons complete! Type `final test` to take the graduation exam!",
+                value="All lessons complete! Type `final test` to graduate!",
                 inline=False
             )
 
         await channel.send(embed=embed)
 
     async def _start_quiz(self, channel: discord.TextChannel, session: LearnSession):
-        lesson = get_lesson(session.lesson_number)
-
         session.phase = "quiz"
         session.hints_remaining = 3
 
-        await channel.send("🧩 **Generating quiz questions...**")
+        loading = await channel.send("🧩 **Generating quiz questions...**")
 
-        async with channel.typing():
-            questions = await self.generate_quiz(session, 3)
+        try:
+            async with channel.typing():
+                questions = await self.generate_quiz(session, 3)
+        except Exception as e:
+            print(f"[Learn] Quiz generation error: {e}")
+            try:
+                await loading.edit(content=f"⚠️ Quiz error: {str(e)[:200]}")
+            except Exception:
+                pass
+            return
+
+        try:
+            await loading.delete()
+        except Exception:
+            pass
+
+        if not questions:
+            await channel.send("⚠️ Could not generate quiz. Try again with `quiz`.")
+            return
 
         session.quiz_questions = questions
         session.current_quiz_index = 0
-        session.quiz_data = questions[0] if questions else {}
-
+        session.quiz_data = questions[0]
         await save_session_state(session)
 
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.5)
 
         q = session.quiz_data
         total = len(questions)
@@ -2714,8 +2850,9 @@ Be encouraging and thorough!"""
         embed.add_field(name="Difficulty", value=q.get("difficulty", "medium").title(), inline=True)
         embed.add_field(name="💡 Hints", value=str(session.hints_remaining), inline=True)
 
-        if q.get("options"):
-            embed.add_field(name="Options", value="\n".join(q["options"]), inline=False)
+        options = q.get("options")
+        if options and isinstance(options, list):
+            embed.add_field(name="Options", value="\n".join(str(o) for o in options), inline=False)
 
         embed.set_footer(text="Type your answer • Use hint/skip buttons • Ask questions with ?")
         await channel.send(embed=embed, view=QuizControlView(self, session))
@@ -2723,20 +2860,31 @@ Be encouraging and thorough!"""
     # =====================================================
     # FINAL TEST
     # =====================================================
-
     async def _start_final_test(self, channel: discord.TextChannel, session: LearnSession):
         session.phase = "final_test"
         session.hints_remaining = 5
 
-        await channel.send("🎓 **Generating your FINAL EXAM...**")
+        loading = await channel.send("🎓 **Generating your FINAL EXAM...**")
 
-        async with channel.typing():
-            questions = await self.generate_final_test(session)
+        try:
+            async with channel.typing():
+                questions = await self.generate_final_test(session)
+        except Exception as e:
+            print(f"[Learn] Final test error: {e}")
+            try:
+                await loading.edit(content=f"⚠️ Error: {str(e)[:200]}")
+            except Exception:
+                pass
+            return
+
+        try:
+            await loading.delete()
+        except Exception:
+            pass
 
         session.quiz_questions = questions
         session.current_quiz_index = 0
         session.quiz_data = questions[0] if questions else {}
-
         await save_session_state(session)
 
         stats = await get_progress_stats(session.user_id)
@@ -2747,7 +2895,7 @@ Be encouraging and thorough!"""
                 f"**{len(questions)} questions** • **5 hints** • Based on YOUR weak areas\n\n"
                 f"📚 Lessons completed: {stats['completed_count']}\n"
                 f"🎯 Current accuracy: {stats['accuracy']}%\n\n"
-                "**Good luck! You've got this! 💪**"
+                "**Good luck! 💪**"
             ),
             color=discord.Color.gold()
         )
@@ -2756,31 +2904,40 @@ Be encouraging and thorough!"""
         await asyncio.sleep(2)
 
         q = session.quiz_data
-        q_embed = discord.Embed(
-            title=f"📝 Question 1/{len(questions)}",
-            description=q.get("question", ""),
-            color=BOT_COLOR
-        )
-        q_embed.add_field(name="Type", value=q.get("type", "concept").title(), inline=True)
-        q_embed.add_field(name="💡 Hints", value=str(session.hints_remaining), inline=True)
+        if q:
+            q_embed = discord.Embed(
+                title=f"📝 Question 1/{len(questions)}",
+                description=q.get("question", ""),
+                color=BOT_COLOR
+            )
+            q_embed.add_field(name="Type", value=q.get("type", "concept").title(), inline=True)
+            q_embed.add_field(name="💡 Hints", value=str(session.hints_remaining), inline=True)
 
-        if q.get("options"):
-            q_embed.add_field(name="Options", value="\n".join(q["options"]), inline=False)
+            options = q.get("options")
+            if options and isinstance(options, list):
+                q_embed.add_field(name="Options", value="\n".join(str(o) for o in options), inline=False)
 
-        await channel.send(embed=q_embed, view=QuizControlView(self, session))
+            await channel.send(embed=q_embed, view=QuizControlView(self, session))
 
     async def _handle_final_test_answer(self, channel: discord.TextChannel, session: LearnSession, answer: str):
         quiz = session.quiz_data
-        grade = await self.grade_quiz_answer(session, quiz, answer)
-        is_correct = grade.get("correct", False)
+        if not quiz:
+            await channel.send("⚠️ No active question found.")
+            return
 
-        await track_weakness(session.user_id, quiz.get("related_keywords", []), is_correct)
+        async with channel.typing():
+            grade = await self.grade_quiz_answer(session, quiz, answer)
+
+        is_correct = grade.get("correct", False)
+        keywords = quiz.get("related_keywords", [])
+        await track_weakness(session.user_id, keywords, is_correct)
 
         user = await UserProfile.get_user(session.user_id)
-        await UserProfile.update_user(session.user_id, {
-            "learn_total_questions": user.get("learn_total_questions", 0) + 1,
-            "learn_correct_answers": user.get("learn_correct_answers", 0) + (1 if is_correct else 0),
-        })
+        if user:
+            await UserProfile.update_user(session.user_id, {
+                "learn_total_questions": user.get("learn_total_questions", 0) + 1,
+                "learn_correct_answers": user.get("learn_correct_answers", 0) + (1 if is_correct else 0),
+            })
 
         await append_conversation(session.user_id, "assistant", f"FINAL GRADE: {json.dumps(grade)[:500]}")
 
@@ -2798,16 +2955,14 @@ Be encouraging and thorough!"""
             )
             embed.add_field(
                 name="Correct Answer",
-                value=grade.get('correct_answer', quiz.get('answer', 'N/A')),
+                value=str(grade.get('correct_answer', quiz.get('answer', 'N/A')))[:1000],
                 inline=False
             )
         await channel.send(embed=embed)
 
-        # Next question or graduate
         if session.current_quiz_index < len(session.quiz_questions) - 1:
             session.current_quiz_index += 1
             session.quiz_data = session.quiz_questions[session.current_quiz_index]
-
             await save_session_state(session)
 
             await asyncio.sleep(2)
@@ -2822,33 +2977,36 @@ Be encouraging and thorough!"""
             q_embed.add_field(name="Type", value=q.get("type", "concept").title(), inline=True)
             q_embed.add_field(name="💡 Hints", value=str(session.hints_remaining), inline=True)
 
-            if q.get("options"):
-                q_embed.add_field(name="Options", value="\n".join(q["options"]), inline=False)
+            options = q.get("options")
+            if options and isinstance(options, list):
+                q_embed.add_field(name="Options", value="\n".join(str(o) for o in options), inline=False)
 
             await channel.send(embed=q_embed, view=QuizControlView(self, session))
         else:
             await self._graduate_user(channel, session)
 
     async def _graduate_user(self, channel: discord.TextChannel, session: LearnSession):
-        # Mark lesson 50 as completed
-        user = await UserProfile.get_user(session.user_id)
-        completed = user.get("learn_completed_lessons", [])
-        if 50 not in completed and len(LESSONS) >= 50:
-            completed.append(50)
-            await UserProfile.update_user(session.user_id, {"learn_completed_lessons": completed})
+        total = max(len(LESSONS), 1)
 
-        # Reset session
+        user = await UserProfile.get_user(session.user_id)
+        if user:
+            completed = user.get("learn_completed_lessons", [])
+            if total not in completed:
+                completed.append(total)
+                await UserProfile.update_user(session.user_id, {"learn_completed_lessons": completed})
+
+        await UserProfile.add_xp(session.user_id, 500)
+        await UserProfile.add_credits(session.user_id, 1000)
+
         session.phase = "menu"
         session.quiz_data = {}
         session.quiz_questions = []
         session.current_quiz_index = 0
         session.hints_remaining = 3
-
         await save_session_state(session)
 
         stats = await get_progress_stats(session.user_id)
 
-        # Celebration!
         await channel.send("🎆" * 10)
 
         embed = discord.Embed(
@@ -2859,22 +3017,21 @@ Be encouraging and thorough!"""
                 f"🎯 **{stats['accuracy']}%** overall accuracy\n"
                 f"🔥 **{stats['streak']}** day learning streak\n"
                 f"💡 **{stats.get('hints_used', 0)}** hints used\n\n"
+                "**🎁 Graduation Rewards:**\n"
+                "✨ +500 XP | 💰 +1000 Credits\n\n"
                 "**You are now a Roblox Lua/Luau Developer!**\n\n"
-                "Keep building, keep learning, and most importantly — have fun creating amazing games! 🎮✨"
+                "Keep building, keep learning, and have fun! 🎮✨"
             ),
             color=discord.Color.gold()
         )
         embed.set_footer(text="Thank you for learning with us! 💙")
         await channel.send(embed=embed)
-
-        await append_conversation(session.user_id, "assistant", "🎓 GRADUATED! Congratulations!")
-
+        await append_conversation(session.user_id, "assistant", "🎓 GRADUATED!")
         await channel.send("🎊 **NOW GO BUILD AMAZING GAMES!** 🎊")
 
     # =====================================================
     # MESSAGE LISTENER
     # =====================================================
-
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.author.bot or not message.guild:
@@ -2895,32 +3052,38 @@ Be encouraging and thorough!"""
         session = SESSIONS.get(message.channel.id) or await rebuild_session_from_db(message.channel, owner_id)
 
         raw = message.content.strip()
+        if not raw:
+            return
+
         content = norm(raw)
 
         await append_conversation(owner_id, "user", raw)
 
-        # ===== TEXT COMMANDS FIRST =====
+        # Text commands first
         if content in TEXT_COMMANDS:
             await self._handle_text_command(message.channel, session, content)
             return
 
-        # ===== REVIEW COMMAND =====
+        # Review command
         if content.startswith("review "):
+            total = len(LESSONS)
             try:
                 num = int(content.split("review ", 1)[1])
-                if 1 <= num <= len(LESSONS):
+                if total == 0:
+                    await message.channel.send("❌ No lessons available.")
+                elif 1 <= num <= total:
                     old = session.lesson_number
                     session.lesson_number = num
                     await self.send_lesson(message.channel, session, repeat=True)
                     session.lesson_number = old
                     await save_session_state(session)
                 else:
-                    await message.channel.send(f"❌ Lesson number must be between 1 and {len(LESSONS)}.")
+                    await message.channel.send(f"❌ Lesson must be between 1 and {total}.")
             except (ValueError, IndexError):
                 await message.channel.send("Usage: `review 5`")
             return
 
-        # ===== PHASE-BASED HANDLING =====
+        # Phase-based handling
         lesson = get_lesson(session.lesson_number)
 
         if session.phase == "qna":
@@ -2930,6 +3093,10 @@ Be encouraging and thorough!"""
 
             async with message.channel.typing():
                 answer = await self.ai_answer_question(session, raw)
+
+            if not answer:
+                await message.channel.send("⚠️ Could not generate a response. Try again!")
+                return
 
             if len(answer) > 1900:
                 for part in self._split_content(answer, 1900):
@@ -2942,26 +3109,38 @@ Be encouraging and thorough!"""
 
         if session.phase == "quiz":
             quiz = session.quiz_data
+            if not quiz:
+                await message.channel.send("⚠️ No quiz active. Type `quiz` to start.")
+                session.phase = "qna"
+                await save_session_state(session)
+                return
 
             # Allow questions during quiz
             if raw.endswith("?") or content.startswith(("what", "why", "how", "explain", "can you")):
-                answer = await self.ai_answer_question(session, raw)
-                await message.channel.send(answer[:1900])
+                async with message.channel.typing():
+                    answer = await self.ai_answer_question(session, raw)
+                if answer:
+                    await message.channel.send(answer[:1900])
                 await message.channel.send("_Now answer the quiz question above!_")
                 return
 
-            # Grade the answer
-            grade = await self.grade_quiz_answer(session, quiz, raw)
-            keywords = quiz.get("related_keywords", lesson.get("keywords", []) if lesson else [])
+            # Grade answer
+            async with message.channel.typing():
+                grade = await self.grade_quiz_answer(session, quiz, raw)
+
+            keywords = quiz.get("related_keywords", [])
+            if not keywords and lesson:
+                keywords = lesson.get("keywords", [])
             is_correct = grade.get("correct", False)
 
             await track_weakness(session.user_id, keywords, is_correct)
 
             user = await UserProfile.get_user(session.user_id)
-            await UserProfile.update_user(session.user_id, {
-                "learn_total_questions": user.get("learn_total_questions", 0) + 1,
-                "learn_correct_answers": user.get("learn_correct_answers", 0) + (1 if is_correct else 0),
-            })
+            if user:
+                await UserProfile.update_user(session.user_id, {
+                    "learn_total_questions": user.get("learn_total_questions", 0) + 1,
+                    "learn_correct_answers": user.get("learn_correct_answers", 0) + (1 if is_correct else 0),
+                })
 
             await append_conversation(session.user_id, "assistant", f"GRADING: {json.dumps(grade)[:500]}")
 
@@ -2995,70 +3174,91 @@ Be encouraging and thorough!"""
 
         if session.phase == "final_test":
             if raw.endswith("?"):
-                answer = await self.ai_answer_question(session, raw)
-                await message.channel.send(answer[:1900])
+                async with message.channel.typing():
+                    answer = await self.ai_answer_question(session, raw)
+                if answer:
+                    await message.channel.send(answer[:1900])
                 return
             await self._handle_final_test_answer(message.channel, session, raw)
             return
 
         if session.phase == "menu":
             await message.channel.send(
-                "📚 Type `start lesson` to begin, or use the buttons on the control panel above!"
+                "📚 Type `start lesson` to begin, or use the buttons on the control panel!"
             )
 
     async def _handle_text_command(self, channel: discord.TextChannel, session: LearnSession, content: str):
         owner_id = session.user_id
         lesson = get_lesson(session.lesson_number)
+        total = len(LESSONS)
 
-        # ===== MODEL SWITCHING =====
+        # Model switching
         if content in {"switch to coder", "model coder"}:
             session.model_mode = "coder"
             await save_session_state(session)
-            await channel.send("✅ Switched to **CODER** mode — optimized for code generation and debugging.")
+            await channel.send("✅ Switched to **CODER** mode.")
             return
 
         if content in {"switch to explain", "model explain"}:
             session.model_mode = "explain"
             await save_session_state(session)
-            await channel.send("✅ Switched to **EXPLAIN** mode — optimized for explanations and concepts.")
+            await channel.send("✅ Switched to **EXPLAIN** mode.")
             return
 
         if content in {"switch to auto", "model auto"}:
             session.model_mode = "auto"
             await save_session_state(session)
-            await channel.send("✅ Switched to **AUTO** mode — automatically picks the best model for each request.")
+            await channel.send("✅ Switched to **AUTO** mode.")
             return
 
-        # ===== PANEL =====
+        # Panel
         if content in {"refresh panel", "panel"}:
             await self.send_panel(channel, owner_id)
             return
 
-        # ===== LESSON CONTROL =====
-        if content in {"start lesson", "start"} and session.phase == "menu":
+        # Lesson control
+        if content in {"start lesson", "start"}:
+            if total == 0:
+                await channel.send("❌ No lessons available!")
+                return
+            if session.phase not in {"menu", "qna"}:
+                await channel.send(
+                    f"⚠️ You're in **{session.phase}** mode. "
+                    f"Finish current activity or type `repeat lesson`."
+                )
+                return
             await self.send_lesson(channel, session)
             return
 
         if content in {"repeat lesson", "repeat"}:
+            if total == 0:
+                await channel.send("❌ No lessons available!")
+                return
             await self.send_lesson(channel, session, repeat=True)
             return
 
-        if content in {"next lesson", "next"} and session.phase == "menu":
-            if session.lesson_number >= len(LESSONS):
-                await channel.send("🎉 All lessons complete! Type `final test` to take the graduation exam!")
+        if content in {"next lesson", "next"}:
+            if total == 0:
+                await channel.send("❌ No lessons available!")
+                return
+            if session.lesson_number >= total:
+                await channel.send("🎉 All lessons complete! Type `final test` to graduate!")
                 return
             session.lesson_number += 1
             session.phase = "menu"
+            session.quiz_data = {}
+            session.quiz_questions = []
+            session.current_quiz_index = 0
             await save_session_state(session)
             next_l = get_lesson(session.lesson_number)
-            next_title = next_l['title'] if next_l else 'Unknown'
+            title = next_l['title'] if next_l else 'Unknown'
             await channel.send(
-                f"📖 **Lesson {session.lesson_number}: {next_title}**\n"
-                f"Type `start lesson` or click **Start Lesson** to begin!"
+                f"📖 **Lesson {session.lesson_number}: {title}**\n"
+                f"Type `start lesson` or click **Start Lesson**!"
             )
             return
 
-        # ===== PROGRESS =====
+        # Progress
         if content in {"my progress", "progress", "stats"}:
             stats = await get_progress_stats(owner_id)
             weakness = await get_weakness_analysis(owner_id)
@@ -3082,47 +3282,47 @@ Be encouraging and thorough!"""
             await channel.send(embed=embed)
             return
 
-        # ===== WEAKNESS ANALYSIS =====
+        # Weakness analysis
         if content in {"my weaknesses", "weakness analysis", "analyze"}:
             weakness = await get_weakness_analysis(owner_id)
             embed = discord.Embed(title="⚠️ Weakness Analysis", color=discord.Color.orange())
             if weakness["weaknesses"]:
-                desc_lines = []
-                for k, v in weakness["weaknesses"][:10]:
-                    bar_len = min(v, 10)
-                    desc_lines.append(f"• **{k}**: {'🟥' * bar_len} ({v} mistakes)")
-                embed.description = "\n".join(desc_lines)
+                lines = [f"• **{k}**: {'🟥' * min(v, 10)} ({v})" for k, v in weakness["weaknesses"][:10]]
+                embed.description = "\n".join(lines)
             else:
-                embed.description = "No weaknesses detected yet! Keep taking quizzes."
-
+                embed.description = "No weaknesses yet! Keep taking quizzes."
             if weakness["strengths"]:
-                strong_lines = [f"• **{k}**: ✅ ({v} correct)" for k, v in weakness["strengths"][:5]]
-                embed.add_field(name="💪 Your Strengths", value="\n".join(strong_lines), inline=False)
-
+                strong = [f"• **{k}**: ✅ ({v})" for k, v in weakness["strengths"][:5]]
+                embed.add_field(name="💪 Strengths", value="\n".join(strong), inline=False)
             await channel.send(embed=embed)
             return
 
-        # ===== HINTS =====
+        # Hints
         if content in {"hint", "get hint", "help"}:
             if session.phase not in {"quiz", "final_test"}:
-                await channel.send("💡 Hints are only available during quizzes! Start a quiz first.")
+                await channel.send("💡 Hints only available during quizzes!")
                 return
             if session.hints_remaining <= 0:
-                await channel.send("❌ No hints remaining for this question!")
+                await channel.send("❌ No hints remaining!")
                 return
 
             session.hints_remaining -= 1
             user = await UserProfile.get_user(owner_id)
-            await UserProfile.update_user(owner_id, {"learn_hints_used": user.get("learn_hints_used", 0) + 1})
+            if user:
+                await UserProfile.update_user(owner_id, {
+                    "learn_hints_used": user.get("learn_hints_used", 0) + 1
+                })
             await save_session_state(session)
 
-            hint = await self.generate_hint(lesson, session.quiz_data)
+            async with channel.typing():
+                hint = await self.generate_hint(lesson, session.quiz_data)
+
             embed = discord.Embed(title="💡 Hint", description=hint, color=discord.Color.gold())
             embed.set_footer(text=f"Hints remaining: {session.hints_remaining}")
             await channel.send(embed=embed)
             return
 
-        # ===== CHEAT SHEET =====
+        # Cheat sheet
         if content in {"cheat sheet", "cheatsheet", "reference"}:
             model_pool = get_model_pool(session.model_mode, "")
             lesson_title = lesson['title'] if lesson else 'current topic'
@@ -3131,55 +3331,60 @@ Be encouraging and thorough!"""
                 cheat = await openrouter_chat(
                     [
                         {"role": "system", "content": "Create a concise cheat sheet with key syntax and code snippets. Use ```lua blocks."},
-                        {"role": "user", "content": f"Quick reference cheat sheet for: {lesson_title}"}
+                        {"role": "user", "content": f"Quick reference for: {lesson_title}"}
                     ],
                     model_pool=model_pool,
                     max_tokens=800
                 )
 
-            embed = discord.Embed(
-                title=f"📋 Cheat Sheet: {lesson_title}",
-                description=cheat[:4000],
-                color=discord.Color.gold()
-            )
-            await channel.send(embed=embed)
-            await append_conversation(owner_id, "assistant", f"CHEAT SHEET: {cheat[:1000]}")
+            if cheat and not cheat.startswith("❌"):
+                parts = self._split_content(cheat, 3900)
+                for i, part in enumerate(parts):
+                    embed = discord.Embed(
+                        title=f"📋 Cheat Sheet: {lesson_title}" if i == 0 else "📋 (continued)",
+                        description=part,
+                        color=discord.Color.gold()
+                    )
+                    await channel.send(embed=embed)
+                await append_conversation(owner_id, "assistant", f"CHEAT SHEET: {cheat[:1000]}")
+            else:
+                await channel.send(f"⚠️ Could not generate cheat sheet.")
             return
 
-        # ===== BOOKMARKS =====
+        # Bookmarks
         if content in {"bookmark", "save"}:
             user = await UserProfile.get_user(owner_id)
+            if not user:
+                return
             bookmarks = user.get("learn_bookmarks", [])
             if session.lesson_number not in bookmarks:
                 bookmarks.append(session.lesson_number)
                 await UserProfile.update_user(owner_id, {"learn_bookmarks": bookmarks})
-                lesson_title = lesson['title'] if lesson else 'Unknown'
-                await channel.send(f"🔖 Bookmarked **Lesson {session.lesson_number}: {lesson_title}**!")
+                title = lesson['title'] if lesson else 'Unknown'
+                await channel.send(f"🔖 Bookmarked **Lesson {session.lesson_number}: {title}**!")
             else:
-                await channel.send("🔖 This lesson is already bookmarked!")
+                await channel.send("🔖 Already bookmarked!")
             return
 
         if content in {"bookmarks", "my bookmarks"}:
             user = await UserProfile.get_user(owner_id)
+            if not user:
+                return
             bookmarks = user.get("learn_bookmarks", [])
             if bookmarks:
                 lines = []
                 for n in sorted(bookmarks):
                     l = get_lesson(n)
-                    if l:
-                        lines.append(f"• **Lesson {n}:** {l['title']}")
-                embed = discord.Embed(
-                    title="🔖 Your Bookmarks",
-                    description="\n".join(lines),
-                    color=BOT_COLOR
-                )
-                embed.set_footer(text="Type 'review <number>' to revisit a lesson")
+                    title = l['title'] if l else '(not found)'
+                    lines.append(f"• **Lesson {n}:** {title}")
+                embed = discord.Embed(title="🔖 Your Bookmarks", description="\n".join(lines), color=BOT_COLOR)
+                embed.set_footer(text="Type 'review <number>' to revisit")
                 await channel.send(embed=embed)
             else:
-                await channel.send("🔖 No bookmarks yet! Type `bookmark` during a lesson to save it.")
+                await channel.send("🔖 No bookmarks yet! Type `bookmark` during a lesson.")
             return
 
-        # ===== PRACTICE =====
+        # Practice
         if content in {"practice", "exercises"}:
             model_pool = get_model_pool(session.model_mode, "")
             lesson_title = lesson['title'] if lesson else 'current topic'
@@ -3194,37 +3399,49 @@ Be encouraging and thorough!"""
                     max_tokens=1000
                 )
 
-            embed = discord.Embed(
-                title=f"💪 Practice: {lesson_title}",
-                description=exercise[:4000],
-                color=discord.Color.green()
-            )
-            embed.set_footer(text="Try it in Roblox Studio!")
-            await channel.send(embed=embed)
-            await append_conversation(owner_id, "assistant", f"PRACTICE: {exercise[:1000]}")
+            if exercise and not exercise.startswith("❌"):
+                parts = self._split_content(exercise, 3900)
+                for i, part in enumerate(parts):
+                    embed = discord.Embed(
+                        title=f"💪 Practice: {lesson_title}" if i == 0 else "💪 (continued)",
+                        description=part,
+                        color=discord.Color.green()
+                    )
+                    if i == len(parts) - 1:
+                        embed.set_footer(text="Try it in Roblox Studio!")
+                    await channel.send(embed=embed)
+                await append_conversation(owner_id, "assistant", f"PRACTICE: {exercise[:1000]}")
+            else:
+                await channel.send("⚠️ Could not generate practice.")
             return
 
-        # ===== SKIP (during quiz) =====
+        # Skip
         if content in {"skip", "next question"} and session.phase in {"quiz", "final_test"}:
             await self.handle_quiz_skip(channel, session)
             return
 
-        # ===== FINAL TEST =====
+        # Final test
         if content in {"final test"}:
             user = await UserProfile.get_user(owner_id)
+            if not user:
+                return
             completed_count = len(user.get("learn_completed_lessons", []))
-            if completed_count < 45:
+            required = min(45, total) if total > 0 else 45
+            if completed_count < required:
                 await channel.send(
-                    f"📚 You need at least **45** completed lessons to take the final test.\n"
-                    f"You currently have **{completed_count}** completed. Keep going!"
+                    f"📚 You need **{required}** completed lessons for the final test.\n"
+                    f"You have **{completed_count}**. Keep going!"
                 )
                 return
             await self._start_final_test(channel, session)
             return
 
-        # ===== QUIZ START FROM QNA =====
-        if content in {"no", "nope", "nah", "n", "quiz", "start quiz"} and session.phase == "qna":
-            await self._start_quiz(channel, session)
+        # Quiz start from QNA
+        if content in {"no", "nope", "nah", "n", "quiz", "start quiz"}:
+            if session.phase == "qna":
+                await self._start_quiz(channel, session)
+            else:
+                await channel.send("📚 Use `start lesson` first!")
             return
 
 
@@ -3232,7 +3449,6 @@ Be encouraging and thorough!"""
 # SETUP
 # =====================================================
 async def setup(bot: commands.Bot):
-    # Remove old command if exists
     try:
         bot.tree.remove_command("learn")
     except Exception:
@@ -3241,7 +3457,6 @@ async def setup(bot: commands.Bot):
     cog = LearnCog(bot)
     await bot.add_cog(cog)
 
-    # Register persistent views (survive bot restarts)
     bot.add_view(LearnPersistentPanel(cog))
     bot.add_view(QuizControlView(cog))
 
@@ -3250,11 +3465,17 @@ async def setup(bot: commands.Bot):
         await interaction.response.defer(ephemeral=True)
 
         if not interaction.guild:
-            return await interaction.followup.send("❌ This command must be used in a server.", ephemeral=True)
+            return await interaction.followup.send("❌ Must be used in a server.", ephemeral=True)
 
         if not interaction.guild.me.guild_permissions.manage_channels:
             return await interaction.followup.send(
-                "❌ I need the **Manage Channels** permission to create your learning channel.",
+                "❌ I need **Manage Channels** permission.",
+                ephemeral=True
+            )
+
+        if len(LESSONS) == 0:
+            return await interaction.followup.send(
+                "❌ No lessons are loaded yet! Contact the bot admin.",
                 ephemeral=True
             )
 
@@ -3266,39 +3487,32 @@ async def setup(bot: commands.Bot):
         if existing:
             await cog.send_panel(existing, interaction.user.id)
             return await interaction.followup.send(
-                f"✅ Your learning channel: {existing.mention}\nPanel refreshed!",
+                f"✅ Your channel: {existing.mention}\nPanel refreshed!",
                 ephemeral=True
             )
 
-        # Create private learning channel
         overwrites = {
             interaction.guild.default_role: discord.PermissionOverwrite(view_channel=False),
             interaction.user: discord.PermissionOverwrite(
-                view_channel=True,
-                send_messages=True,
-                read_message_history=True
+                view_channel=True, send_messages=True, read_message_history=True
             ),
             interaction.guild.me: discord.PermissionOverwrite(
-                view_channel=True,
-                send_messages=True,
-                read_message_history=True
+                view_channel=True, send_messages=True, read_message_history=True
             ),
         }
 
         channel = await interaction.guild.create_text_channel(
-            name=channel_name,
-            overwrites=overwrites
+            name=channel_name, overwrites=overwrites
         )
         await UserProfile.update_user(interaction.user.id, {"learn_channel_id": channel.id})
 
         session = await rebuild_session_from_db(channel, interaction.user.id)
         SESSIONS[channel.id] = session
 
-        # Welcome message
         welcome = discord.Embed(
             title="🎮 Welcome to Roblox Lua/Luau Learning!",
             description=(
-                "**50 comprehensive lessons** from beginner to expert!\n\n"
+                f"**{len(LESSONS)} comprehensive lessons** from beginner to expert!\n\n"
                 "📚 **5 Phases:**\n"
                 "1️⃣ Fundamentals (Lessons 1-12)\n"
                 "2️⃣ Intermediate (Lessons 13-24)\n"
@@ -3309,11 +3523,11 @@ async def setup(bot: commands.Bot):
             ),
             color=BOT_COLOR
         )
-        welcome.set_footer(text="Your progress is saved automatically. Have fun learning!")
+        welcome.set_footer(text="Your progress is saved automatically!")
         await channel.send(embed=welcome)
         await cog.send_panel(channel, interaction.user.id)
 
         await interaction.followup.send(
-            f"✅ Created your learning channel: {channel.mention}\nHappy learning! 🎉",
+            f"✅ Created: {channel.mention}\nHappy learning! 🎉",
             ephemeral=True
         )

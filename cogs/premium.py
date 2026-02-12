@@ -35,27 +35,46 @@ class PremiumShopView(discord.ui.View):
     @discord.ui.select(
         placeholder="Select an item to buy",
         options=[
-            discord.SelectOption(label=item['name'], value=key, description=f"{item['price']} pCredits - {item['description']}")
+            discord.SelectOption(
+                label=item['name'],
+                value=key,
+                description=f"{item['price']} pCredits - {item['description']}"
+            )
             for key, item in PCREDIT_SHOP.items()
         ]
     )
     async def select_callback(self, interaction: discord.Interaction, select: discord.ui.Select):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("This isn't your shop!", ephemeral=True)
+            return
+
         item_key = select.values[0]
         item = PCREDIT_SHOP[item_key]
 
         user = await UserProfile.get_user(self.user_id)
-        if user.get('pcredits', 0) < item['price']:
-            await interaction.response.send_message(f"Not enough pCredits. You need {item['price']}.", ephemeral=True)
+        if not user:
+            await interaction.response.send_message("Profile not found. Use `/start` first.", ephemeral=True)
             return
 
-        updates = {"pcredits": user['pcredits'] - item['price']}
+        current_pcredits = user.get('pcredits', 0)
+        if current_pcredits < item['price']:
+            await interaction.response.send_message(
+                f"Not enough pCredits. You need **{item['price']}** but have **{current_pcredits}**.",
+                ephemeral=True
+            )
+            return
+
+        updates = {"pcredits": current_pcredits - item['price']}
         if item_key == "team_slot":
             updates["max_teams"] = user.get("max_teams", 1) + 1
         elif item_key == "project_slots":
             updates["max_projects"] = user.get("max_projects", 2) + 5
 
         await UserProfile.update_user(self.user_id, updates)
-        await interaction.response.send_message(f"Purchased **{item['name']}**.", ephemeral=True)
+        await interaction.response.send_message(
+            f"✅ Purchased **{item['name']}** for **{item['price']}** pCredits!",
+            ephemeral=True
+        )
 
 
 class PremiumCog(commands.Cog):
@@ -68,7 +87,11 @@ class PremiumCog(commands.Cog):
     async def get_ai_response(self, message):
         context = await ai_handler.get_context(message.channel, before=message, user_id=message.author.id)
 
-        mode_info = "You are in NORMAL CHAT MODE. You are NOT in agent mode. Just respond naturally to the user's message like a normal chat assistant. Do NOT create task plans or do deep analysis. Just answer directly."
+        mode_info = (
+            "You are in NORMAL CHAT MODE. You are NOT in agent mode. "
+            "Just respond naturally to the user's message like a normal chat assistant. "
+            "Do NOT create task plans or do deep analysis. Just answer directly."
+        )
 
         system_prompt = f"You are {AI_NAME}. {AI_PERSONALITY}\n\nCURRENT MODE: {mode_info}"
         full_prompt = (
@@ -94,62 +117,144 @@ class PremiumCog(commands.Cog):
             print(f"Gemini API Error: {e}")
             return f"AI Error: {str(e)}"
 
-    @app_commands.command(name="convert", description="Convert 1000 credits to 1 pCredit")
+    @app_commands.command(name="convert", description="Convert Studio Credits to pCredits")
+    @app_commands.describe(amount="Number of pCredits to buy (each costs configured rate in credits)")
     async def convert(self, interaction: discord.Interaction, amount: int = 1):
         await interaction.response.defer(ephemeral=True)
 
         if amount <= 0:
-            await interaction.followup.send("Please enter a valid amount.", ephemeral=True)
+            await interaction.followup.send("❌ Please enter a positive amount.", ephemeral=True)
             return
 
         user = await UserProfile.get_user(interaction.user.id)
-        total_cost = amount * CREDIT_TO_PCREDIT_RATE
+        if not user:
+            await UserProfile.create_user(interaction.user.id, interaction.user.name)
+            user = await UserProfile.get_user(interaction.user.id)
 
-        if user.get('studio_credits', 0) < total_cost:
-            await interaction.followup.send(f"Not enough credits. You need {total_cost} credits for {amount} pCredits.", ephemeral=True)
+        total_cost = amount * CREDIT_TO_PCREDIT_RATE
+        current_credits = user.get('studio_credits', 0)
+        current_pcredits = user.get('pcredits', 0)
+
+        if current_credits < total_cost:
+            embed = discord.Embed(
+                title="❌ Not Enough Credits",
+                description=(
+                    f"You need **{total_cost}** Studio Credits for **{amount}** pCredit(s).\n"
+                    f"You currently have **{current_credits}** Studio Credits.\n"
+                    f"You're short by **{total_cost - current_credits}** credits."
+                ),
+                color=discord.Color.red()
+            )
+            embed.add_field(
+                name="Rate",
+                value=f"1 pCredit = {CREDIT_TO_PCREDIT_RATE} Studio Credits",
+                inline=False
+            )
+            await interaction.followup.send(embed=embed, ephemeral=True)
             return
 
+        # Do the conversion
+        new_credits = current_credits - total_cost
+        new_pcredits = current_pcredits + amount
+
         await UserProfile.update_user(interaction.user.id, {
-            "studio_credits": user['studio_credits'] - total_cost,
-            "pcredits": user.get('pcredits', 0) + amount
+            "studio_credits": new_credits,
+            "pcredits": new_pcredits
         })
 
-        await interaction.followup.send(f"Converted {total_cost} Credits to **{amount} pCredit(s)**.", ephemeral=True)
+        embed = discord.Embed(
+            title="✅ Conversion Successful!",
+            description=f"Converted **{total_cost}** Studio Credits → **{amount}** pCredit(s)",
+            color=discord.Color.green()
+        )
+        embed.add_field(name="Studio Credits", value=f"💰 {current_credits} → {new_credits}", inline=True)
+        embed.add_field(name="pCredits", value=f"💎 {current_pcredits} → {new_pcredits}", inline=True)
+        await interaction.followup.send(embed=embed, ephemeral=True)
 
-    @app_commands.command(name="convert_ai", description="Convert 1 pCredit to 10 AI credits")
+    @app_commands.command(name="convert_ai", description="Convert pCredits to AI Credits")
+    @app_commands.describe(amount="Number of pCredits to convert (each gives configured rate in AI credits)")
     async def convert_ai(self, interaction: discord.Interaction, amount: int = 1):
         await interaction.response.defer(ephemeral=True)
 
-        user = await UserProfile.get_user(interaction.user.id)
-        if user.get('pcredits', 0) < amount:
-            await interaction.followup.send("Not enough pCredits.", ephemeral=True)
+        if amount <= 0:
+            await interaction.followup.send("❌ Please enter a positive amount.", ephemeral=True)
             return
 
+        user = await UserProfile.get_user(interaction.user.id)
+        if not user:
+            await UserProfile.create_user(interaction.user.id, interaction.user.name)
+            user = await UserProfile.get_user(interaction.user.id)
+
+        current_pcredits = user.get('pcredits', 0)
+        current_ai = user.get('ai_credits', 0)
+        ai_gained = amount * PCREDIT_TO_AICREDIT_RATE
+
+        if current_pcredits < amount:
+            embed = discord.Embed(
+                title="❌ Not Enough pCredits",
+                description=(
+                    f"You need **{amount}** pCredit(s) but only have **{current_pcredits}**.\n"
+                    f"You're short by **{amount - current_pcredits}** pCredits.\n\n"
+                    f"Use `/convert` to get more pCredits from Studio Credits."
+                ),
+                color=discord.Color.red()
+            )
+            await interaction.followup.send(embed=embed, ephemeral=True)
+            return
+
+        # Do the conversion
+        new_pcredits = current_pcredits - amount
+        new_ai = current_ai + ai_gained
+
         await UserProfile.update_user(interaction.user.id, {
-            "pcredits": user['pcredits'] - amount,
-            "ai_credits": user.get('ai_credits', 0) + (amount * PCREDIT_TO_AICREDIT_RATE)
+            "pcredits": new_pcredits,
+            "ai_credits": new_ai
         })
-        await interaction.followup.send(f"Converted {amount} pCredit(s) to **{amount * PCREDIT_TO_AICREDIT_RATE} AI Credits**.", ephemeral=True)
+
+        embed = discord.Embed(
+            title="✅ Conversion Successful!",
+            description=f"Converted **{amount}** pCredit(s) → **{ai_gained}** AI Credits",
+            color=discord.Color.green()
+        )
+        embed.add_field(name="pCredits", value=f"💎 {current_pcredits} → {new_pcredits}", inline=True)
+        embed.add_field(name="AI Credits", value=f"🤖 {current_ai} → {new_ai}", inline=True)
+        await interaction.followup.send(embed=embed, ephemeral=True)
 
     @app_commands.command(name="pshop", description="Open the pCredit Shop")
     async def pshop(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
 
         user = await UserProfile.get_user(interaction.user.id)
-        embed = discord.Embed(title="Premium Shop", color=discord.Color.gold())
-        embed.add_field(name="Balance", value=f"{user.get('pcredits', 0)} pCredits", inline=False)
+        if not user:
+            await UserProfile.create_user(interaction.user.id, interaction.user.name)
+            user = await UserProfile.get_user(interaction.user.id)
+
+        embed = discord.Embed(title="💎 Premium Shop", color=discord.Color.gold())
+        embed.add_field(
+            name="Your Balance",
+            value=f"💎 **{user.get('pcredits', 0)}** pCredits",
+            inline=False
+        )
 
         for key, item in PCREDIT_SHOP.items():
-            embed.add_field(name=item['name'], value=f"{item['price']} pCredits\n{item['description']}", inline=True)
+            embed.add_field(
+                name=f"{item['name']} — {item['price']} pCredits",
+                value=item['description'],
+                inline=True
+            )
 
-        await interaction.followup.send(embed=embed, view=PremiumShopView(interaction.user.id), ephemeral=True)
+        await interaction.followup.send(
+            embed=embed,
+            view=PremiumShopView(interaction.user.id),
+            ephemeral=True
+        )
 
     @app_commands.command(name="setup_ai", description="[Admin] Set up the AI channel")
     @app_commands.checks.has_permissions(administrator=True)
     async def setup_ai(self, interaction: discord.Interaction, channel: discord.TextChannel):
         await interaction.response.defer(ephemeral=True)
         self.ai_channel_id = channel.id
-        await interaction.followup.send(f"AI channel set to {channel.mention}.", ephemeral=True)
+        await interaction.followup.send(f"✅ AI channel set to {channel.mention}.", ephemeral=True)
 
     @app_commands.command(name="temp_chat_ai", description="Create a temporary AI chat channel")
     async def temp_chat(self, interaction: discord.Interaction):
@@ -162,28 +267,56 @@ class PremiumCog(commands.Cog):
 
         last_used = user.get('temp_chat_cooldown')
         if last_used:
-            cooldown_time = datetime.fromisoformat(last_used)
-            if datetime.utcnow() < cooldown_time + timedelta(hours=AI_CHAT_COOLDOWN_HOURS):
-                await interaction.followup.send("Cooldown active. You can use this once every 4 hours.", ephemeral=True)
-                return
+            try:
+                cooldown_time = datetime.fromisoformat(last_used)
+                time_since = (datetime.utcnow() - cooldown_time).total_seconds()
+                cooldown_seconds = AI_CHAT_COOLDOWN_HOURS * 3600
+
+                if time_since < cooldown_seconds:
+                    remaining = cooldown_seconds - time_since
+                    hours = int(remaining // 3600)
+                    minutes = int((remaining % 3600) // 60)
+
+                    embed = discord.Embed(
+                        title="⏰ Cooldown Active",
+                        description=f"You can use this again in **{hours}h {minutes}m**.",
+                        color=discord.Color.orange()
+                    )
+                    await interaction.followup.send(embed=embed, ephemeral=True)
+                    return
+            except Exception:
+                pass
 
         guild = interaction.guild
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(read_messages=False),
             interaction.user: discord.PermissionOverwrite(read_messages=True),
-            guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True, create_public_threads=True, manage_threads=True)
+            guild.me: discord.PermissionOverwrite(
+                read_messages=True,
+                send_messages=True,
+                create_public_threads=True,
+                manage_threads=True
+            )
         }
 
-        channel = await guild.create_text_channel(name=f"ai-chat-{interaction.user.name}", overwrites=overwrites)
-        await UserProfile.update_user(interaction.user.id, {"temp_chat_cooldown": datetime.utcnow().isoformat()})
+        channel = await guild.create_text_channel(
+            name=f"ai-chat-{interaction.user.name}",
+            overwrites=overwrites
+        )
+        await UserProfile.update_user(interaction.user.id, {
+            "temp_chat_cooldown": datetime.utcnow().isoformat()
+        })
 
-        await interaction.followup.send(f"Channel created: {channel.mention}. Expires in 1 hour.", ephemeral=True)
+        await interaction.followup.send(
+            f"✅ Channel created: {channel.mention}. Expires in {AI_CHAT_DURATION_MINUTES} minutes.",
+            ephemeral=True
+        )
 
-        # Clean welcome message
         welcome_embed = discord.Embed(
-            title=f"{AI_NAME}",
+            title=f"🤖 {AI_NAME}",
             description=(
-                f"Welcome, {interaction.user.mention}. This channel expires in 1 hour.\n\n"
+                f"Welcome, {interaction.user.mention}. This channel expires in "
+                f"{AI_CHAT_DURATION_MINUTES} minutes.\n\n"
                 f"**Modes**\n"
                 f"`change to agent mode` — Task planning + code generation (3 credits/msg)\n"
                 f"`change to super agent` — Full pipeline with reviews + optimization (5 credits/msg)\n"
@@ -195,13 +328,15 @@ class PremiumCog(commands.Cog):
             ),
             color=0x5865F2
         )
-        welcome_embed.set_footer(text="Normal chat costs 1 credit per message. Admins bypass all costs.")
+        welcome_embed.set_footer(
+            text="Normal chat costs 1 credit per message. Admins bypass all costs."
+        )
         await channel.send(embed=welcome_embed)
 
         await asyncio.sleep(AI_CHAT_DURATION_MINUTES * 60)
         try:
             await channel.delete(reason="Temporary AI chat expired")
-        except:
+        except Exception:
             pass
 
     @commands.Cog.listener()
@@ -209,8 +344,14 @@ class PremiumCog(commands.Cog):
         if message.author.bot:
             return
 
-        is_temp_chat = hasattr(message.channel, 'name') and message.channel.name.startswith("ai-chat-")
-        if not is_temp_chat and (not self.ai_channel_id or message.channel.id != self.ai_channel_id):
+        is_temp_chat = (
+            hasattr(message.channel, 'name')
+            and message.channel.name.startswith("ai-chat-")
+        )
+
+        if not is_temp_chat and (
+            not self.ai_channel_id or message.channel.id != self.ai_channel_id
+        ):
             return
 
         if message.content.startswith(("!", "/")):
@@ -233,9 +374,14 @@ class PremiumCog(commands.Cog):
 
         # ========== SUPER AGENT ACTIVATION ==========
         if content_lower == "change to super agent":
-            if not is_temp_chat and not is_admin:
-                if user.get('ai_credits', 0) < 5:
-                    await message.reply(f"Super Agent requires 5 AI Credits per message. You have {user.get('ai_credits', 0)}.")
+            if not is_admin:
+                current_ai = user.get('ai_credits', 0)
+                if current_ai < 5:
+                    await message.reply(
+                        f"Super Agent requires **5 AI Credits** per message. "
+                        f"You have **{current_ai}**.\n"
+                        f"Use `/convert_ai` to get more."
+                    )
                     return
 
             user_rank = user.get("rank", "Beginner")
@@ -243,7 +389,7 @@ class PremiumCog(commands.Cog):
             self.agent.sessions[message.author.id]["user_rank"] = user_rank
 
             activate_embed = discord.Embed(
-                title="Super Agent — Online",
+                title="⚡ Super Agent — Online",
                 description=(
                     "Full development pipeline activated.\n\n"
                     "**Pipeline**\n"
@@ -264,9 +410,14 @@ class PremiumCog(commands.Cog):
 
         # ========== NORMAL AGENT ACTIVATION ==========
         elif content_lower == "change to agent mode":
-            if not is_temp_chat and not is_admin:
-                if user.get('ai_credits', 0) < 3:
-                    await message.reply(f"Agent mode requires 3 AI Credits per message. You have {user.get('ai_credits', 0)}.")
+            if not is_admin:
+                current_ai = user.get('ai_credits', 0)
+                if current_ai < 3:
+                    await message.reply(
+                        f"Agent mode requires **3 AI Credits** per message. "
+                        f"You have **{current_ai}**.\n"
+                        f"Use `/convert_ai` to get more."
+                    )
                     return
 
             user_rank = user.get("rank", "Beginner")
@@ -274,7 +425,7 @@ class PremiumCog(commands.Cog):
             self.agent.sessions[message.author.id]["user_rank"] = user_rank
 
             activate_embed = discord.Embed(
-                title="Agent Mode — Online",
+                title="🤖 Agent Mode — Online",
                 description=(
                     "Task planning and code generation activated.\n\n"
                     "**Pipeline**\n"
@@ -300,11 +451,16 @@ class PremiumCog(commands.Cog):
                 was_super = self.agent.is_super_agent(message.author.id)
                 self.agent.deactivate(message.author.id)
                 mode_name = "Super Agent" if was_super else "Agent"
-                await message.reply(
-                    f"**{mode_name} — Disconnected**\n\n"
-                    f"Back to normal chat. Your projects are saved.\n"
-                    f"Use `change to agent mode` or `change to super agent` anytime."
+
+                deactivate_embed = discord.Embed(
+                    title=f"🔌 {mode_name} — Disconnected",
+                    description=(
+                        "Back to normal chat. Your projects are saved.\n"
+                        "Use `change to agent mode` or `change to super agent` anytime."
+                    ),
+                    color=0x5865F2
                 )
+                await message.reply(embed=deactivate_embed)
             else:
                 await message.reply("You're not in agent mode.")
             return
@@ -312,14 +468,26 @@ class PremiumCog(commands.Cog):
         # ========== MODE SWITCHES ==========
         elif content_lower in ("upgrade to super", "switch to super agent"):
             if self.agent.is_agent_mode(message.author.id) and not self.agent.is_super_agent(message.author.id):
+                if not is_admin:
+                    current_ai = user.get('ai_credits', 0)
+                    if current_ai < 5:
+                        await message.reply(
+                            f"Super Agent requires **5 AI Credits** per message. "
+                            f"You have **{current_ai}**."
+                        )
+                        return
                 self.agent.sessions[message.author.id]["super"] = True
-                await message.reply("Upgraded to **Super Agent**. Full pipeline active. Cost: 5 credits/msg.")
+                await message.reply(
+                    "⚡ Upgraded to **Super Agent**. Full pipeline active. Cost: 5 credits/msg."
+                )
                 return
 
         elif content_lower in ("downgrade to agent", "switch to agent"):
             if self.agent.is_agent_mode(message.author.id) and self.agent.is_super_agent(message.author.id):
                 self.agent.sessions[message.author.id]["super"] = False
-                await message.reply("Switched to **Normal Agent**. Cost: 3 credits/msg.")
+                await message.reply(
+                    "🤖 Switched to **Normal Agent**. Cost: 3 credits/msg."
+                )
                 return
 
         # ========== HANDLE AGENT MODE MESSAGES ==========
@@ -327,51 +495,79 @@ class PremiumCog(commands.Cog):
             is_super = self.agent.is_super_agent(message.author.id)
             credit_cost = 5 if is_super else 3
 
-            if not is_temp_chat and not is_admin:
-                if user.get('ai_credits', 0) < credit_cost:
+            # Re-fetch user to get latest balance
+            user = await UserProfile.get_user(message.author.id)
+            current_ai = user.get('ai_credits', 0) if user else 0
+
+            if not is_admin:
+                if current_ai < credit_cost:
                     mode_name = "Super Agent" if is_super else "Agent"
                     await message.reply(
-                        f"{mode_name} costs {credit_cost} AI Credits per message. "
-                        f"You have {user.get('ai_credits', 0)}.\n"
-                        f"Type `exit agent mode` to switch to normal chat."
+                        f"**{mode_name}** costs **{credit_cost}** AI Credits per message. "
+                        f"You have **{current_ai}**.\n"
+                        f"Type `exit agent mode` to switch to normal chat (1 credit/msg).\n"
+                        f"Use `/convert_ai` to get more credits."
                     )
                     return
 
-                original_credits = user['ai_credits']
-                await UserProfile.update_user(message.author.id, {"ai_credits": original_credits - credit_cost})
+                # Deduct credits BEFORE processing
+                await UserProfile.update_user(message.author.id, {
+                    "ai_credits": current_ai - credit_cost
+                })
 
             try:
                 async with message.channel.typing():
                     await self.agent.handle_message(message)
             except Exception as e:
                 # Refund on failure
-                if not is_temp_chat and not is_admin:
-                    await UserProfile.update_user(message.author.id, {"ai_credits": original_credits})
-                    await message.reply(f"An error occurred. Your {credit_cost} credits have been refunded.")
+                if not is_admin:
+                    await UserProfile.update_user(message.author.id, {
+                        "ai_credits": current_ai
+                    })
+                    await message.reply(
+                        f"❌ An error occurred. Your **{credit_cost}** credits have been refunded."
+                    )
                 else:
-                    await message.reply(f"An error occurred: {str(e)[:200]}")
+                    await message.reply(f"❌ An error occurred: {str(e)[:200]}")
                 print(f"[Agent Error] {e}")
             return
 
         # ========== NORMAL AI CHAT ==========
-        if not is_temp_chat and not is_admin:
-            if user.get('ai_credits', 0) <= 0:
+        # Re-fetch user to get latest balance
+        user = await UserProfile.get_user(message.author.id)
+        current_ai = user.get('ai_credits', 0) if user else 0
+
+        if not is_admin:
+            if current_ai <= 0:
                 await message.reply(
                     f"You don't have enough AI Credits to chat with {AI_NAME}.\n\n"
                     f"**Get credits:**\n"
-                    f"`/convert` — Studio Credits to pCredits\n"
-                    f"`/convert_ai` — pCredits to AI Credits"
+                    f"`/convert` — Studio Credits → pCredits\n"
+                    f"`/convert_ai` — pCredits → AI Credits"
                 )
                 return
-            await UserProfile.update_user(message.author.id, {"ai_credits": user['ai_credits'] - 1})
 
-        async with message.channel.typing():
-            response = await self.get_ai_response(message)
-            await ai_handler.send_response(
-                message=message,
-                ai_text=response,
-                user_name=message.author.display_name
-            )
+            # Deduct 1 credit
+            await UserProfile.update_user(message.author.id, {
+                "ai_credits": current_ai - 1
+            })
+
+        try:
+            async with message.channel.typing():
+                response = await self.get_ai_response(message)
+                await ai_handler.send_response(
+                    message=message,
+                    ai_text=response,
+                    user_name=message.author.display_name
+                )
+        except Exception as e:
+            # Refund on failure
+            if not is_admin:
+                await UserProfile.update_user(message.author.id, {
+                    "ai_credits": current_ai
+                })
+            await message.reply(f"❌ AI Error: {str(e)[:200]}")
+            print(f"[AI Chat Error] {e}")
 
 
 async def setup(bot):

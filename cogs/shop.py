@@ -26,7 +26,6 @@ class ShopView(discord.ui.View):
         self.category = None
         self.sort_by = "newest"
         self.search_query = None
-        self.search_mode = False
 
     @discord.ui.button(label="All", emoji="🛍️", style=discord.ButtonStyle.blurple, row=0)
     async def all_items(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -115,14 +114,12 @@ class ShopView(discord.ui.View):
         page = result['page']
         total_pages = result['total_pages']
 
-        # Adjust current page if out of range
         if page < 1:
             page = 1
         if total_pages < 1:
             total_pages = 1
         self.current_page = page
 
-        # Build embed
         category_text = self.category.upper() if self.category else "ALL"
         search_text = f" | Search: '{self.search_query}'" if self.search_query else ""
 
@@ -153,7 +150,6 @@ class ShopView(discord.ui.View):
                 )
 
         embed.set_footer(text=f"Sort: {self.sort_by} | Use buttons to navigate")
-
         await interaction.edit_original_response(embed=embed, view=self)
 
 
@@ -208,35 +204,30 @@ class SellView(discord.ui.View):
 
     @discord.ui.button(label="Sell Code", emoji="📝", style=discord.ButtonStyle.blurple)
     async def sell_code(self, interaction: discord.Interaction, button: discord.ui.Button):
-        # Check if user can sell
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("This isn't your sell menu!", ephemeral=True)
+            return
         can_sell, reason = await MarketplaceData.can_user_sell(self.user_id)
         if not can_sell:
-            embed = discord.Embed(
-                title="❌ Cannot Sell",
-                description=reason,
-                color=discord.Color.red()
-            )
+            embed = discord.Embed(title="❌ Cannot Sell", description=reason, color=discord.Color.red())
             await interaction.response.send_message(embed=embed, ephemeral=True)
             return
-
         modal = SellCodeModal(self.user_id)
         await interaction.response.send_modal(modal)
 
     @discord.ui.button(label="Sell Build", emoji="🏗️", style=discord.ButtonStyle.success)
     async def sell_build(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("This isn't your sell menu!", ephemeral=True)
+            return
         can_sell, reason = await MarketplaceData.can_user_sell(self.user_id)
         if not can_sell:
-            embed = discord.Embed(
-                title="❌ Cannot Sell",
-                description=reason,
-                color=discord.Color.red()
-            )
+            embed = discord.Embed(title="❌ Cannot Sell", description=reason, color=discord.Color.red())
             await interaction.response.send_message(embed=embed, ephemeral=True)
             return
-
         embed = discord.Embed(
             title="🏗️ Sell Build",
-            description="To sell a build, please:\n\n"
+            description="To sell a build:\n\n"
                         "1. Click the button below\n"
                         "2. Fill in the details\n"
                         "3. **Upload your .rbxm or .rbxmx file** in the next message\n\n"
@@ -248,19 +239,17 @@ class SellView(discord.ui.View):
 
     @discord.ui.button(label="Sell UI", emoji="🎨", style=discord.ButtonStyle.secondary)
     async def sell_ui(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("This isn't your sell menu!", ephemeral=True)
+            return
         can_sell, reason = await MarketplaceData.can_user_sell(self.user_id)
         if not can_sell:
-            embed = discord.Embed(
-                title="❌ Cannot Sell",
-                description=reason,
-                color=discord.Color.red()
-            )
+            embed = discord.Embed(title="❌ Cannot Sell", description=reason, color=discord.Color.red())
             await interaction.response.send_message(embed=embed, ephemeral=True)
             return
-
         embed = discord.Embed(
             title="🎨 Sell UI",
-            description="To sell a UI, please:\n\n"
+            description="To sell a UI:\n\n"
                         "1. Click the button below\n"
                         "2. Fill in the details\n"
                         "3. **Upload your .rbxm or .rbxmx file** in the next message\n\n"
@@ -272,6 +261,9 @@ class SellView(discord.ui.View):
 
     @discord.ui.button(label="My Listings", emoji="📋", style=discord.ButtonStyle.secondary)
     async def my_listings(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("This isn't your sell menu!", ephemeral=True)
+            return
         await interaction.response.defer(ephemeral=True)
 
         listings = await MarketplaceData.get_user_listings(self.user_id)
@@ -369,7 +361,14 @@ class SellCodeModal(discord.ui.Modal):
                 "created_at": datetime.utcnow().isoformat()
             }
 
-            result_id = await MarketplaceData.create_listing(listing)
+            await MarketplaceData.create_listing(listing)
+
+            # Update seller sales_count for quest tracking
+            user = await UserProfile.get_user(self.user_id)
+            if user:
+                await UserProfile.update_user(self.user_id, {
+                    "sales_count": user.get('sales_count', 0) + 1
+                })
 
             embed = discord.Embed(
                 title="✅ Listing Created!",
@@ -400,16 +399,18 @@ class SellFileView(discord.ui.View):
 
     @discord.ui.button(label="Enter Details", emoji="📝", style=discord.ButtonStyle.blurple)
     async def enter_details(self, interaction: discord.Interaction, button: discord.ui.Button):
-        modal = SellFileModal(self.user_id, self.category, self)
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("This isn't your sell menu!", ephemeral=True)
+            return
+        modal = SellFileModal(self.user_id, self.category)
         await interaction.response.send_modal(modal)
 
 
 class SellFileModal(discord.ui.Modal):
-    def __init__(self, user_id: int, category: str, parent_view: SellFileView):
+    def __init__(self, user_id: int, category: str):
         super().__init__(title=f"{'🏗️' if category == 'build' else '🎨'} Sell {category.title()}")
         self.user_id = user_id
         self.category = category
-        self.parent_view = parent_view
 
         self.title_input = discord.ui.TextInput(
             label="Title",
@@ -443,7 +444,6 @@ class SellFileModal(discord.ui.Modal):
             if price <= 0:
                 raise ValueError("Price must be positive")
 
-            # Store details and ask for file
             embed = discord.Embed(
                 title=f"📁 Upload Your {self.category.title()} File",
                 description=f"**Title:** {self.title_input.value}\n"
@@ -452,10 +452,8 @@ class SellFileModal(discord.ui.Modal):
                             f"⚠️ You have 60 seconds to upload!",
                 color=BOT_COLOR
             )
-
             await interaction.followup.send(embed=embed, ephemeral=True)
 
-            # Wait for file upload
             def check(m):
                 return (m.author.id == self.user_id and
                         m.attachments and
@@ -464,23 +462,18 @@ class SellFileModal(discord.ui.Modal):
             try:
                 msg = await interaction.client.wait_for('message', timeout=60.0, check=check)
 
-                # Download and save file
                 attachment = msg.attachments[0]
 
-                # Check file size (8MB limit)
                 if attachment.size > 8 * 1024 * 1024:
                     await msg.reply("❌ File too large! Maximum 8MB.", delete_after=10)
                     return
 
-                # Save file
                 file_name = f"{self.user_id}_{int(datetime.utcnow().timestamp())}_{attachment.filename}"
                 file_path = os.path.join(UPLOADS_DIR, file_name)
-
                 await attachment.save(file_path)
 
                 listing_id = str(uuid.uuid4())[:8].upper()
 
-                # Create listing
                 listing = {
                     "listing_id": listing_id,
                     "seller_id": self.user_id,
@@ -500,7 +493,13 @@ class SellFileModal(discord.ui.Modal):
 
                 await MarketplaceData.create_listing(listing)
 
-                # Delete the message with file for privacy
+                # Update sales_count for quest tracking
+                user = await UserProfile.get_user(self.user_id)
+                if user:
+                    await UserProfile.update_user(self.user_id, {
+                        "sales_count": user.get('sales_count', 0) + 1
+                    })
+
                 try:
                     await msg.delete()
                 except Exception:
@@ -565,11 +564,18 @@ class RateSellerView(discord.ui.View):
 
     async def submit_rating(self, interaction: discord.Interaction, rating: int):
         if interaction.user.id != self.buyer_id:
-            await interaction.response.send_message("Only the buyer can rate this seller!", ephemeral=True)
+            await interaction.response.send_message("Only the buyer can rate!", ephemeral=True)
             return
 
         await interaction.response.defer(ephemeral=True)
         await MarketplaceData.add_rating(self.listing_id, self.seller_id, rating)
+
+        # Track reviews_given for quest
+        user = await UserProfile.get_user(self.buyer_id)
+        if user:
+            await UserProfile.update_user(self.buyer_id, {
+                "reviews_given": user.get('reviews_given', 0) + 1
+            })
 
         embed = discord.Embed(
             title="⭐ Thanks for Rating!",
@@ -580,13 +586,13 @@ class RateSellerView(discord.ui.View):
         self.stop()
 
 
+# ==================== SHOP COG ====================
 class ShopCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
     @app_commands.command(name="shop", description="Browse the marketplace")
     async def shop_cmd(self, interaction: discord.Interaction):
-        """Open the shop browser"""
         await interaction.response.defer()
 
         user = await UserProfile.get_user(interaction.user.id)
@@ -609,7 +615,6 @@ class ShopCog(commands.Cog):
 
     @app_commands.command(name="sell", description="Sell your asset on the marketplace")
     async def sell_cmd(self, interaction: discord.Interaction):
-        """Open the sell menu"""
         user = await UserProfile.get_user(interaction.user.id)
         if not user:
             await UserProfile.create_user(interaction.user.id, interaction.user.name)
@@ -629,12 +634,10 @@ class ShopCog(commands.Cog):
     @app_commands.command(name="buy", description="Buy a listing by ID")
     @app_commands.describe(listing_id="The listing ID to purchase")
     async def buy_cmd(self, interaction: discord.Interaction, listing_id: str):
-        """Buy a listing"""
         await interaction.response.defer(ephemeral=True)
 
         listing_id = listing_id.strip().upper()
 
-        # Get listing
         listing = await MarketplaceData.get_listing_by_id(listing_id)
         if not listing:
             embed = discord.Embed(
@@ -657,7 +660,6 @@ class ShopCog(commands.Cog):
         seller_id = listing.get('seller_id')
         price = listing.get('price', 0)
 
-        # Can't buy own listing
         if seller_id == interaction.user.id:
             embed = discord.Embed(
                 title="❌ Error",
@@ -667,7 +669,6 @@ class ShopCog(commands.Cog):
             await interaction.followup.send(embed=embed, ephemeral=True)
             return
 
-        # Check buyer balance
         buyer = await UserProfile.get_user(interaction.user.id)
         if not buyer:
             await UserProfile.create_user(interaction.user.id, interaction.user.name)
@@ -683,18 +684,17 @@ class ShopCog(commands.Cog):
             await interaction.followup.send(embed=embed, ephemeral=True)
             return
 
-        # Process transaction
         # Deduct from buyer
         await UserProfile.update_user(interaction.user.id, {
-            "studio_credits": buyer_credits - price
+            "studio_credits": buyer_credits - price,
+            "purchases_count": buyer.get('purchases_count', 0) + 1
         })
 
         # Add to seller
         seller = await UserProfile.get_user(seller_id)
         if seller:
-            seller_credits = seller.get('studio_credits', 0)
             await UserProfile.update_user(seller_id, {
-                "studio_credits": seller_credits + price
+                "studio_credits": seller.get('studio_credits', 0) + price
             })
 
         # Update listing sold count
@@ -713,11 +713,10 @@ class ShopCog(commands.Cog):
         }
         await TransactionData.create_transaction(transaction)
 
-        # Send the product to buyer
         cat_emoji = CATEGORY_EMOJIS.get(listing.get('category', 'code'), '📝')
 
         embed = discord.Embed(
-            title=f"✅ Purchase Successful!",
+            title="✅ Purchase Successful!",
             description=f"You bought **{listing.get('title')}** for **{price}** credits!",
             color=discord.Color.green()
         )
@@ -725,7 +724,6 @@ class ShopCog(commands.Cog):
         embed.add_field(name="Category", value=f"{cat_emoji} {listing.get('category', 'code').title()}", inline=True)
         embed.add_field(name="Remaining Balance", value=f"💰 {buyer_credits - price}", inline=True)
 
-        # If code listing, show the code
         if listing.get('category') == 'code' and listing.get('code'):
             code_text = listing['code']
             if len(code_text) > 1900:
@@ -738,12 +736,12 @@ class ShopCog(commands.Cog):
 
         await interaction.followup.send(embed=embed, ephemeral=True)
 
-        # If file listing, send the file via DM
+        # Send file via DM if file listing
         if listing.get('file_path') and os.path.exists(listing['file_path']):
             try:
                 dm_embed = discord.Embed(
                     title=f"📁 Your Purchase: {listing.get('title')}",
-                    description=f"Here is the file you purchased!",
+                    description="Here is the file you purchased!",
                     color=discord.Color.green()
                 )
                 file = discord.File(listing['file_path'], filename=listing.get('file_name', 'file.rbxm'))
@@ -754,7 +752,7 @@ class ShopCog(commands.Cog):
                     ephemeral=True
                 )
 
-        # Offer rating
+        # Rating prompt
         rate_view = RateSellerView(listing_id, seller_id, interaction.user.id)
         rate_embed = discord.Embed(
             title="⭐ Rate the Seller",
@@ -774,7 +772,6 @@ class ShopCog(commands.Cog):
 
         player_id = user.get('player_id')
         if not player_id or player_id == 'N/A':
-            # Generate one if missing
             player_id = f"DEV-{str(interaction.user.id)[-6:]}-{str(uuid.uuid4())[:4].upper()}"
             await UserProfile.update_user(interaction.user.id, {"player_id": player_id})
 
