@@ -4,29 +4,29 @@
         "username": "hsusulist",
         "role": null,
         "roles": [
-            "Animator",
             "Scripter",
+            "Animator",
             "UI Designer"
         ],
         "rank": "Beginner",
-        "xp": 1035,
-        "level": 5,
+        "xp": 2080,
+        "level": 9,
         "experience_months": 0,
         "voice_minutes": 0,
-        "message_count": 207,
+        "message_count": 406,
         "reputation": 0,
-        "studio_credits": 500,
+        "studio_credits": 50,
         "created_at": "2026-02-05T12:08:13.209546",
-        "last_quest": null,
+        "last_quest": "2026-02-11T23:42:49.947363",
         "portfolio_games": [],
         "reviews_given": 0,
         "reviews_received": [],
         "cards": [],
         "equipped_card": null,
         "inventory": [],
-        "learn_channel_id": 1470793944945393826,
+        "learn_channel_id": 1471023929916264449,
         "learn_lesson": 1,
-        "learn_phase": "qna",
+        "learn_phase": "menu",
         "learn_model_mode": "auto",
         "learn_quiz_data": {},
         "learn_conversation": [
@@ -209,9 +209,14 @@
                 "ts": "2026-02-10T14:55:37.563035+00:00",
                 "role": "user",
                 "content": ":/"
+            },
+            {
+                "ts": "2026-02-11T06:04:23.633843+00:00",
+                "role": "assistant",
+                "content": "INTRO: Alright, aspiring Roblox developers, get ready to unlock one of the most fundamental and powerful tools in your coding arsenal!\n\n---\n\n## \ud83c\udfaf HOOK\n\nImagine this: You've spent hours"
             }
         ],
-        "learn_panel_message_id": 1470793984594018531,
+        "learn_panel_message_id": 1471023968231362592,
         "learn_completed_lessons": [
             1
         ],
@@ -221,8 +226,8 @@
         "learn_correct_answers": 0,
         "learn_bookmarks": [],
         "learn_notes": {},
-        "learn_streak": 1,
-        "learn_last_activity": "2026-02-10T14:50:20.266224",
+        "learn_streak": 2,
+        "learn_last_activity": "2026-02-11T06:04:11.114009",
         "learn_quiz_attempts": 0,
         "learn_weak_topics": {
             "print": 2,
@@ -236,8 +241,8 @@
         "learn_hints_remaining": 3,
         "learn_lesson_part": 0,
         "pcredits": 0,
-        "ai_credits": 10,
-        "temp_chat_cooldown": "2026-02-10T14:28:53.451856"
+        "ai_credits": 20,
+        "temp_chat_cooldown": "2026-02-11T00:41:14.006411"
     },
     "1281221878257549475": {
         "_id": 1281221878257549475,
@@ -311,5 +316,54 @@
             "Scripter",
             "UI Designer"
         ]
+    },
+    "1459515666058055707": {
+        "_id": 1459515666058055707,
+        "username": "justcreated_",
+        "role": null,
+        "rank": "Beginner",
+        "xp": 285,
+        "level": 2,
+        "experience_months": 0,
+        "voice_minutes": 0,
+        "message_count": 56,
+        "reputation": 0,
+        "studio_credits": 86500,
+        "pcredits": 1,
+        "ai_credits": 0,
+        "max_teams": 1,
+        "max_projects": 2,
+        "temp_chat_cooldown": null,
+        "created_at": "2026-02-11T05:39:45.931790",
+        "last_quest": null,
+        "portfolio_games": [],
+        "reviews_given": 0,
+        "reviews_received": [],
+        "roles": [
+            "Scripter"
+        ]
+    },
+    "997084195887251496": {
+        "_id": 997084195887251496,
+        "username": "balkanje12",
+        "role": null,
+        "rank": "Beginner",
+        "xp": 55,
+        "level": 1,
+        "experience_months": 0,
+        "voice_minutes": 0,
+        "message_count": 11,
+        "reputation": 0,
+        "studio_credits": 500,
+        "pcredits": 0,
+        "ai_credits": 100,
+        "max_teams": 1,
+        "max_projects": 2,
+        "temp_chat_cooldown": null,
+        "created_at": "2026-02-11T14:38:04.690744",
+        "last_quest": null,
+        "portfolio_games": [],
+        "reviews_given": 0,
+        "reviews_received": []
     }
 }
