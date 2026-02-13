@@ -210,8 +210,7 @@ class QuestCog(commands.Cog):
         view = QuestListView(interaction.user.id, self.bot)
         await view.show_quests(interaction)
 
-async def setup(bot):
-    await bot.add_cog(QuestCog(bot))
+class QuestListView(discord.ui.View):
     def __init__(self, user_id: int, bot):
         super().__init__(timeout=120)
         self.user_id = user_id
@@ -690,6 +689,9 @@ async def setup(bot):
 
         embed.set_footer(text="Click 'Claim Quest' → type Quest ID (e.g. Q001)")
         await interaction.edit_original_response(embed=embed, view=self)
+
+async def setup(bot):
+    await bot.add_cog(QuestCog(bot))
 
 
 # ==================== COG ====================

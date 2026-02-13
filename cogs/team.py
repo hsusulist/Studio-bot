@@ -1154,11 +1154,6 @@ class TeamSelectionView(discord.ui.View):
             color=0x5865F2)
         view = PremiumShopView(self.user_id)
         await interaction.followup.send(embed=embed, view=view, ephemeral=True)
-        for key, item in PCREDIT_SHOP.items():
-            cat = item.get("category", "other")
-            if cat not in categories:
-                categories[cat] = []
-            categories[cat].append((key, item))
 
         cat_names = {"team": "👥 Team Items", "ai": "🤖 AI Items", "profile": "🌟 Profile", "marketplace": "📢 Marketplace"}
         for cat, items in categories.items():
