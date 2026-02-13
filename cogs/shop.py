@@ -83,8 +83,7 @@ class ShopView(discord.ui.View):
     async def balance(self, interaction: discord.Interaction, button: discord.ui.Button):
         user = await UserProfile.get_user(self.user_id)
         if not user:
-            await UserProfile.create_user(self.user_id, interaction.user.name)
-            user = await UserProfile.get_user(self.user_id)
+            user = await UserProfile.create_user(self.user_id, interaction.user.name)
 
         embed = discord.Embed(
             title="💰 Your Balance",

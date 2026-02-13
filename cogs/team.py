@@ -109,7 +109,7 @@ class ConfirmDeleteView(discord.ui.View):
         if guild and team.get("category_id"):
             try:
                 category = guild.get_channel(team["category_id"])
-                if category:
+                if isinstance(category, discord.CategoryChannel):
                     for channel in category.channels:
                         await channel.delete(reason="Team deleted")
                     await category.delete(reason="Team deleted")
@@ -277,7 +277,11 @@ class AddProjectModal(discord.ui.Modal):
 
         # Check project limit
         user = await UserProfile.get_user(interaction.user.id)
-        max_projects = user.get("max_projects", 2) if user else 2
+        if not user:
+             await interaction.followup.send("Profile not found.", ephemeral=True)
+             return
+             
+        max_projects = user.get("max_projects", 2)
         current_projects = team.get("projects", [])
         active_projects = [p for p in current_projects if p.get("status") == "active"]
 
@@ -490,7 +494,22 @@ class TeamActionView(discord.ui.View):
             embed.set_footer(text="Owner can add projects in ⚙️ Settings")
         else:
             embed.description = "No projects yet.\nOwner can add them in ⚙️ Settings."
-        await interaction.followup.send(embed=embed, ephemeral=True)
+
+        # Add buttons to the message
+        class ProjectView(discord.ui.View):
+            def __init__(self, team_id, owner_id):
+                super().__init__(timeout=60)
+                self.team_id = team_id
+                self.owner_id = owner_id
+
+            @discord.ui.button(label="Add Project", style=discord.ButtonStyle.green)
+            async def add(self, interaction: discord.Interaction, button: discord.ui.Button):
+                if interaction.user.id != self.owner_id:
+                    await interaction.response.send_message("Only the owner can add projects.", ephemeral=True)
+                    return
+                await interaction.response.send_modal(AddProjectModal(self.team_id))
+
+        await interaction.followup.send(embed=embed, view=ProjectView(self.team_id, team.get("creator_id")), ephemeral=True)
 
     @discord.ui.button(label="Stats", emoji="📊", style=discord.ButtonStyle.secondary)
     async def stats(self, interaction: discord.Interaction, button: discord.ui.Button):

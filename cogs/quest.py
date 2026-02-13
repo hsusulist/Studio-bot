@@ -260,8 +260,7 @@ class QuestListView(discord.ui.View):
         # Show claimable quests and ask for ID
         user_data = await UserProfile.get_user(self.user_id)
         if not user_data:
-            await UserProfile.create_user(self.user_id, interaction.user.name)
-            user_data = await UserProfile.get_user(self.user_id)
+            user_data = await UserProfile.create_user(self.user_id, interaction.user.name)
 
         claimed = user_data.get('claimed_quests', [])
         ready = []
@@ -422,8 +421,7 @@ class QuestListView(discord.ui.View):
 
         user_data = await UserProfile.get_user(self.user_id)
         if not user_data:
-            await UserProfile.create_user(self.user_id, interaction.user.name)
-            user_data = await UserProfile.get_user(self.user_id)
+            user_data = await UserProfile.create_user(self.user_id, interaction.user.name)
 
         claimed = user_data.get('claimed_quests', [])
         total = len(QUEST_LIST)
@@ -520,8 +518,7 @@ class QuestListView(discord.ui.View):
 
         user = await UserProfile.get_user(self.user_id)
         if not user:
-            await UserProfile.create_user(self.user_id, interaction.user.name)
-            user = await UserProfile.get_user(self.user_id)
+            user = await UserProfile.create_user(self.user_id, interaction.user.name)
 
         last_daily = user.get('last_daily')
         now = datetime.utcnow()
