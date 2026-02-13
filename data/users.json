@@ -315,7 +315,7 @@
         "learn_current_quiz_index": 0,
         "learn_hints_remaining": 3,
         "learn_lesson_part": 0,
-        "pcredits": 669999999994,
+        "pcredits": 669999999987,
         "ai_credits": 30,
         "temp_chat_cooldown": "2026-02-11T00:41:14.006411",
         "claimed_quests": [
@@ -327,7 +327,8 @@
         "daily_claims": 1,
         "sales_count": 1,
         "max_projects": 7,
-        "player_id": "DEV-652864-033E"
+        "player_id": "DEV-652864-033E",
+        "max_teams": 2
     },
     "1281221878257549475": {
         "_id": 1281221878257549475,
