@@ -46,17 +46,105 @@ RANK_THRESHOLDS = {
 DAILY_QUEST_REWARD = 50  # Studio Credits
 MARKET_COMMISSION_TAX = 0.10  # 10%
 
-# Premium Economy (Phase 1)
+# Premium Economy
 CREDIT_TO_PCREDIT_RATE = 1000
 PCREDIT_TO_AICREDIT_RATE = 10
 AI_CHAT_COOLDOWN_HOURS = 4
 AI_CHAT_DURATION_MINUTES = 60
 
+# Premium Shop Items — connected to teams and features
 PCREDIT_SHOP = {
-    "team_slot": {"name": "Additional Team Slot", "price": 2, "description": "+1 Max Team Slot"},
-    "project_slots": {"name": "Project Pack", "price": 1, "description": "+5 Project Slots per Team"},
-    "team_storage": {"name": "Team Storage", "price": 3, "description": "Unlock Team Cloud Storage"},
-    "ai_cooldown_reduction": {"name": "AI Speedup", "price": 5, "description": "Reduce AI Cooldown to 1 hour (Permanent)"}
+    "team_slot": {
+        "name": "➕ Additional Team Slot",
+        "price": 2,
+        "description": "+1 max team you can own/join",
+        "category": "team",
+        "emoji": "👥"
+    },
+    "project_slots": {
+        "name": "📁 Project Pack",
+        "price": 1,
+        "description": "+5 project slots per team",
+        "category": "team",
+        "emoji": "📁"
+    },
+    "team_storage": {
+        "name": "☁️ Team Cloud Storage",
+        "price": 3,
+        "description": "Unlock shared file storage for your team",
+        "category": "team",
+        "emoji": "☁️"
+    },
+    "team_member_boost": {
+        "name": "👥 Team Member Boost",
+        "price": 3,
+        "description": "+5 max members for one of your teams",
+        "category": "team",
+        "emoji": "👥"
+    },
+    "team_banner": {
+        "name": "🎨 Custom Team Banner",
+        "price": 2,
+        "description": "Set a custom color & description for your team",
+        "category": "team",
+        "emoji": "🎨"
+    },
+    "unlock_agent_mode": {
+        "name": "🤖 Unlock Agent Mode",
+        "price": 5,
+        "description": "Permanently unlock Agent Mode (no per-msg cost)",
+        "category": "ai",
+        "emoji": "🤖"
+    },
+    "unlock_super_agent": {
+        "name": "⚡ Unlock Super Agent",
+        "price": 10,
+        "description": "Permanently unlock Super Agent (no per-msg cost)",
+        "category": "ai",
+        "emoji": "⚡"
+    },
+    "ai_cooldown_reduction": {
+        "name": "⏱️ AI Speedup",
+        "price": 5,
+        "description": "Reduce AI temp chat cooldown to 1 hour (permanent)",
+        "category": "ai",
+        "emoji": "⏱️"
+    },
+    "ai_credit_pack_small": {
+        "name": "🤖 AI Credits (50)",
+        "price": 2,
+        "description": "Get 50 AI Credits instantly",
+        "category": "ai",
+        "emoji": "🤖"
+    },
+    "ai_credit_pack_large": {
+        "name": "🤖 AI Credits (150)",
+        "price": 5,
+        "description": "Get 150 AI Credits instantly (best value)",
+        "category": "ai",
+        "emoji": "🤖"
+    },
+    "custom_role_color": {
+        "name": "🌈 Custom Role Color",
+        "price": 3,
+        "description": "Choose a custom color for your profile",
+        "category": "profile",
+        "emoji": "🌈"
+    },
+    "profile_badge": {
+        "name": "⭐ Premium Badge",
+        "price": 1,
+        "description": "Show a ⭐ premium badge on your profile",
+        "category": "profile",
+        "emoji": "⭐"
+    },
+    "marketplace_featured": {
+        "name": "📢 Featured Listing",
+        "price": 4,
+        "description": "Pin one of your marketplace listings as featured",
+        "category": "marketplace",
+        "emoji": "📢"
+    },
 }
 
 # AI Settings

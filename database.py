@@ -1,6 +1,8 @@
 import json
 import os
 import uuid
+import random
+import string
 from datetime import datetime
 from config import MONGODB_URI, DB_NAME
 
@@ -60,12 +62,16 @@ except Exception as e:
     db = None
 
 
+def _generate_invite_code():
+    """Generate a random 6-char uppercase invite code"""
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+
+
 class UserProfile:
     """User data model"""
 
     @staticmethod
     async def create_user(user_id: int, username: str):
-        """Create a new user profile"""
         player_id = f"DEV-{str(user_id)[-6:]}-{str(uuid.uuid4())[:4].upper()}"
         user = {
             "_id": user_id,
@@ -83,8 +89,18 @@ class UserProfile:
             "studio_credits": 500,
             "pcredits": 0,
             "ai_credits": 0,
-            "max_teams": 1,
+            "max_teams": 3,
             "max_projects": 2,
+            # Premium unlocks
+            "has_agent_mode": False,
+            "has_super_agent": False,
+            "has_premium_badge": False,
+            "has_custom_color": False,
+            "has_team_storage": False,
+            "has_team_banner": False,
+            "has_featured_listing": False,
+            "custom_color": None,
+            "auto_agent_switch": False,
             "temp_chat_cooldown": None,
             "created_at": datetime.utcnow().isoformat(),
             "last_quest": None,
@@ -112,7 +128,6 @@ class UserProfile:
 
     @staticmethod
     async def get_user(user_id: int):
-        """Get user profile"""
         if db is not None:
             try:
                 user = await db["users"].find_one({"_id": user_id})
@@ -124,7 +139,6 @@ class UserProfile:
 
     @staticmethod
     async def update_user(user_id: int, updates: dict):
-        """Update user profile"""
         if db is not None:
             try:
                 await db["users"].update_one({"_id": user_id}, {"$set": updates})
@@ -164,17 +178,40 @@ class UserProfile:
 
 
 class TeamData:
+
     @staticmethod
-    async def create_team(team_id: str, creator_id: int, team_name: str, project: str):
+    async def create_team(team_id: str, creator_id: int, team_name: str, project: str = "", private: bool = True):
+        """Create a new team. Project is optional."""
+        invite_code = _generate_invite_code()
+        # Make sure invite code is unique
+        for _ in range(10):
+            exists = False
+            for t in _memory_teams.values():
+                if t.get("invite_code") == invite_code:
+                    exists = True
+                    break
+            if not exists:
+                break
+            invite_code = _generate_invite_code()
+
         team = {
             "_id": team_id,
             "name": team_name,
-            "project": project,
+            "project": project or "No project yet",
             "creator_id": creator_id,
             "members": [creator_id],
+            "max_members": 5,
             "shared_wallet": 0,
             "milestones": [],
             "progress": 0,
+            "private": private,
+            "invite_code": invite_code,
+            "category_id": None,
+            "has_storage": False,
+            "has_banner": False,
+            "banner_color": None,
+            "banner_description": None,
+            "projects": [],
             "created_at": datetime.utcnow().isoformat(),
         }
         if db is not None:
@@ -195,19 +232,110 @@ class TeamData:
                 pass
         return _memory_teams.get(team_id)
 
+    @staticmethod
+    async def update_team(team_id: str, updates: dict):
+        if db is not None:
+            try:
+                await db["teams"].update_one({"_id": team_id}, {"$set": updates})
+            except Exception:
+                pass
+        if team_id in _memory_teams:
+            _memory_teams[team_id].update(updates)
+            save_json(TEAMS_FILE, _memory_teams)
+
+    @staticmethod
+    async def delete_team(team_id: str):
+        if db is not None:
+            try:
+                await db["teams"].delete_one({"_id": team_id})
+            except Exception:
+                pass
+        if team_id in _memory_teams:
+            del _memory_teams[team_id]
+            save_json(TEAMS_FILE, _memory_teams)
+
+    @staticmethod
+    async def add_member(team_id: str, user_id: int):
+        team = await TeamData.get_team(team_id)
+        if not team:
+            return False
+        members = team.get("members", [])
+        if user_id in members:
+            return False
+        members.append(user_id)
+        await TeamData.update_team(team_id, {"members": members})
+        return True
+
+    @staticmethod
+    async def remove_member(team_id: str, user_id: int):
+        team = await TeamData.get_team(team_id)
+        if not team:
+            return False
+        members = team.get("members", [])
+        if user_id not in members:
+            return False
+        members.remove(user_id)
+        await TeamData.update_team(team_id, {"members": members})
+        return True
+
+    @staticmethod
+    async def get_user_teams(user_id: int):
+        """Get all teams a user is a member of"""
+        results = []
+        if db is not None:
+            try:
+                cursor = db["teams"].find({"members": user_id})
+                results = await cursor.to_list(100)
+                if results:
+                    return results
+            except Exception:
+                pass
+        # Fallback to memory
+        for team_id, team in _memory_teams.items():
+            if user_id in team.get("members", []):
+                results.append(team)
+        return results
+
+    @staticmethod
+    async def get_all_teams():
+        """Get all public teams"""
+        results = []
+        if db is not None:
+            try:
+                cursor = db["teams"].find({"private": False})
+                results = await cursor.to_list(100)
+                if results:
+                    return results
+            except Exception:
+                pass
+        for team_id, team in _memory_teams.items():
+            if not team.get("private", True):
+                results.append(team)
+        return results
+
+    @staticmethod
+    async def add_project(team_id: str, project_name: str, description: str = ""):
+        """Add a project to a team"""
+        team = await TeamData.get_team(team_id)
+        if not team:
+            return False
+        projects = team.get("projects", [])
+        projects.append({
+            "name": project_name,
+            "description": description,
+            "created_at": datetime.utcnow().isoformat(),
+            "status": "active"
+        })
+        await TeamData.update_team(team_id, {"projects": projects})
+        return True
+
 
 class MarketplaceData:
     @staticmethod
     async def create_listing(listing):
-        """Create a new listing. listing_id should already be in the dict from shop.py"""
-        # Use listing_id as the _id if provided, otherwise generate one
         if "listing_id" not in listing:
             listing["listing_id"] = str(uuid.uuid4())[:8].upper()
-
-        # Set _id to listing_id for storage
         listing["_id"] = listing["listing_id"]
-
-        # Ensure defaults
         listing.setdefault("status", "active")
         listing.setdefault("sold", 0)
         listing.setdefault("rating", 0)
@@ -226,44 +354,32 @@ class MarketplaceData:
 
     @staticmethod
     async def get_listing_by_id(listing_id: str):
-        """Get a single listing by its listing_id"""
         listing_id = listing_id.strip().upper()
-
         if db is not None:
             try:
                 result = await db["marketplace"].find_one({"listing_id": listing_id})
                 if result:
                     return result
-                # Fallback: try _id
                 result = await db["marketplace"].find_one({"_id": listing_id})
                 if result:
                     return result
             except Exception:
                 pass
-
-        # Check memory
         if listing_id in _memory_marketplace:
             return _memory_marketplace[listing_id]
-
-        # Search by listing_id field in values
         for key, val in _memory_marketplace.items():
             if val.get("listing_id", "").upper() == listing_id:
                 return val
-
         return None
 
     @staticmethod
     async def get_listings(category=None, search=None, sort_by="newest", page=1, per_page=5):
-        """Get listings with filtering, searching, sorting, and pagination"""
-        # Get all listings
         all_listings = []
-
         if db is not None:
             try:
                 query = {"status": "active"}
                 if category:
                     query["category"] = category
-
                 results = await db["marketplace"].find(query).to_list(500)
                 all_listings = results
             except Exception:
@@ -271,13 +387,11 @@ class MarketplaceData:
         else:
             all_listings = list(_memory_marketplace.values())
 
-        # Filter active only (for memory fallback)
         if not (db is not None):
             all_listings = [l for l in all_listings if l.get("status", "active") == "active"]
             if category:
                 all_listings = [l for l in all_listings if l.get("category") == category]
 
-        # Search filter
         if search:
             search_lower = search.lower()
             filtered = []
@@ -288,7 +402,6 @@ class MarketplaceData:
                     filtered.append(l)
             all_listings = filtered
 
-        # Sort
         if sort_by == "newest":
             all_listings.sort(key=lambda x: x.get("created_at", ""), reverse=True)
         elif sort_by == "oldest":
@@ -302,15 +415,12 @@ class MarketplaceData:
         elif sort_by == "best_selling":
             all_listings.sort(key=lambda x: x.get("sold", 0), reverse=True)
 
-        # Pagination
         total = len(all_listings)
         total_pages = max(1, (total + per_page - 1) // per_page)
-
         if page < 1:
             page = 1
         if page > total_pages:
             page = total_pages
-
         start = (page - 1) * per_page
         end = start + per_page
         page_listings = all_listings[start:end]
@@ -324,32 +434,25 @@ class MarketplaceData:
 
     @staticmethod
     async def get_user_listings(user_id: int):
-        """Get all listings by a specific user"""
         if db is not None:
             try:
                 return await db["marketplace"].find({"seller_id": user_id}).to_list(100)
             except Exception:
                 pass
-
         return [l for l in _memory_marketplace.values() if l.get("seller_id") == user_id]
 
     @staticmethod
     async def can_user_sell(user_id: int):
-        """Check if a user is allowed to sell"""
         user = await UserProfile.get_user(user_id)
         if not user:
             return False, "You need to create a profile first! Use `/start`"
-
         if not user.get("can_sell", True):
             return False, "Your selling privileges have been revoked."
-
         return True, "OK"
 
     @staticmethod
     async def increment_sold(listing_id: str):
-        """Increment the sold counter on a listing"""
         listing_id = listing_id.strip().upper()
-
         if db is not None:
             try:
                 await db["marketplace"].update_one(
@@ -358,8 +461,6 @@ class MarketplaceData:
                 )
             except Exception:
                 pass
-
-        # Update memory
         if listing_id in _memory_marketplace:
             _memory_marketplace[listing_id]["sold"] = _memory_marketplace[listing_id].get("sold", 0) + 1
             save_json(MARKETPLACE_FILE, _memory_marketplace)
@@ -372,24 +473,17 @@ class MarketplaceData:
 
     @staticmethod
     async def add_rating(listing_id: str, seller_id: int, rating: int):
-        """Add a rating to a listing and update seller average"""
         listing_id = listing_id.strip().upper()
-
-        # Update listing rating
         listing = await MarketplaceData.get_listing_by_id(listing_id)
         if listing:
             current_rating = listing.get("rating", 0)
             ratings_count = listing.get("ratings_count", 0)
-
-            # Calculate new average
             if ratings_count == 0:
                 new_rating = rating
             else:
                 new_rating = round(((current_rating * ratings_count) + rating) / (ratings_count + 1), 1)
-
             new_count = ratings_count + 1
 
-            # Update in DB
             if db is not None:
                 try:
                     await db["marketplace"].update_one(
@@ -398,8 +492,6 @@ class MarketplaceData:
                     )
                 except Exception:
                     pass
-
-            # Update memory
             if listing_id in _memory_marketplace:
                 _memory_marketplace[listing_id]["rating"] = new_rating
                 _memory_marketplace[listing_id]["ratings_count"] = new_count
@@ -412,12 +504,10 @@ class MarketplaceData:
                         save_json(MARKETPLACE_FILE, _memory_marketplace)
                         break
 
-        # Update seller average rating
         seller = await UserProfile.get_user(seller_id)
         if seller:
             seller_listings = await MarketplaceData.get_user_listings(seller_id)
             rated_listings = [l for l in seller_listings if l.get("ratings_count", 0) > 0]
-
             if rated_listings:
                 avg = round(sum(l.get("rating", 0) for l in rated_listings) / len(rated_listings), 1)
                 await UserProfile.update_user(seller_id, {"seller_rating": avg})
@@ -426,8 +516,6 @@ class MarketplaceData:
 class TransactionData:
     @staticmethod
     async def create_transaction(transaction_data):
-        """Record a transaction - accepts a dict"""
-        # Handle both old style (positional args) and new style (dict)
         if isinstance(transaction_data, dict):
             tx = transaction_data.copy()
             tx.setdefault("status", "completed")
