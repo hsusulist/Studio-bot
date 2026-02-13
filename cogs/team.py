@@ -633,13 +633,14 @@ class TeamActionView(discord.ui.View):
 
     @discord.ui.button(label="Settings", emoji="⚙️", style=discord.ButtonStyle.danger, row=1)
     async def settings(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer(ephemeral=True)
         team = await TeamData.get_team(self.team_id)
         if not team:
-            await interaction.response.send_message("Team not found!", ephemeral=True)
+            await interaction.followup.send("Team not found!", ephemeral=True)
             return
 
         if interaction.user.id != team.get("creator_id"):
-            await interaction.response.send_message("Only the owner can access settings.", ephemeral=True)
+            await interaction.followup.send("Only the owner can access settings.", ephemeral=True)
             return
 
         view = TeamSettingsView(self.team_id, self.user_id)
@@ -653,7 +654,7 @@ class TeamActionView(discord.ui.View):
                 f"**Storage:** {'☁️ Enabled' if team.get('has_storage') else '❌ Not unlocked'}\n"
                 f"**Banner:** {'🎨 Custom' if team.get('has_banner') else '❌ Not unlocked'}"),
             color=discord.Color.orange())
-        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+        await interaction.followup.send(embed=embed, view=view, ephemeral=True)
 
 
 # ============================================================
@@ -1142,20 +1143,17 @@ class TeamSelectionView(discord.ui.View):
 
         user = await UserProfile.get_user(self.user_id)
         if not user:
-            await UserProfile.create_user(self.user_id, interaction.user.name)
-            user = await UserProfile.get_user(self.user_id)
+            user = await UserProfile.create_user(self.user_id, interaction.user.name)
 
-        from premium import PremiumShopView
-        from config import PCREDIT_SHOP
-
-        embed = discord.Embed(title="💎 Premium Shop", color=discord.Color.gold())
-        embed.add_field(
-            name="Your Balance",
-            value=f"💎 **{user.get('pcredits', 0)}** pCredits",
-            inline=False)
-
-        # Group by category
-        categories = {}
+        from cogs.premium import PremiumShopView
+        embed = discord.Embed(
+            title="💎 Premium Shop",
+            description=(
+                f"Your pCredits: **{user.get('pcredits', 0)}**\n\n"
+                "Buy team upgrades and premium features here!"),
+            color=0x5865F2)
+        view = PremiumShopView(self.user_id)
+        await interaction.followup.send(embed=embed, view=view, ephemeral=True)
         for key, item in PCREDIT_SHOP.items():
             cat = item.get("category", "other")
             if cat not in categories:

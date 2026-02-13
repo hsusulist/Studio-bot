@@ -200,8 +200,18 @@ def is_quest_complete(user_data: dict, quest: dict) -> bool:
     return get_user_progress(user_data, quest) >= quest["requirement"]
 
 
-# ==================== QUEST LIST VIEW ====================
-class QuestListView(discord.ui.View):
+class QuestCog(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+
+    @app_commands.command(name="quest", description="View and claim your development quests")
+    async def quest(self, interaction: discord.Interaction):
+        """Open the quest board"""
+        view = QuestListView(interaction.user.id, self.bot)
+        await view.show_quests(interaction)
+
+async def setup(bot):
+    await bot.add_cog(QuestCog(bot))
     def __init__(self, user_id: int, bot):
         super().__init__(timeout=120)
         self.user_id = user_id
