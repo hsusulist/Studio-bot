@@ -12,20 +12,18 @@ import asyncio
 import os
 import re
 import json
-from google import genai
+from anthropic import Anthropic
 
 from ai_tools import ai_handler, CommandBarTool, CodeConverterTool
 from agent_core import AgentMode
 
-AI_INTEGRATIONS_GEMINI_API_KEY = os.environ.get("AI_INTEGRATIONS_GEMINI_API_KEY")
-AI_INTEGRATIONS_GEMINI_BASE_URL = os.environ.get("AI_INTEGRATIONS_GEMINI_BASE_URL")
+# Anthropic Integration Setup
+AI_INTEGRATIONS_ANTHROPIC_API_KEY = os.environ.get("AI_INTEGRATIONS_ANTHROPIC_API_KEY")
+AI_INTEGRATIONS_ANTHROPIC_BASE_URL = os.environ.get("AI_INTEGRATIONS_ANTHROPIC_BASE_URL")
 
-genai_client = genai.Client(
-    api_key=AI_INTEGRATIONS_GEMINI_API_KEY,
-    http_options={
-        'api_version': '',
-        'base_url': AI_INTEGRATIONS_GEMINI_BASE_URL
-    }
+anthropic_client = Anthropic(
+    api_key=AI_INTEGRATIONS_ANTHROPIC_API_KEY,
+    base_url=AI_INTEGRATIONS_ANTHROPIC_BASE_URL
 )
 
 
@@ -314,9 +312,9 @@ class PremiumCog(commands.Cog):
         self.bot = bot
         self.ai_channel_id = None
         self.session = None
-        self.agent = AgentMode(genai_client, AI_MODEL, AI_PERSONALITY)
-        self.command_tool = CommandBarTool(genai_client, AI_MODEL)
-        self.converter_tool = CodeConverterTool(genai_client, AI_MODEL)
+        self.agent = AgentMode(anthropic_client, AI_MODEL, AI_PERSONALITY)
+        self.command_tool = CommandBarTool(anthropic_client, AI_MODEL)
+        self.converter_tool = CodeConverterTool(anthropic_client, AI_MODEL)
 
     # ============================================================
     # COMPLEXITY CHECKER

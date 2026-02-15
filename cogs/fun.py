@@ -8,33 +8,28 @@ import random
 import json
 import os
 import time
-from google import genai
+from anthropic import Anthropic
 
 from ai_tools import ai_handler
 
-AI_INTEGRATIONS_GEMINI_API_KEY = os.environ.get("AI_INTEGRATIONS_GEMINI_API_KEY")
-AI_INTEGRATIONS_GEMINI_BASE_URL = os.environ.get("AI_INTEGRATIONS_GEMINI_BASE_URL")
+# Anthropic Integration Setup
+AI_INTEGRATIONS_ANTHROPIC_API_KEY = os.environ.get("AI_INTEGRATIONS_ANTHROPIC_API_KEY")
+AI_INTEGRATIONS_ANTHROPIC_BASE_URL = os.environ.get("AI_INTEGRATIONS_ANTHROPIC_BASE_URL")
 
-genai_client = genai.Client(
-    api_key=AI_INTEGRATIONS_GEMINI_API_KEY,
-    http_options={
-        'api_version': '',
-        'base_url': AI_INTEGRATIONS_GEMINI_BASE_URL
-    }
+anthropic_client = Anthropic(
+    api_key=AI_INTEGRATIONS_ANTHROPIC_API_KEY,
+    base_url=AI_INTEGRATIONS_ANTHROPIC_BASE_URL
 )
-
 
 async def call_ai(prompt):
     try:
-        loop = asyncio.get_event_loop()
-        response = await loop.run_in_executor(
-            None,
-            lambda: genai_client.models.generate_content(
-                model=AI_MODEL,
-                contents=prompt
-            )
+        response = await asyncio.to_thread(
+            anthropic_client.messages.create,
+            model=AI_MODEL,
+            max_tokens=8192,
+            messages=[{"role": "user", "content": prompt}]
         )
-        return response.text or "No response."
+        return response.content[0].text
     except Exception as e:
         print(f"[AI Error] {e}")
         return f"❌ AI Error: {str(e)[:200]}"

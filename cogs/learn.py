@@ -11,49 +11,35 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 
-from google import genai
-from google.genai import types
+from anthropic import Anthropic
 
 from config import BOT_COLOR, AI_MODEL
 from database import UserProfile
 
-# -----------------------------
-# Gemini AI Configuration
-# -----------------------------
-AI_INTEGRATIONS_GEMINI_API_KEY = os.environ.get("AI_INTEGRATIONS_GEMINI_API_KEY")
-AI_INTEGRATIONS_GEMINI_BASE_URL = os.environ.get("AI_INTEGRATIONS_GEMINI_BASE_URL")
+# Anthropic Integration Setup
+AI_INTEGRATIONS_ANTHROPIC_API_KEY = os.environ.get("AI_INTEGRATIONS_ANTHROPIC_API_KEY")
+AI_INTEGRATIONS_ANTHROPIC_BASE_URL = os.environ.get("AI_INTEGRATIONS_ANTHROPIC_BASE_URL")
 
-client = genai.Client(
-    api_key=AI_INTEGRATIONS_GEMINI_API_KEY,
-    http_options={
-        'api_version': '',
-        'base_url': AI_INTEGRATIONS_GEMINI_BASE_URL
-    }
+client = Anthropic(
+    api_key=AI_INTEGRATIONS_ANTHROPIC_API_KEY,
+    base_url=AI_INTEGRATIONS_ANTHROPIC_BASE_URL
 )
 
 MAX_CONVERSATION_MESSAGES = 50
 
 
 async def openrouter_chat(messages, model_pool=None, max_tokens=1000):
-    """Compatibility wrapper for Gemini AI Integrations"""
-    prompt = ""
-    for msg in messages:
-        role = "Assistant" if msg["role"] == "assistant" else msg["role"].capitalize()
-        prompt += f"{role}: {msg['content']}\n"
-
+    """Compatibility wrapper for Anthropic AI Integrations"""
     try:
-        loop = asyncio.get_event_loop()
-        response = await loop.run_in_executor(
-            None,
-            lambda: client.models.generate_content(
-                model=AI_MODEL,
-                contents=prompt,
-                config=types.GenerateContentConfig(max_output_tokens=max_tokens)
-            )
+        response = await asyncio.to_thread(
+            client.messages.create,
+            model=AI_MODEL,
+            max_tokens=max_tokens,
+            messages=messages
         )
-        return response.text or "No response generated."
+        return response.content[0].text
     except Exception as e:
-        print(f"Gemini API Error: {e}")
+        print(f"Anthropic API Error: {e}")
         return f"❌ AI Error: {str(e)}"
 
 

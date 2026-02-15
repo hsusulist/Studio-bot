@@ -874,15 +874,20 @@ class AgentMode:
 
     async def _call_ai(self, prompt, timeout=120):
         try:
+            from config import AI_MODEL
+            messages = [{"role": "user", "content": prompt}]
+            
             response = await asyncio.wait_for(
                 asyncio.to_thread(
-                    self.genai_client.models.generate_content,
-                    model=self.model_name,
-                    contents=prompt
+                    anthropic_client.messages.create,
+                    model=AI_MODEL,
+                    max_tokens=8192,
+                    messages=messages,
+                    temperature=0.7
                 ),
                 timeout=timeout
             )
-            return response.text or ""
+            return response.content[0].text
         except asyncio.TimeoutError:
             print(f"[Agent] AI call timed out after {timeout}s")
             return "ERROR: AI request timed out. Please try again."
