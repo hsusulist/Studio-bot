@@ -148,7 +148,7 @@ PCREDIT_SHOP = {
 }
 
 # AI Settings
-AI_MODEL = "gemini-2.5-flash"
+AI_MODEL = "gemini-3-pro"
 AI_NAME = "Assistant"
 AI_PERSONALITY = """
 ROLE: 
