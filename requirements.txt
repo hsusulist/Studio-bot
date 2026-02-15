@@ -13,3 +13,4 @@ pymongo
 python-dotenv
 requests
 google-genai
+anthropic

@@ -3,13 +3,24 @@ import json
 import asyncio
 import time
 import io
+import os
 import discord
 from datetime import datetime
+from anthropic import Anthropic
 from ai_tools import SplitMessageTool, CodeThreadTool, ReadMessagesTool
 from agent_features import (
     TemplateLibrary, ProjectMemory, FileTreeExporter,
     CodeReviewTool, SmartCodeConnector, AntiExploitScanner,
     SetupScriptGenerator, AutoTestGenerator, LiveCodeExplainer
+)
+
+# Anthropic Integration Setup
+AI_INTEGRATIONS_ANTHROPIC_API_KEY = os.environ.get("AI_INTEGRATIONS_ANTHROPIC_API_KEY")
+AI_INTEGRATIONS_ANTHROPIC_BASE_URL = os.environ.get("AI_INTEGRATIONS_ANTHROPIC_BASE_URL")
+
+anthropic_client = Anthropic(
+    api_key=AI_INTEGRATIONS_ANTHROPIC_API_KEY,
+    base_url=AI_INTEGRATIONS_ANTHROPIC_BASE_URL
 )
 
 
