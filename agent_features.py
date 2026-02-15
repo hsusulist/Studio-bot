@@ -239,9 +239,13 @@ class CodeReviewTool:
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(
                 None,
-                lambda: self.anthropic_client.models.generate_content(model=self.model_name, contents=prompt)
+                lambda: self.anthropic_client.messages.create(
+                    model=self.model_name,
+                    max_tokens=4096,
+                    messages=[{"role": "user", "content": prompt}]
+                )
             )
-            return response.text or ""
+            return response.content[0].text if response.content else ""
         except Exception as e:
             return "ERROR: " + str(e)
 
@@ -288,9 +292,13 @@ class SmartCodeConnector:
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(
                 None,
-                lambda: self.anthropic_client.models.generate_content(model=self.model_name, contents=prompt)
+                lambda: self.anthropic_client.messages.create(
+                    model=self.model_name,
+                    max_tokens=4096,
+                    messages=[{"role": "user", "content": prompt}]
+                )
             )
-            return response.text or ""
+            return response.content[0].text if response.content else ""
         except Exception as e:
             return "ERROR: " + str(e)
 
@@ -341,9 +349,13 @@ class AntiExploitScanner:
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(
                 None,
-                lambda: self.anthropic_client.models.generate_content(model=self.model_name, contents=prompt)
+                lambda: self.anthropic_client.messages.create(
+                    model=self.model_name,
+                    max_tokens=4096,
+                    messages=[{"role": "user", "content": prompt}]
+                )
             )
-            return response.text or ""
+            return response.content[0].text if response.content else ""
         except Exception as e:
             return "ERROR: " + str(e)
 
@@ -394,9 +406,13 @@ class SetupScriptGenerator:
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(
                 None,
-                lambda: self.anthropic_client.models.generate_content(model=self.model_name, contents=prompt)
+                lambda: self.anthropic_client.messages.create(
+                    model=self.model_name,
+                    max_tokens=4096,
+                    messages=[{"role": "user", "content": prompt}]
+                )
             )
-            return response.text or ""
+            return response.content[0].text if response.content else ""
         except Exception as e:
             return "ERROR: " + str(e)
 
@@ -428,9 +444,13 @@ class AutoTestGenerator:
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(
                 None,
-                lambda: self.anthropic_client.models.generate_content(model=self.model_name, contents=prompt)
+                lambda: self.anthropic_client.messages.create(
+                    model=self.model_name,
+                    max_tokens=4096,
+                    messages=[{"role": "user", "content": prompt}]
+                )
             )
-            return response.text or ""
+            return response.content[0].text if response.content else ""
         except Exception as e:
             return "ERROR: " + str(e)
 
@@ -458,9 +478,13 @@ class LiveCodeExplainer:
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(
                 None,
-                lambda: self.anthropic_client.models.generate_content(model=self.model_name, contents=prompt)
+                lambda: self.anthropic_client.messages.create(
+                    model=self.model_name,
+                    max_tokens=4096,
+                    messages=[{"role": "user", "content": prompt}]
+                )
             )
-            return response.text or ""
+            return response.content[0].text if response.content else ""
         except Exception as e:
             return "ERROR: " + str(e)
 

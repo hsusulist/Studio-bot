@@ -349,12 +349,13 @@ class PremiumCog(commands.Cog):
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(
                 None,
-                lambda: anthropic_client.models.generate_content(
+                lambda: anthropic_client.messages.create(
                     model=AI_MODEL,
-                    contents=check_prompt
+                    max_tokens=1024,
+                    messages=[{"role": "user", "content": check_prompt}]
                 )
             )
-            text = response.text or ""
+            text = response.content[0].text if response.content else ""
 
             cleaned = text.strip()
             if cleaned.startswith("```"):

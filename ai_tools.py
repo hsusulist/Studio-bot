@@ -477,13 +477,14 @@ class CommandBarTool:
         try:
             response = await asyncio.wait_for(
                 asyncio.to_thread(
-                    self.anthropic_client.models.generate_content,
+                    self.anthropic_client.messages.create,
                     model=self.model_name,
-                    contents=prompt
+                    max_tokens=4096,
+                    messages=[{"role": "user", "content": prompt}]
                 ),
                 timeout=90
             )
-            result_text = response.text or ""
+            result_text = response.content[0].text if response.content else ""
 
             # Parse the response
             main_code = ""
