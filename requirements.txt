@@ -14,3 +14,12 @@ python-dotenv
 requests
 google-genai
 anthropic
+aiohttp
+anthropic
+discord.py
+google-genai
+motor
+pillow
+pymongo
+python-dotenv
+requests

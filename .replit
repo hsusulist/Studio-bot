@@ -1,4 +1,4 @@
-modules = ["bash", "nodejs-20", "python-3.11"]
+modules = ["python-3.12", "bash"]
 [agent]
 expertMode = true
 integrations = ["python_gemini_ai_integrations:1.0.0", "python_anthropic_ai_integrations:1.0.0"]
