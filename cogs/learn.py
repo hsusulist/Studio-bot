@@ -43,8 +43,8 @@ async def openrouter_chat(messages, model_pool=None, max_tokens=1000):
         return f"❌ AI Error: {str(e)}"
 
 
-CODER_MODELS = ["gemini-3-pro"]
-EXPLAIN_MODELS = ["gemini-3-flash"]
+CODER_MODELS = ["claude-haiku-4-5"]
+EXPLAIN_MODELS = ["claude-haiku-4-5"]
 ALL_MODELS = CODER_MODELS + EXPLAIN_MODELS
 
 
