@@ -230,8 +230,8 @@ class FileTreeExporter:
 
 
 class CodeReviewTool:
-    def __init__(self, genai_client, model_name):
-        self.genai_client = genai_client
+    def __init__(self, anthropic_client, model_name):
+        self.anthropic_client = anthropic_client
         self.model_name = model_name
 
     async def _call_ai(self, prompt):
@@ -239,7 +239,7 @@ class CodeReviewTool:
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(
                 None,
-                lambda: self.genai_client.models.generate_content(model=self.model_name, contents=prompt)
+                lambda: self.anthropic_client.models.generate_content(model=self.model_name, contents=prompt)
             )
             return response.text or ""
         except Exception as e:
@@ -279,8 +279,8 @@ class CodeReviewTool:
 
 
 class SmartCodeConnector:
-    def __init__(self, genai_client, model_name):
-        self.genai_client = genai_client
+    def __init__(self, anthropic_client, model_name):
+        self.anthropic_client = anthropic_client
         self.model_name = model_name
 
     async def _call_ai(self, prompt):
@@ -288,7 +288,7 @@ class SmartCodeConnector:
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(
                 None,
-                lambda: self.genai_client.models.generate_content(model=self.model_name, contents=prompt)
+                lambda: self.anthropic_client.models.generate_content(model=self.model_name, contents=prompt)
             )
             return response.text or ""
         except Exception as e:
@@ -332,8 +332,8 @@ class SmartCodeConnector:
 
 
 class AntiExploitScanner:
-    def __init__(self, genai_client, model_name):
-        self.genai_client = genai_client
+    def __init__(self, anthropic_client, model_name):
+        self.anthropic_client = anthropic_client
         self.model_name = model_name
 
     async def _call_ai(self, prompt):
@@ -341,7 +341,7 @@ class AntiExploitScanner:
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(
                 None,
-                lambda: self.genai_client.models.generate_content(model=self.model_name, contents=prompt)
+                lambda: self.anthropic_client.models.generate_content(model=self.model_name, contents=prompt)
             )
             return response.text or ""
         except Exception as e:
@@ -385,8 +385,8 @@ class AntiExploitScanner:
 
 
 class SetupScriptGenerator:
-    def __init__(self, genai_client, model_name):
-        self.genai_client = genai_client
+    def __init__(self, anthropic_client, model_name):
+        self.anthropic_client = anthropic_client
         self.model_name = model_name
 
     async def _call_ai(self, prompt):
@@ -394,7 +394,7 @@ class SetupScriptGenerator:
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(
                 None,
-                lambda: self.genai_client.models.generate_content(model=self.model_name, contents=prompt)
+                lambda: self.anthropic_client.models.generate_content(model=self.model_name, contents=prompt)
             )
             return response.text or ""
         except Exception as e:
@@ -419,8 +419,8 @@ class SetupScriptGenerator:
 
 
 class AutoTestGenerator:
-    def __init__(self, genai_client, model_name):
-        self.genai_client = genai_client
+    def __init__(self, anthropic_client, model_name):
+        self.anthropic_client = anthropic_client
         self.model_name = model_name
 
     async def _call_ai(self, prompt):
@@ -428,7 +428,7 @@ class AutoTestGenerator:
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(
                 None,
-                lambda: self.genai_client.models.generate_content(model=self.model_name, contents=prompt)
+                lambda: self.anthropic_client.models.generate_content(model=self.model_name, contents=prompt)
             )
             return response.text or ""
         except Exception as e:
@@ -449,8 +449,8 @@ class AutoTestGenerator:
 
 
 class LiveCodeExplainer:
-    def __init__(self, genai_client, model_name):
-        self.genai_client = genai_client
+    def __init__(self, anthropic_client, model_name):
+        self.anthropic_client = anthropic_client
         self.model_name = model_name
 
     async def _call_ai(self, prompt):
@@ -458,7 +458,7 @@ class LiveCodeExplainer:
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(
                 None,
-                lambda: self.genai_client.models.generate_content(model=self.model_name, contents=prompt)
+                lambda: self.anthropic_client.models.generate_content(model=self.model_name, contents=prompt)
             )
             return response.text or ""
         except Exception as e:

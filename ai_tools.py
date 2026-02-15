@@ -268,8 +268,8 @@ class CommandBarTool:
         ":ClearAllChildren()": "-- Children moved to nil individually (safe removal)",
     }
 
-    def __init__(self, genai_client=None, model_name=None):
-        self.genai_client = genai_client
+    def __init__(self, anthropic_client=None, model_name=None):
+        self.anthropic_client = anthropic_client
         self.model_name = model_name
 
     def sanitize_code(self, code: str) -> str:
@@ -414,7 +414,7 @@ class CommandBarTool:
         Generate both the main script AND the command bar setup script.
         Uses AI if available, otherwise returns a template.
         """
-        if not self.genai_client or not self.model_name:
+        if not self.anthropic_client or not self.model_name:
             return {
                 "error": "AI client not configured for command bar generation.",
                 "main_code": None,
@@ -477,7 +477,7 @@ class CommandBarTool:
         try:
             response = await asyncio.wait_for(
                 asyncio.to_thread(
-                    self.genai_client.models.generate_content,
+                    self.anthropic_client.models.generate_content,
                     model=self.model_name,
                     contents=prompt
                 ),
@@ -592,8 +592,8 @@ class CodeConverterTool:
         "state_machine": {"name": "State Machine", "description": "FSM with states and transitions"},
     }
 
-    def __init__(self, genai_client=None, model_name=None):
-        self.genai_client = genai_client
+    def __init__(self, anthropic_client=None, model_name=None):
+        self.anthropic_client = anthropic_client
         self.model_name = model_name
 
     def resolve_language(self, input_str: str) -> str:
@@ -704,7 +704,7 @@ class CodeConverterTool:
 
     async def convert_language(self, code: str, from_lang: str, to_lang: str) -> dict:
         """Convert code from one language to another"""
-        if not self.genai_client or not self.model_name:
+        if not self.anthropic_client or not self.model_name:
             return {"error": "AI client not configured.", "converted": None}
 
         from_info = self.SUPPORTED_LANGUAGES.get(from_lang, {"name": from_lang})
@@ -744,7 +744,7 @@ class CodeConverterTool:
         try:
             response = await asyncio.wait_for(
                 asyncio.to_thread(
-                    self.genai_client.models.generate_content,
+                    self.anthropic_client.models.generate_content,
                     model=self.model_name,
                     contents=prompt
                 ),
@@ -804,7 +804,7 @@ class CodeConverterTool:
 
     async def convert_pattern(self, code: str, from_pattern: str, to_pattern: str, language: str = "lua") -> dict:
         """Convert code from one design pattern to another"""
-        if not self.genai_client or not self.model_name:
+        if not self.anthropic_client or not self.model_name:
             return {"error": "AI client not configured.", "converted": None}
 
         from_info = self.SUPPORTED_PATTERNS.get(from_pattern, {"name": from_pattern, "description": ""})
@@ -853,7 +853,7 @@ class CodeConverterTool:
         try:
             response = await asyncio.wait_for(
                 asyncio.to_thread(
-                    self.genai_client.models.generate_content,
+                    self.anthropic_client.models.generate_content,
                     model=self.model_name,
                     contents=prompt
                 ),

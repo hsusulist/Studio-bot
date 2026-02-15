@@ -817,8 +817,8 @@ class CodeFileSender:
 # ============================================================
 
 class AgentMode:
-    def __init__(self, genai_client, model_name, personality):
-        self.genai_client = genai_client
+    def __init__(self, anthropic_client, model_name, personality):
+        self.anthropic_client = anthropic_client
         self.model_name = model_name
         self.personality = personality
         self.sessions = {}
@@ -830,12 +830,12 @@ class AgentMode:
         self.project_memory = ProjectMemory()
         self.file_exporter = FileTreeExporter()
         self.file_sender = CodeFileSender()
-        self.code_reviewer = CodeReviewTool(genai_client, model_name)
-        self.connector = SmartCodeConnector(genai_client, model_name)
-        self.exploit_scanner = AntiExploitScanner(genai_client, model_name)
-        self.setup_gen = SetupScriptGenerator(genai_client, model_name)
-        self.test_gen = AutoTestGenerator(genai_client, model_name)
-        self.explainer = LiveCodeExplainer(genai_client, model_name)
+        self.code_reviewer = CodeReviewTool(anthropic_client, model_name)
+        self.connector = SmartCodeConnector(anthropic_client, model_name)
+        self.exploit_scanner = AntiExploitScanner(anthropic_client, model_name)
+        self.setup_gen = SetupScriptGenerator(anthropic_client, model_name)
+        self.test_gen = AutoTestGenerator(anthropic_client, model_name)
+        self.explainer = LiveCodeExplainer(anthropic_client, model_name)
 
     def _get_lock(self, user_id):
         if user_id not in self._locks:

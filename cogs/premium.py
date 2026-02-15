@@ -349,7 +349,7 @@ class PremiumCog(commands.Cog):
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(
                 None,
-                lambda: genai_client.models.generate_content(
+                lambda: anthropic_client.models.generate_content(
                     model=AI_MODEL,
                     contents=check_prompt
                 )
@@ -699,7 +699,7 @@ class PremiumCog(commands.Cog):
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(
                 None,
-                lambda: genai_client.models.generate_content(
+                lambda: anthropic_client.models.generate_content(
                     model=AI_MODEL,
                     contents=full_prompt
                 )
