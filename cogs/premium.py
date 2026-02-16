@@ -700,12 +700,13 @@ class PremiumCog(commands.Cog):
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(
                 None,
-                lambda: anthropic_client.models.create(
+                lambda: anthropic_client.messages.create(
                     model=AI_MODEL,
-                    contents=full_prompt
+                    max_tokens=4096,
+                    messages=[{"role": "user", "content": full_prompt}]
                 )
             )
-            ai_text = response.text or "No response generated."
+            ai_text = response.content[0].text if response.content else "No response generated."
 
             # Check for tool invocations in the AI response
             tool_pattern = r'\[TOOL:(\w+):([^\]]*)\]'
