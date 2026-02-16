@@ -745,10 +745,9 @@ class CodeConverterTool:
         try:
             response = await asyncio.wait_for(
                 asyncio.to_thread(
-                  self.anthropic_client.messages.create,
+                    self.anthropic_client.messages.generate_content,
                   model=self.model_name,
-                  max_tokens=4096,
-                  messages=[{"role": "user", "content": prompt}]
+                 contents=prompt
                 ),
                 timeout=90
             )
@@ -862,7 +861,7 @@ class CodeConverterTool:
                 ),
                 timeout=90
             )
-            result = response.text or ""
+            result = response.content[0].text if response.content else ""
 
             # Extract code
             code_pattern_regex = r"```\w*\n([\s\S]*?)```"

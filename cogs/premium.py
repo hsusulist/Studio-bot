@@ -700,7 +700,7 @@ class PremiumCog(commands.Cog):
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(
                 None,
-                lambda: anthropic_client.models.generate_content(
+                lambda: anthropic_client.models.create(
                     model=AI_MODEL,
                     contents=full_prompt
                 )
