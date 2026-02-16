@@ -18,7 +18,7 @@ from ai_tools import ai_handler, CommandBarTool, CodeConverterTool
 from agent_core import AgentMode
 
 # Anthropic Integration Setup
-AI_INTEGRATIONS_ANTHROPIC_API_KEY = os.environ.get("AI_INTEGRATIONS_ANTHROPIC_API_KEY")
+AI_INTEGRATIONS_ANTHROPIC_API_KEY = os.environ.get("AI_INTEGRATIONS_ANTHROPIC_API_KEY") or "replit_dummy_key"
 AI_INTEGRATIONS_ANTHROPIC_BASE_URL = os.environ.get("AI_INTEGRATIONS_ANTHROPIC_BASE_URL")
 
 anthropic_client = Anthropic(
