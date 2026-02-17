@@ -86,7 +86,7 @@ class UserProfile:
             "voice_minutes": 0,
             "message_count": 0,
             "reputation": 0,
-            "studio_credits": 500,
+            "studio_credits": 10,
             "pcredits": 0,
             "ai_credits": 0,
             "max_teams": 3,
@@ -114,7 +114,24 @@ class UserProfile:
             "purchases_count": 0,
             "claimed_quests": [],
             "seller_rating": 5.0,
-            "can_sell": True
+            "can_sell": True,
+            "duel_wins": 0,
+            "duel_losses": 0,
+            "duel_draws": 0,
+            "duel_credits_won": 0,
+            "duel_credits_lost": 0,
+            "duel_streak": 0,
+            "duel_best_streak": 0,
+            "duel_rank": "Novice Duelist",
+            "duel_title_emoji": "🥉",
+            "duel_history": [],
+            "duel_powerups": {
+                "shield": 0,
+                "extra_time": 0,
+                "peek": 0,
+                "sabotage": 0,
+                "reroll": 0
+            },
         }
         if db is not None:
             try:
@@ -545,3 +562,264 @@ class TransactionData:
             t for t in _memory_transactions.values()
             if t.get("seller_id") == user_id or t.get("buyer_id") == user_id
         ]
+
+# ===== DUEL DATA =====
+DUEL_FILE = os.path.join(DATA_DIR, "duels.json")
+DUEL_CONFIG_FILE = os.path.join(DATA_DIR, "duel_config.json")
+_memory_duels = load_json(DUEL_FILE, {})
+_memory_duel_config = load_json(DUEL_CONFIG_FILE, {})
+
+
+class DuelData:
+
+    DUEL_RANKS = [
+        {"min": 0, "rank": "Novice Duelist", "emoji": "🥉"},
+        {"min": 5, "rank": "Script Fighter", "emoji": "🥈"},
+        {"min": 15, "rank": "Code Warrior", "emoji": "🥇"},
+        {"min": 30, "rank": "Duel Master", "emoji": "⚔️"},
+        {"min": 50, "rank": "Grand Champion", "emoji": "👑"},
+        {"min": 100, "rank": "Legendary Duelist", "emoji": "💎"},
+        {"min": 250, "rank": "Mythic Duelist", "emoji": "🌟"},
+        {"min": 500, "rank": "Godlike Duelist", "emoji": "💀"},
+    ]
+
+    STREAK_MILESTONES = [10, 30, 50, 100, 500]
+
+    @staticmethod
+    def get_rank(wins: int):
+        rank_info = DuelData.DUEL_RANKS[0]
+        for r in DuelData.DUEL_RANKS:
+            if wins >= r["min"]:
+                rank_info = r
+        return rank_info
+
+    @staticmethod
+    async def record_duel(winner_id: int, loser_id: int, bet: int, mode: str = "classic", rounds_data: list = None):
+        duel_id = str(uuid.uuid4())[:8].upper()
+        duel = {
+            "_id": duel_id,
+            "winner_id": winner_id,
+            "loser_id": loser_id,
+            "bet": bet,
+            "mode": mode,
+            "rounds": rounds_data or [],
+            "created_at": datetime.utcnow().isoformat()
+        }
+
+        if db is not None:
+            try:
+                await db["duels"].insert_one(duel)
+            except Exception:
+                pass
+
+        _memory_duels[duel_id] = duel
+        save_json(DUEL_FILE, _memory_duels)
+
+        # Update winner
+        winner = await UserProfile.get_user(winner_id)
+        if winner:
+            new_wins = winner.get("duel_wins", 0) + 1
+            new_streak = winner.get("duel_streak", 0) + 1
+            best_streak = max(new_streak, winner.get("duel_best_streak", 0))
+            new_credits_won = winner.get("duel_credits_won", 0) + bet
+            rank_info = DuelData.get_rank(new_wins)
+
+            history = winner.get("duel_history", [])
+            history.append({
+                "duel_id": duel_id,
+                "opponent": loser_id,
+                "result": "win",
+                "bet": bet,
+                "mode": mode,
+                "date": datetime.utcnow().isoformat()
+            })
+            if len(history) > 50:
+                history = history[-50:]
+
+            await UserProfile.update_user(winner_id, {
+                "duel_wins": new_wins,
+                "duel_streak": new_streak,
+                "duel_best_streak": best_streak,
+                "duel_credits_won": new_credits_won,
+                "duel_rank": rank_info["rank"],
+                "duel_title_emoji": rank_info["emoji"],
+                "duel_history": history
+            })
+
+            return {
+                "duel_id": duel_id,
+                "winner_new_streak": new_streak,
+                "winner_best_streak": best_streak,
+                "winner_new_rank": rank_info,
+                "winner_old_wins": new_wins - 1,
+                "milestone_hit": new_streak in DuelData.STREAK_MILESTONES
+            }
+
+        return {"duel_id": duel_id}
+
+    @staticmethod
+    async def record_loss(loser_id: int, bet: int):
+        loser = await UserProfile.get_user(loser_id)
+        if loser:
+            old_streak = loser.get("duel_streak", 0)
+            new_losses = loser.get("duel_losses", 0) + 1
+            new_credits_lost = loser.get("duel_credits_lost", 0) + bet
+
+            history = loser.get("duel_history", [])
+            history.append({
+                "opponent": None,
+                "result": "loss",
+                "bet": bet,
+                "date": datetime.utcnow().isoformat()
+            })
+            if len(history) > 50:
+                history = history[-50:]
+
+            await UserProfile.update_user(loser_id, {
+                "duel_losses": new_losses,
+                "duel_streak": 0,
+                "duel_credits_lost": new_credits_lost,
+                "duel_history": history
+            })
+
+            return {"old_streak": old_streak}
+        return {}
+
+    @staticmethod
+    async def record_draw(user1_id: int, user2_id: int):
+        for uid in [user1_id, user2_id]:
+            user = await UserProfile.get_user(uid)
+            if user:
+                await UserProfile.update_user(uid, {
+                    "duel_draws": user.get("duel_draws", 0) + 1
+                })
+
+    @staticmethod
+    async def get_duel_stats(user_id: int):
+        user = await UserProfile.get_user(user_id)
+        if not user:
+            return None
+        wins = user.get("duel_wins", 0)
+        losses = user.get("duel_losses", 0)
+        draws = user.get("duel_draws", 0)
+        total = wins + losses + draws
+        win_rate = (wins / total * 100) if total > 0 else 0
+
+        rank_info = DuelData.get_rank(wins)
+
+        return {
+            "wins": wins,
+            "losses": losses,
+            "draws": draws,
+            "total": total,
+            "win_rate": win_rate,
+            "streak": user.get("duel_streak", 0),
+            "best_streak": user.get("duel_best_streak", 0),
+            "credits_won": user.get("duel_credits_won", 0),
+            "credits_lost": user.get("duel_credits_lost", 0),
+            "rank": rank_info["rank"],
+            "rank_emoji": rank_info["emoji"],
+            "powerups": user.get("duel_powerups", {}),
+            "history": user.get("duel_history", [])
+        }
+
+    @staticmethod
+    async def get_head_to_head(user1_id: int, user2_id: int):
+        all_duels = []
+        if db is not None:
+            try:
+                cursor = db["duels"].find({
+                    "$or": [
+                        {"winner_id": user1_id, "loser_id": user2_id},
+                        {"winner_id": user2_id, "loser_id": user1_id}
+                    ]
+                })
+                all_duels = await cursor.to_list(100)
+            except Exception:
+                pass
+
+        if not all_duels:
+            for d in _memory_duels.values():
+                if (d.get("winner_id") == user1_id and d.get("loser_id") == user2_id) or \
+                   (d.get("winner_id") == user2_id and d.get("loser_id") == user1_id):
+                    all_duels.append(d)
+
+        u1_wins = sum(1 for d in all_duels if d.get("winner_id") == user1_id)
+        u2_wins = sum(1 for d in all_duels if d.get("winner_id") == user2_id)
+
+        return {
+            "total_duels": len(all_duels),
+            "user1_wins": u1_wins,
+            "user2_wins": u2_wins,
+            "history": all_duels[-10:]
+        }
+
+    @staticmethod
+    async def add_powerup(user_id: int, powerup_name: str, amount: int = 1):
+        user = await UserProfile.get_user(user_id)
+        if not user:
+            return False
+        powerups = user.get("duel_powerups", {
+            "shield": 0, "extra_time": 0,
+            "peek": 0, "sabotage": 0, "reroll": 0
+        })
+        if powerup_name not in powerups:
+            return False
+        powerups[powerup_name] = powerups.get(powerup_name, 0) + amount
+        await UserProfile.update_user(user_id, {"duel_powerups": powerups})
+        return True
+
+    @staticmethod
+    async def use_powerup(user_id: int, powerup_name: str):
+        user = await UserProfile.get_user(user_id)
+        if not user:
+            return False
+        powerups = user.get("duel_powerups", {})
+        if powerups.get(powerup_name, 0) <= 0:
+            return False
+        powerups[powerup_name] -= 1
+        await UserProfile.update_user(user_id, {"duel_powerups": powerups})
+        return True
+
+    @staticmethod
+    async def get_duel_leaderboard(limit: int = 10):
+        if db is not None:
+            try:
+                return await db["users"].find(
+                    {"duel_wins": {"$gt": 0}}
+                ).sort("duel_wins", -1).limit(limit).to_list(limit)
+            except Exception:
+                pass
+        users = [u for u in _memory_users.values() if u.get("duel_wins", 0) > 0]
+        users.sort(key=lambda x: x.get("duel_wins", 0), reverse=True)
+        return users[:limit]
+
+    # ===== STREAK CHANNEL CONFIG =====
+    @staticmethod
+    async def set_streak_channel(guild_id: int, channel_id: int):
+        _memory_duel_config[str(guild_id)] = {
+            "streak_channel_id": channel_id
+        }
+        save_json(DUEL_CONFIG_FILE, _memory_duel_config)
+
+        if db is not None:
+            try:
+                await db["duel_config"].update_one(
+                    {"_id": str(guild_id)},
+                    {"$set": {"streak_channel_id": channel_id}},
+                    upsert=True
+                )
+            except Exception:
+                pass
+
+    @staticmethod
+    async def get_streak_channel(guild_id: int):
+        if db is not None:
+            try:
+                config = await db["duel_config"].find_one({"_id": str(guild_id)})
+                if config:
+                    return config.get("streak_channel_id")
+            except Exception:
+                pass
+        config = _memory_duel_config.get(str(guild_id), {})
+        return config.get("streak_channel_id")

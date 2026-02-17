@@ -747,7 +747,6 @@ class CodeConverterTool:
                 asyncio.to_thread(
                   self.anthropic_client.messages.create,
                   model=self.model_name,
-                  max_tokens=4096,
                   messages=[{"role": "user", "content": prompt}]
                 ),
                 timeout=90
@@ -857,7 +856,6 @@ class CodeConverterTool:
                 asyncio.to_thread(
                     self.anthropic_client.messages.create,
                     model=self.model_name,
-                    max_tokens=4096,
                     messages=[{"role": "user", "content": prompt}]
                 ),
                 timeout=90

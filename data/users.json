@@ -5,17 +5,17 @@
         "role": null,
         "roles": [
             "Scripter",
-            "Animator",
-            "Designer"
+            "Designer",
+            "Animator"
         ],
         "rank": "Beginner",
-        "xp": 862,
-        "level": 4,
+        "xp": 1314,
+        "level": 6,
         "experience_months": 0,
         "voice_minutes": 0,
-        "message_count": 469,
+        "message_count": 502,
         "reputation": 0,
-        "studio_credits": 867,
+        "studio_credits": 2103,
         "created_at": "2026-02-05T12:08:13.209546",
         "last_quest": "2026-02-11T23:42:49.947363",
         "portfolio_games": [],
@@ -30,11 +30,6 @@
         "learn_model_mode": "auto",
         "learn_quiz_data": {},
         "learn_conversation": [
-            {
-                "ts": "2026-02-06T15:04:29.224356+00:00",
-                "role": "assistant",
-                "content": "SUBTOPICS Part 4: \u26a0\ufe0f AI temporarily unavailable. Try again.\n_(Debug: Error 404: {'error': {'message': 'No endpoints found for qwen/qwen3-32b:free.', 'code': 404}, 'user_id': 'user_38LH2AwIjT7C1kLS3wihJHzvbOK'})_"
-            },
             {
                 "ts": "2026-02-07T04:44:55.171632+00:00",
                 "role": "assistant",
@@ -279,9 +274,14 @@
                 "ts": "2026-02-12T11:26:22.400634+00:00",
                 "role": "assistant",
                 "content": "\ud83d\udcd6 Lesson 2: Variables - Local and Global \u2014 Lesson delivered"
+            },
+            {
+                "ts": "2026-02-16T04:00:27.911817+00:00",
+                "role": "assistant",
+                "content": "\ud83d\udcd6 Lesson 2: Variables - Local and Global \u2014 Lesson delivered"
             }
         ],
-        "learn_panel_message_id": 1471325957028843641,
+        "learn_panel_message_id": 1472804700855210077,
         "learn_completed_lessons": [
             1
         ],
@@ -291,8 +291,8 @@
         "learn_correct_answers": 3,
         "learn_bookmarks": [],
         "learn_notes": {},
-        "learn_streak": 3,
-        "learn_last_activity": "2026-02-12T11:25:01.330582",
+        "learn_streak": 1,
+        "learn_last_activity": "2026-02-16T04:00:15.400780",
         "learn_quiz_attempts": 0,
         "learn_weak_topics": {
             "print": 0,
@@ -315,20 +315,24 @@
         "learn_current_quiz_index": 0,
         "learn_hints_remaining": 3,
         "learn_lesson_part": 0,
-        "pcredits": 669999999987,
+        "pcredits": 50,
         "ai_credits": 30,
         "temp_chat_cooldown": "2026-02-11T00:41:14.006411",
         "claimed_quests": [
             "Q001",
             "Q003"
         ],
-        "last_daily": "2026-02-13T14:36:03.429844",
-        "daily_streak": 2,
-        "daily_claims": 2,
+        "last_daily": "2026-02-16T04:03:21.555131",
+        "daily_streak": 1,
+        "daily_claims": 3,
         "sales_count": 1,
         "max_projects": 7,
         "player_id": "DEV-652864-033E",
-        "max_teams": 2
+        "max_teams": 2,
+        "coinflip_streak": 0,
+        "best_coinflip_streak": 0,
+        "total_coinflips": 1,
+        "coinflip_wins": 0
     },
     "1281221878257549475": {
         "_id": 1281221878257549475,

@@ -1009,7 +1009,7 @@ class AgentMode:
             "USER REQUEST: " + user_input + "\n\n"
             "Create a JSON task plan (no markdown, raw JSON only):\n"
             '{"difficulty": "Easy/Medium/Hard/Complex",'
-            '"estimated_seconds": 30,'
+            '"estimated_seconds": ?-? minutes or hours,'
             '"summary": "brief summary",'
             '"tasks": ['
             '{"id": 1, "name": "task name", "description": "what to build", "estimated_lines": 50},'

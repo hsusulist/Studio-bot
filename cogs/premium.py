@@ -1037,64 +1037,130 @@ class PremiumCog(commands.Cog):
             self.agent.sessions[message.author.id]["user_rank"] = user_rank
 
             activate_embed = discord.Embed(
-                title="⚡ Super Agent — Online",
                 description=(
-                    "Full development pipeline activated.\n\n"
-                    "**Pipeline**\n"
-                    "Build code > Self-review > Optimize > Verify alignment > Final review\n\n"
-                    "**Post-processing**\n"
-                    "Cross-file connector · Exploit scanner · Setup script · Test guide\n\n"
-                    "**Settings**\n"
-                    "`creative mode on/off` — Toggle experimental features\n"
-                    "`present task on/off` — Toggle plan approval\n\n"
-                    "**Cost:** 5 AI Credits per message (admins bypassed)\n\n"
-                    "Type `exit agent mode` to disconnect.\n"
-                    "What are we building?"
+                    "```ansi\n"
+                    "\u001b[1;33m⚡ SUPER AGENT\u001b[0m \u001b[0;30m━━━━━━━━━━━━━━━━\u001b[0m \u001b[1;33m[ONLINE]\u001b[0m\n"
+                    "```\n"
+                    "-# Full development pipeline · Maximum capability\n\n"
+
+                    "```\n"
+                    "  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐\n"
+                    "  │ 🔨 BUILD │ ─→ │ 🔍 CHECK │ ─→ │ ⚡ BOOST │ ─→ │ 🎯 ALIGN │ ─→ │ ✅ FINAL │\n"
+                    "  └──────────┘    └──────────┘    └──────────┘    └──────────┘    └──────────┘\n"
+                    "```\n\n"
+
+                    "### ◈ Post-Processing\n"
+                    "> ```\n"
+                    "> 🔗 Cross-file connector    Links all files together\n"
+                    "> 🛡️ Exploit scanner         Finds security issues\n"
+                    "> 📦 Setup script            Auto-generates setup\n"
+                    "> 🧪 Test guide              Creates test cases\n"
+                    "> ```\n\n"
+
+                    "### ◈ Configuration\n"
+                    "> ⬥ **Creative Mode** `off`\n"
+                    "> -# Enables experimental features & creative suggestions\n"
+                    "> -# → `creative_mode on` · `creative_mode off`\n"
+                    "> \n"
+                    "> ⬥ **Task Preview** `off`\n"
+                    "> -# Review and approve plans before execution\n"
+                    "> -# → `present_task on` · `present_task off`\n\n"
+
+                    "╭ 🪙 `5 credits` per message\n"
+                    "├ 👑 Admins bypass credit cost\n"
+                    "╰ 🔴 `exit agent mode` → Return to normal\n\n"
+
+                    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                    "**↓ What are we building?**"
                 ),
-                color=0x5865F2
+                color=0xF5C542
             )
+
+            activate_embed.set_author(
+                name=f"{message.author.display_name}'s Workspace · Super",
+                icon_url=message.author.display_avatar.url
+            )
+
+            activate_embed.set_footer(
+                text=f"◈ Rank: {user_rank}  │  Super Session Active  │  Agent v1.0"
+            )
+
             await message.reply(embed=activate_embed)
             return
-
-        # ========== NORMAL AGENT ACTIVATION ==========
+        
+        # ========== AGENT MODE ACTIVATION ==========
         elif content_lower == "change to agent mode":
-            if not is_admin:
-                current_ai = user.get('ai_credits', 0)
-                if current_ai < 3:
-                    await message.reply(
-                        f"Agent mode requires **3 AI Credits** per message. "
-                        f"You have **{current_ai}**.\n"
-                        f"Use `/convert_ai` to get more."
-                    )
-                    return
+          if not is_admin:
+              current_ai = user.get('ai_credits', 0)
+              if current_ai < 3:
+                  await message.reply(
+                      f"Agent mode requires **3 AI Credits** per message. "
+                      f"You have **{current_ai}**.\n"
+                      f"Use `/convert_ai` to get more."
+                  )
+                  return
 
-            user_rank = user.get("rank", "Beginner")
-            self.agent.activate(message.author.id, super_mode=False)
-            self.agent.sessions[message.author.id]["user_rank"] = user_rank
+          user_rank = user.get("rank", "Beginner")
+          self.agent.activate(message.author.id, super_mode=False)
+          self.agent.sessions[message.author.id]["user_rank"] = user_rank
 
-            activate_embed = discord.Embed(
-                title="🤖 Agent Mode — Online",
-                description=(
-                    "Task planning and code generation activated.\n\n"
-                    "**Pipeline**\n"
-                    "Analyze request > Plan tasks > Execute > Present results\n\n"
-                    "**Settings**\n"
-                    "`creative mode on/off` — Toggle extra features (default: off)\n"
-                    "`present task on/off` — Toggle plan approval (default: off)\n\n"
-                    "**Commands**\n"
-                    "`templates` · `review code` · `my projects` · `load project last`\n\n"
-                    "**Upgrade:** `change to super agent` for full pipeline\n"
-                    "**Cost:** 3 AI Credits per message\n\n"
-                    "Type `exit agent mode` to go back.\n"
-                    "What do you want to build?"
-                ),
-                color=0x5865F2
-            )
-            await message.reply(embed=activate_embed)
-            return
+          activate_embed = discord.Embed(
+              description=(
+                  "```ansi\n"
+                  "\u001b[1;32m✦ AGENT MODE\u001b[0m \u001b[0;30m━━━━━━━━━━━━━━━━━\u001b[0m \u001b[1;32m[ONLINE]\u001b[0m\n"
+                  "```\n"
+                  "-# Powered by @hsusulist · Task automation system\n\n"
 
+                  "```\n"
+                  "  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐\n"
+                  "  │ 📥 INPUT │ ─→ │ 📋 PLAN  │ ─→ │ ⚙️ BUILD │ ─→ │ ✅ DONE  │\n"
+                  "  └──────────┘    └──────────┘    └──────────┘    └──────────┘\n"
+                  "```\n\n"
+
+                  "### ◈ Configuration\n"
+                  "> ⬥ **Creative Mode** `off`\n"
+                  "> -# Enables extra features & creative suggestions\n"
+                  "> -# → `creative mode on` · `creative mode off`\n"
+                  "> \n"
+                  "> ⬥ **Task Preview** `off`\n"
+                  "> -# Review and approve plans before execution\n"
+                  "> -# → `present task on` · `present_task off`\n\n"
+
+                  "### ◈ Toolkit\n"
+                  "> ```\n"
+                  "> templates          Browse starter templates\n"
+                  "> review code        Get AI feedback on code\n"
+                  "> my projects        View your saved projects\n"
+                  "> load project last  Resume where you left off\n"
+                  "> ```\n\n"
+
+                  "╭ 💎 `change to super agent` → Unlock full pipeline\n"
+                  "├ 🪙 `3 credits` per message\n"
+                  "╰ 🔴 `exit agent mode` → Return to normal\n\n"
+
+                  "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                  "**↓ Describe what you want to build**"
+              ),
+              color=0x00D26A
+          )
+
+          activate_embed.set_author(
+              name=f"{message.author.display_name}'s Workspace",
+              icon_url=message.author.display_avatar.url
+          )
+
+          activate_embed.set_footer(
+              text=f"◈ Rank: {user_rank}  │  Session Active  │  Agent v1.0"
+          )
+
+          activate_embed.set_image(
+              url="https://i.imgur.com/transparent.png"  # invisible spacer for padding
+          )
+
+          await message.reply(embed=activate_embed)
+          return
         # ========== AGENT MODE DEACTIVATION ==========
-        elif content_lower == "exit agent mode":
+        elif content_lower == "exit":
             if self.agent.is_agent_mode(message.author.id):
                 was_super = self.agent.is_super_agent(message.author.id)
                 self.agent.deactivate(message.author.id)

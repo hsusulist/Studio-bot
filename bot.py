@@ -356,6 +356,7 @@ def run_bot():
     bot.add_command(reload_cog)
     bot.add_command(list_commands)
     bot.add_command(list_cogs)
+    
 
     bot.run(DISCORD_TOKEN)
 
