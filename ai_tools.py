@@ -25,7 +25,7 @@ class SplitMessageTool:
             safety += 1
 
             if len(remaining) <= self.max_length:
-                prefix = "" if is_first else "*(continued...)*\n"
+                prefix = "" if is_first else "\n"
                 final = prefix + remaining
                 if len(final) <= self.max_length:
                     chunks.append(final)
@@ -40,7 +40,7 @@ class SplitMessageTool:
             remaining = remaining[split_at:].lstrip()
 
             if not is_first:
-                chunk = "*(continued...)*\n" + chunk
+                chunk = "\n" + chunk
 
             chunks.append(chunk)
             is_first = False

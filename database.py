@@ -823,3 +823,105 @@ class DuelData:
                 pass
         config = _memory_duel_config.get(str(guild_id), {})
         return config.get("streak_channel_id")
+
+# Add at bottom of database.py
+# After DuelData class
+
+ACTIVE_DUELS_FILE = os.path.join(DATA_DIR, "active_duels.json")
+_memory_active_duels = load_json(ACTIVE_DUELS_FILE, {})
+
+
+class ActiveDuelData:
+
+    @staticmethod
+    async def create_active_duel(duel_id, p1_id, p2_id, bet, channel_id, guild_id):
+        duel = {
+            "_id": duel_id,
+            "p1_id": p1_id,
+            "p2_id": p2_id,
+            "p1_name": "",
+            "p2_name": "",
+            "bet": bet,
+            "channel_id": channel_id,
+            "guild_id": guild_id,
+            "mode": None,
+            "status": "active",
+            "spectators": [],
+            "round": 0,
+            "p1_score": 0,
+            "p2_score": 0,
+            "created_at": datetime.utcnow().isoformat()
+        }
+
+        if db is not None:
+            try:
+                await db["active_duels"].insert_one(duel)
+            except Exception:
+                pass
+
+        _memory_active_duels[duel_id] = duel
+        save_json(ACTIVE_DUELS_FILE, _memory_active_duels)
+        return duel
+
+    @staticmethod
+    async def get_active_duel(duel_id):
+        if db is not None:
+            try:
+                return await db["active_duels"].find_one({"_id": duel_id})
+            except Exception:
+                pass
+        return _memory_active_duels.get(duel_id)
+
+    @staticmethod
+    async def update_active_duel(duel_id, updates):
+        if db is not None:
+            try:
+                await db["active_duels"].update_one({"_id": duel_id}, {"$set": updates})
+            except Exception:
+                pass
+        if duel_id in _memory_active_duels:
+            _memory_active_duels[duel_id].update(updates)
+            save_json(ACTIVE_DUELS_FILE, _memory_active_duels)
+
+    @staticmethod
+    async def delete_active_duel(duel_id):
+        if db is not None:
+            try:
+                await db["active_duels"].delete_one({"_id": duel_id})
+            except Exception:
+                pass
+        if duel_id in _memory_active_duels:
+            del _memory_active_duels[duel_id]
+            save_json(ACTIVE_DUELS_FILE, _memory_active_duels)
+
+    @staticmethod
+    async def get_all_active_duels(guild_id=None):
+        duels = []
+        if db is not None:
+            try:
+                query = {"status": "active"}
+                if guild_id:
+                    query["guild_id"] = guild_id
+                duels = await db["active_duels"].find(query).to_list(50)
+                if duels:
+                    return duels
+            except Exception:
+                pass
+        for d in _memory_active_duels.values():
+            if d.get("status") == "active":
+                if guild_id and d.get("guild_id") != guild_id:
+                    continue
+                duels.append(d)
+        return duels
+
+    @staticmethod
+    async def add_spectator(duel_id, user_id):
+        duel = await ActiveDuelData.get_active_duel(duel_id)
+        if not duel:
+            return False
+        specs = duel.get("spectators", [])
+        if user_id in specs:
+            return False
+        specs.append(user_id)
+        await ActiveDuelData.update_active_duel(duel_id, {"spectators": specs})
+        return True

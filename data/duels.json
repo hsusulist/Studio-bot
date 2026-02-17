@@ -1,0 +1,92 @@
+{
+    "5AE49117": {
+        "_id": "5AE49117",
+        "winner_id": 1358586510831652864,
+        "loser_id": 1437007175590482070,
+        "bet": 100,
+        "mode": "classic",
+        "rounds": [
+            {
+                "round": 1,
+                "winner": 1437007175590482070,
+                "question": "What service handles player data saving?",
+                "correct": "DataStoreService",
+                "p1_answer": {
+                    "choice": 1,
+                    "correct": false,
+                    "time": 9.52
+                },
+                "p2_answer": null,
+                "p1_powerup": null,
+                "p2_powerup": null
+            },
+            {
+                "round": 2,
+                "winner": 1358586510831652864,
+                "question": "What is the maximum number of requests per minute for OrderedDataStore:GetSortedAsync()?",
+                "correct": "5",
+                "p1_answer": null,
+                "p2_answer": {
+                    "choice": 2,
+                    "correct": true,
+                    "time": 16.15
+                },
+                "p1_powerup": null,
+                "p2_powerup": null
+            },
+            {
+                "round": 3,
+                "winner": 1358586510831652864,
+                "question": "What property of a Part controls its physical density?",
+                "correct": "CustomPhysicalProperties",
+                "p1_answer": null,
+                "p2_answer": {
+                    "choice": 2,
+                    "correct": true,
+                    "time": 3.45
+                },
+                "p1_powerup": null,
+                "p2_powerup": null
+            }
+        ],
+        "created_at": "2026-02-17T04:13:40.181288"
+    },
+    "50760191": {
+        "_id": "50760191",
+        "winner_id": 1358586510831652864,
+        "loser_id": 1437007175590482070,
+        "bet": 100,
+        "mode": "classic",
+        "rounds": [
+            {
+                "round": 1,
+                "winner": 1358586510831652864,
+                "question": "What is a 'noclip exploit'?",
+                "correct": "Bypassing collision to walk through walls",
+                "p1_answer": {
+                    "choice": 1,
+                    "correct": true,
+                    "time": 6.65
+                },
+                "p2_answer": null,
+                "p1_powerup": null,
+                "p2_powerup": null
+            },
+            {
+                "round": 2,
+                "winner": 1358586510831652864,
+                "question": "What service provides user input detection?",
+                "correct": "UserInputService",
+                "p1_answer": {
+                    "choice": 1,
+                    "correct": true,
+                    "time": 8.58
+                },
+                "p2_answer": null,
+                "p1_powerup": null,
+                "p2_powerup": null
+            }
+        ],
+        "created_at": "2026-02-17T05:40:51.050603"
+    }
+}
