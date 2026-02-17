@@ -124,6 +124,8 @@ class CodeThreadTool:
 
     async def create_code_thread(self, bot_message, code_blocks, user_name):
         try:
+            import io
+            import discord
             ts = datetime.now().strftime("%H:%M")
             name = "Code | " + user_name[:20] + " | " + ts
             thread = await bot_message.create_thread(name=name, auto_archive_duration=60)
@@ -133,29 +135,19 @@ class CodeThreadTool:
                     header = "**Here's the code:**\n"
                 if len(code_blocks) > 1:
                     header += "**Block " + str(i + 1) + "/" + str(len(code_blocks)) + "** (`" + block["language"] + "`):\n"
-                full = header + "```" + block["language"] + "\n" + block["code"] + "\n```"
-                if len(full) > self.max_msg_length:
-                    if header:
-                        await thread.send(header)
-                        await asyncio.sleep(0.3)
-                    lines = block["code"].split("\n")
-                    current = []
-                    current_len = 0
-                    for line in lines:
-                        if current_len + len(line) + 20 > self.max_msg_length and current:
-                            await thread.send("```" + block["language"] + "\n" + "\n".join(current) + "\n```")
-                            await asyncio.sleep(0.3)
-                            current = [line]
-                            current_len = len(line)
-                        else:
-                            current.append(line)
-                            current_len += len(line) + 1
-                    if current:
-                        await thread.send("```" + block["language"] + "\n" + "\n".join(current) + "\n```")
-                else:
-                    await thread.send(full)
-                if i < len(code_blocks) - 1:
-                    await asyncio.sleep(0.3)
+                
+                language = block["language"] or "txt"
+                filename = f"generated_code_{i+1}.{language}"
+                if language == "lua" or language == "luau":
+                    filename = f"script_{i+1}.lua"
+                elif language == "python":
+                    filename = f"script_{i+1}.py"
+                
+                code_bytes = io.BytesIO(block["code"].encode('utf-8'))
+                discord_file = discord.File(code_bytes, filename=filename)
+                
+                await thread.send(content=header if header else None, file=discord_file)
+                await asyncio.sleep(0.3)
             return thread
         except Exception as e:
             print("[CodeThread] Error: " + str(e))
