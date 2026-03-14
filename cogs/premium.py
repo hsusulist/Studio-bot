@@ -968,6 +968,511 @@ class PremiumCog(commands.Cog):
         except Exception:
             pass
 
+    @app_commands.command(name="chat_ai", description="Chat with AI from anywhere (costs AI credits)")
+    @app_commands.describe(message="Your message to the AI")
+    async def chat_ai(self, interaction: discord.Interaction, message: str):
+        await interaction.response.defer(ephemeral=False)
+
+        user = await UserProfile.get_user(interaction.user.id)
+        if not user:
+            await UserProfile.create_user(interaction.user.id, interaction.user.name)
+            user = await UserProfile.get_user(interaction.user.id)
+
+        is_admin = False
+        if interaction.guild and hasattr(interaction.user, 'guild_permissions'):
+            is_admin = interaction.user.guild_permissions.administrator
+
+        is_in_agent = self.agent.is_agent_mode(interaction.user.id)
+        is_super = self.agent.is_super_agent(interaction.user.id) if is_in_agent else False
+
+        if is_in_agent:
+            credit_cost = 5 if is_super else 3
+        else:
+            credit_cost = 1
+
+        if not is_admin:
+            current_ai = user.get('ai_credits', 0)
+            if current_ai < credit_cost:
+                mode_name = "Super Agent" if is_super else ("Agent" if is_in_agent else "Normal Chat")
+                embed = discord.Embed(
+                    title="❌ Insufficient Credits",
+                    description=(
+                        f"**{mode_name}** mode costs **{credit_cost} AI Credits** per message.\n"
+                        f"You currently have **{current_ai}** AI Credits.\n\n"
+                        f"**Get credits:**\n"
+                        f"`/convert` — Studio Credits → pCredits\n"
+                        f"`/convert_ai` — pCredits → AI Credits\n\n"
+                        f"**Switch modes:**\n"
+                        f"`/change_mode normal` — 1 credit/msg\n"
+                        f"`/change_mode agent` — 3 credits/msg\n"
+                        f"`/change_mode super` — 5 credits/msg"
+                    ),
+                    color=discord.Color.red()
+                )
+                await interaction.followup.send(embed=embed, ephemeral=True)
+                return
+
+            await UserProfile.update_user(interaction.user.id, {
+                "ai_credits": current_ai - credit_cost
+            })
+        else:
+            current_ai = user.get('ai_credits', 0)
+
+        try:
+            class MockMessage:
+                def __init__(self, inter, content):
+                    self.author = inter.user
+                    self.content = content
+                    self.channel = inter.channel
+                    self.guild = inter.guild
+                    self.id = inter.id
+                    self.created_at = datetime.utcnow()
+                    self.reference = None
+                    self.attachments = []
+                    self.embeds = []
+
+                async def reply(self, content=None, embed=None, view=None, **kwargs):
+                    send_kwargs = {}
+                    if content:
+                        send_kwargs["content"] = content
+                    if embed:
+                        send_kwargs["embed"] = embed
+                    if view:
+                        send_kwargs["view"] = view
+                    return await self.channel.send(**send_kwargs)
+
+            mock_msg = MockMessage(interaction, message)
+
+            if is_in_agent:
+                mode_name = "Super Agent" if is_super else "Agent"
+
+                ack_embed = discord.Embed(
+                    title=f"{'⚡' if is_super else '🤖'} {mode_name} — Processing",
+                    description=f"**Input:** {message[:300]}",
+                    color=0xF5C542 if is_super else 0x00D26A
+                )
+                ack_embed.set_author(
+                    name=f"{interaction.user.display_name}",
+                    icon_url=interaction.user.display_avatar.url
+                )
+                if not is_admin:
+                    ack_embed.set_footer(text=f"Cost: {credit_cost} credits • Remaining: {current_ai - credit_cost}")
+                else:
+                    ack_embed.set_footer(text=f"{mode_name} • Admin - Free usage")
+                await interaction.followup.send(embed=ack_embed)
+
+                try:
+                    await self.agent.handle_message(mock_msg)
+                except Exception as agent_error:
+                    if not is_admin:
+                        await UserProfile.update_user(interaction.user.id, {
+                            "ai_credits": current_ai
+                        })
+
+                    error_embed = discord.Embed(
+                        title="❌ Agent Error",
+                        description=f"An error occurred: {str(agent_error)[:200]}",
+                        color=discord.Color.red()
+                    )
+                    if not is_admin:
+                        error_embed.set_footer(text=f"Your {credit_cost} credits have been refunded")
+                    await interaction.channel.send(embed=error_embed)
+                    print(f"[chat_ai Agent Error] {agent_error}")
+            else:
+                # Normal chat with tools
+                response = await self.get_ai_response(mock_msg)
+
+                # Check if response has code blocks for thread handling
+                if ai_handler.code_thread.has_significant_code(response):
+                    text_part, code_blocks = ai_handler.code_thread.extract_code_and_text(response)
+
+                    response_embed = discord.Embed(
+                        description=text_part[:4096] if text_part else "Here's what I generated:",
+                        color=0x5865F2
+                    )
+                    response_embed.set_author(
+                        name=f"{AI_NAME} responding to {interaction.user.display_name}",
+                        icon_url=interaction.user.display_avatar.url
+                    )
+                    if not is_admin:
+                        response_embed.set_footer(text=f"Normal Chat • Cost: 1 credit • Remaining: {current_ai - 1}")
+                    else:
+                        response_embed.set_footer(text="Normal Chat • Admin - Free usage")
+
+                    sent_msg = await interaction.followup.send(embed=response_embed, wait=True)
+
+                    if code_blocks:
+                        await ai_handler.code_thread.create_code_thread(
+                            sent_msg, code_blocks, interaction.user.display_name
+                        )
+                else:
+                    # Split long responses
+                    if len(response) > 4096:
+                        response_embed = discord.Embed(
+                            description=response[:4096],
+                            color=0x5865F2
+                        )
+                        response_embed.set_author(
+                            name=f"{AI_NAME} responding to {interaction.user.display_name}",
+                            icon_url=interaction.user.display_avatar.url
+                        )
+                        if not is_admin:
+                            response_embed.set_footer(text=f"Normal Chat • Cost: 1 credit • Remaining: {current_ai - 1}")
+                        else:
+                            response_embed.set_footer(text="Normal Chat • Admin - Free usage")
+
+                        await interaction.followup.send(embed=response_embed)
+
+                        remaining_text = response[4096:]
+                        chunks = ai_handler.splitter.split_content(remaining_text)
+                        for chunk in chunks:
+                            await interaction.channel.send(chunk)
+                            await asyncio.sleep(0.3)
+                    else:
+                        response_embed = discord.Embed(
+                            description=response,
+                            color=0x5865F2
+                        )
+                        response_embed.set_author(
+                            name=f"{AI_NAME} responding to {interaction.user.display_name}",
+                            icon_url=interaction.user.display_avatar.url
+                        )
+                        if not is_admin:
+                            response_embed.set_footer(text=f"Normal Chat • Cost: 1 credit • Remaining: {current_ai - 1}")
+                        else:
+                            response_embed.set_footer(text="Normal Chat • Admin - Free usage")
+
+                        await interaction.followup.send(embed=response_embed)
+
+        except Exception as e:
+            if not is_admin:
+                await UserProfile.update_user(interaction.user.id, {
+                    "ai_credits": current_ai
+                })
+
+            error_embed = discord.Embed(
+                title="❌ Error",
+                description=f"An error occurred while processing your request.\n{str(e)[:200]}",
+                color=discord.Color.red()
+            )
+            if not is_admin:
+                error_embed.set_footer(text="Your credits have been refunded")
+
+            await interaction.followup.send(embed=error_embed, ephemeral=True)
+            print(f"[chat_ai Error] {e}")
+
+    @app_commands.command(name="change_mode", description="Switch AI chat mode (Normal/Agent/Super Agent)")
+    @app_commands.describe(mode="Choose your AI mode")
+    @app_commands.choices(mode=[
+        app_commands.Choice(name="💬 Normal Chat - 1 credit/msg", value="normal"),
+        app_commands.Choice(name="🤖 Agent Mode - 3 credits/msg", value="agent"),
+        app_commands.Choice(name="⚡ Super Agent - 5 credits/msg", value="super"),
+    ])
+    async def change_mode(self, interaction: discord.Interaction, mode: str):
+        await interaction.response.defer(ephemeral=False)
+
+        user = await UserProfile.get_user(interaction.user.id)
+        if not user:
+            await UserProfile.create_user(interaction.user.id, interaction.user.name)
+            user = await UserProfile.get_user(interaction.user.id)
+
+        is_admin = False
+        if interaction.guild and hasattr(interaction.user, 'guild_permissions'):
+            is_admin = interaction.user.guild_permissions.administrator
+
+        user_rank = user.get("rank", "Beginner")
+        current_ai = user.get('ai_credits', 0)
+
+        if mode == "normal":
+            if self.agent.is_agent_mode(interaction.user.id):
+                was_super = self.agent.is_super_agent(interaction.user.id)
+                self.agent.deactivate(interaction.user.id)
+                prev_mode = "Super Agent" if was_super else "Agent"
+
+                embed = discord.Embed(
+                    title=f"🔌 {prev_mode} — Disconnected",
+                    description=(
+                        "Switched to **Normal Chat Mode**.\n\n"
+                        "Your projects are saved.\n"
+                        "Use `/change_mode agent` or `/change_mode super` anytime.\n\n"
+                        "💡 Agent tools still work in normal chat:\n"
+                        "📋 Templates · 🔍 Review · 📁 Projects · 🔧 Command · 🔄 Convert\n\n"
+                        f"💰 **Credits:** {current_ai} AI Credits\n"
+                        f"📊 **Cost:** 1 credit per message"
+                    ),
+                    color=0x5865F2
+                )
+                embed.set_author(
+                    name=f"{interaction.user.display_name}",
+                    icon_url=interaction.user.display_avatar.url
+                )
+                embed.set_footer(text="Use /chat_ai to chat from anywhere")
+                await interaction.followup.send(embed=embed)
+            else:
+                embed = discord.Embed(
+                    title="💬 Normal Chat Mode",
+                    description=(
+                        f"You're already in Normal Chat mode.\n\n"
+                        f"💰 **Credits:** {current_ai} AI Credits\n"
+                        f"📊 **Cost:** 1 credit per message\n\n"
+                        f"Use `/chat_ai` to send messages from anywhere!"
+                    ),
+                    color=0x5865F2
+                )
+                await interaction.followup.send(embed=embed, ephemeral=True)
+
+        elif mode == "agent":
+            if not is_admin and current_ai < 3:
+                embed = discord.Embed(
+                    title="❌ Insufficient Credits",
+                    description=(
+                        f"Agent Mode requires at least **3 AI Credits** per message.\n"
+                        f"You currently have **{current_ai}** AI Credits.\n\n"
+                        f"Use `/convert_ai` to get more credits."
+                    ),
+                    color=discord.Color.red()
+                )
+                await interaction.followup.send(embed=embed, ephemeral=True)
+                return
+
+            self.agent.activate(interaction.user.id, super_mode=False)
+            self.agent.sessions[interaction.user.id]["user_rank"] = user_rank
+
+            embed = discord.Embed(
+                description=(
+                    "```ansi\n"
+                    "\u001b[1;32m✦ AGENT MODE\u001b[0m \u001b[0;30m━━━━━━━━━━━━━━━━━\u001b[0m \u001b[1;32m[ONLINE]\u001b[0m\n"
+                    "```\n"
+                    "-# Activated via /change_mode · Works anywhere with /chat_ai\n\n"
+
+                    "```\n"
+                    "  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐\n"
+                    "  │ 📥 INPUT │ ─→ │ 📋 PLAN  │ ─→ │ ⚙️ BUILD │ ─→ │ ✅ DONE  │\n"
+                    "  └──────────┘    └──────────┘    └──────────┘    └──────────┘\n"
+                    "```\n\n"
+
+                    "### ◈ Configuration\n"
+                    "> ⬥ **Creative Mode** `off`\n"
+                    "> -# → `creative mode on` · `creative mode off`\n"
+                    "> \n"
+                    "> ⬥ **Task Preview** `off`\n"
+                    "> -# → `present task on` · `present task off`\n\n"
+
+                    "### ◈ Toolkit\n"
+                    "> ```\n"
+                    "> templates          Browse starter templates\n"
+                    "> review code        Get AI feedback on code\n"
+                    "> my projects        View your saved projects\n"
+                    "> load project last  Resume where you left off\n"
+                    "> ```\n\n"
+
+                    "### ◈ How to Use\n"
+                    "> Use `/chat_ai` from **any channel** to send requests\n"
+                    "> All agent features work through the slash command\n\n"
+
+                    "╭ 💎 `/change_mode super` → Unlock full pipeline\n"
+                    "├ 🪙 `3 credits` per message\n"
+                    f"├ 💰 You have `{current_ai}` AI credits\n"
+                    "╰ 🔴 `/change_mode normal` → Return to normal\n\n"
+
+                    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                    "**↓ Use `/chat_ai` to start building**"
+                ),
+                color=0x00D26A
+            )
+
+            embed.set_author(
+                name=f"{interaction.user.display_name}'s Workspace",
+                icon_url=interaction.user.display_avatar.url
+            )
+
+            embed.set_footer(
+                text=f"◈ Rank: {user_rank}  │  Agent Active  │  3 credits/msg"
+            )
+
+            await interaction.followup.send(embed=embed)
+
+        elif mode == "super":
+            if not is_admin and current_ai < 5:
+                embed = discord.Embed(
+                    title="❌ Insufficient Credits",
+                    description=(
+                        f"Super Agent requires at least **5 AI Credits** per message.\n"
+                        f"You currently have **{current_ai}** AI Credits.\n\n"
+                        f"Use `/convert_ai` to get more credits."
+                    ),
+                    color=discord.Color.red()
+                )
+                await interaction.followup.send(embed=embed, ephemeral=True)
+                return
+
+            self.agent.activate(interaction.user.id, super_mode=True)
+            self.agent.sessions[interaction.user.id]["user_rank"] = user_rank
+
+            embed = discord.Embed(
+                description=(
+                    "```ansi\n"
+                    "\u001b[1;33m⚡ SUPER AGENT\u001b[0m \u001b[0;30m━━━━━━━━━━━━━━━━\u001b[0m \u001b[1;33m[ONLINE]\u001b[0m\n"
+                    "```\n"
+                    "-# Full development pipeline · Works anywhere with /chat_ai\n\n"
+
+                    "```\n"
+                    "  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐\n"
+                    "  │ 🔨 BUILD │ ─→ │ 🔍 CHECK │ ─→ │ ⚡ BOOST │ ─→ │ 🎯 ALIGN │ ─→ │ ✅ FINAL │\n"
+                    "  └──────────┘    └──────────┘    └──────────┘    └──────────┘    └──────────┘\n"
+                    "```\n\n"
+
+                    "### ◈ Post-Processing Pipeline\n"
+                    "> ```\n"
+                    "> 🔗 Cross-file connector    Links all files together\n"
+                    "> 🛡️ Exploit scanner         Finds security issues\n"
+                    "> 📦 Setup script            Auto-generates setup\n"
+                    "> 🧪 Test guide              Creates test cases\n"
+                    "> ```\n\n"
+
+                    "### ◈ Configuration\n"
+                    "> ⬥ **Creative Mode** `off`\n"
+                    "> -# → `creative_mode on` · `creative_mode off`\n"
+                    "> \n"
+                    "> ⬥ **Task Preview** `off`\n"
+                    "> -# → `present_task on` · `present_task off`\n\n"
+
+                    "### ◈ How to Use\n"
+                    "> Use `/chat_ai` from **any channel** to send requests\n"
+                    "> Full pipeline runs automatically on every request\n\n"
+
+                    "╭ 🪙 `5 credits` per message\n"
+                    "├ 👑 Admins bypass credit cost\n"
+                    f"├ 💰 You have `{current_ai}` AI credits\n"
+                    "╰ 🔴 `/change_mode normal` → Return to normal\n\n"
+
+                    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                    "**↓ Use `/chat_ai` to build with full pipeline**"
+                ),
+                color=0xF5C542
+            )
+
+            embed.set_author(
+                name=f"{interaction.user.display_name}'s Workspace · Super",
+                icon_url=interaction.user.display_avatar.url
+            )
+
+            embed.set_footer(
+                text=f"◈ Rank: {user_rank}  │  Super Session Active  │  5 credits/msg"
+            )
+
+            await interaction.followup.send(embed=embed)
+
+    @app_commands.command(name="ai_status", description="Check your current AI mode and credits")
+    async def ai_status(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+
+        user = await UserProfile.get_user(interaction.user.id)
+        if not user:
+            await UserProfile.create_user(interaction.user.id, interaction.user.name)
+            user = await UserProfile.get_user(interaction.user.id)
+
+        is_in_agent = self.agent.is_agent_mode(interaction.user.id)
+        is_super = self.agent.is_super_agent(interaction.user.id) if is_in_agent else False
+
+        if is_super:
+            mode_name = "⚡ Super Agent"
+            mode_color = 0xF5C542
+            credit_cost = 5
+        elif is_in_agent:
+            mode_name = "🤖 Agent Mode"
+            mode_color = 0x00D26A
+            credit_cost = 3
+        else:
+            mode_name = "💬 Normal Chat"
+            mode_color = 0x5865F2
+            credit_cost = 1
+
+        current_ai = user.get('ai_credits', 0)
+        current_pcredits = user.get('pcredits', 0)
+        current_credits = user.get('studio_credits', 0)
+        messages_left = current_ai // credit_cost if credit_cost > 0 else 0
+
+        embed = discord.Embed(
+            title="📊 AI Status",
+            color=mode_color
+        )
+
+        embed.add_field(
+            name="Current Mode",
+            value=f"{mode_name}\n-# {credit_cost} credit(s) per message",
+            inline=True
+        )
+
+        embed.add_field(
+            name="Messages Left",
+            value=f"**{messages_left}** messages\n-# in current mode",
+            inline=True
+        )
+
+        embed.add_field(
+            name="​",
+            value="​",
+            inline=True
+        )
+
+        embed.add_field(
+            name="💰 Balances",
+            value=(
+                f"🤖 **{current_ai}** AI Credits\n"
+                f"💎 **{current_pcredits}** pCredits\n"
+                f"🪙 **{current_credits}** Studio Credits"
+            ),
+            inline=True
+        )
+
+        # Agent session info
+        if is_in_agent:
+            session = self.agent.sessions.get(interaction.user.id, {})
+            creative = "On ✅" if session.get("creative", False) else "Off ❌"
+            present = "On ✅" if session.get("present_task", False) else "Off ❌"
+            state = session.get("state", "idle").title()
+
+            embed.add_field(
+                name="⚙️ Session",
+                value=(
+                    f"**State:** {state}\n"
+                    f"**Creative:** {creative}\n"
+                    f"**Task Preview:** {present}"
+                ),
+                inline=True
+            )
+        else:
+            embed.add_field(
+                name="​",
+                value="​",
+                inline=True
+            )
+
+        embed.add_field(
+            name="​",
+            value="​",
+            inline=True
+        )
+
+        embed.add_field(
+            name="📋 Commands",
+            value=(
+                "`/chat_ai` — Send AI messages from anywhere\n"
+                "`/change_mode` — Switch between Normal/Agent/Super\n"
+                "`/convert` — Studio Credits → pCredits\n"
+                "`/convert_ai` — pCredits → AI Credits"
+            ),
+            inline=False
+        )
+
+        embed.set_author(
+            name=interaction.user.display_name,
+            icon_url=interaction.user.display_avatar.url
+        )
+
+        await interaction.followup.send(embed=embed, ephemeral=True)
+
     # ============================================================
     # MESSAGE LISTENER
     # ============================================================

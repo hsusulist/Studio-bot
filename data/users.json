@@ -8,14 +8,14 @@
             "Designer",
             "Animator"
         ],
-        "rank": "Beginner",
-        "xp": 1329,
-        "level": 6,
+        "rank": "Learner",
+        "xp": 1519,
+        "level": 7,
         "experience_months": 0,
         "voice_minutes": 0,
-        "message_count": 505,
+        "message_count": 536,
         "reputation": 0,
-        "studio_credits": 2153,
+        "studio_credits": 2278,
         "created_at": "2026-02-05T12:08:13.209546",
         "last_quest": "2026-02-11T23:42:49.947363",
         "portfolio_games": [],
@@ -30,11 +30,6 @@
         "learn_model_mode": "auto",
         "learn_quiz_data": {},
         "learn_conversation": [
-            {
-                "ts": "2026-02-07T04:44:55.171632+00:00",
-                "role": "assistant",
-                "content": "INTRO: \u26a0\ufe0f AI temporarily unavailable. Try again.\n_(Debug: Rate limited on mistralai/mistral-small-3.1-24b-instruct:free)_"
-            },
             {
                 "ts": "2026-02-07T04:45:31.194447+00:00",
                 "role": "assistant",
@@ -279,9 +274,14 @@
                 "ts": "2026-02-16T04:00:27.911817+00:00",
                 "role": "assistant",
                 "content": "\ud83d\udcd6 Lesson 2: Variables - Local and Global \u2014 Lesson delivered"
+            },
+            {
+                "ts": "2026-03-13T15:16:48.761127+00:00",
+                "role": "assistant",
+                "content": "\ud83d\udcd6 Lesson 2: Variables - Local and Global \u2014 Lesson delivered"
             }
         ],
-        "learn_panel_message_id": 1472804700855210077,
+        "learn_panel_message_id": 1482034605857968241,
         "learn_completed_lessons": [
             1
         ],
@@ -292,7 +292,7 @@
         "learn_bookmarks": [],
         "learn_notes": {},
         "learn_streak": 1,
-        "learn_last_activity": "2026-02-16T04:00:15.400780",
+        "learn_last_activity": "2026-03-13T15:16:36.253124",
         "learn_quiz_attempts": 0,
         "learn_weak_topics": {
             "print": 0,
@@ -316,15 +316,15 @@
         "learn_hints_remaining": 3,
         "learn_lesson_part": 0,
         "pcredits": 50,
-        "ai_credits": 30,
+        "ai_credits": 21,
         "temp_chat_cooldown": "2026-02-11T00:41:14.006411",
         "claimed_quests": [
             "Q001",
             "Q003"
         ],
-        "last_daily": "2026-02-16T04:03:21.555131",
+        "last_daily": "2026-03-13T15:21:20.353713",
         "daily_streak": 1,
-        "daily_claims": 3,
+        "daily_claims": 4,
         "sales_count": 1,
         "max_projects": 7,
         "player_id": "DEV-652864-033E",

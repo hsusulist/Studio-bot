@@ -127,7 +127,7 @@ def get_complexity_prompt(rank):
 
 
 # ============================================================
-# ANIMATION CONSTANTS
+# ANIMATION CONSTANTS (UPGRADED)
 # ============================================================
 
 SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
@@ -144,6 +144,8 @@ PHASE_ICONS = {
     "complete": "✅",
     "error": "❌",
     "idle": "⏳",
+    "paused": "⏸️",
+    "waiting": "🕐",
 }
 MILESTONE_MESSAGES = {
     25: "Quarter way there!",
@@ -155,6 +157,7 @@ BAR_STYLES = {
     "main": {"filled": "█", "partial": "▓", "empty": "░"},
     "mini": {"filled": "▰", "partial": "▰", "empty": "▱"},
     "slim": {"filled": "━", "partial": "╍", "empty": "┄"},
+    "dots": {"filled": "●", "partial": "◐", "empty": "○"},
 }
 PHASE_COLORS = {
     "analyzing": 0x5865F2,
@@ -168,19 +171,24 @@ PHASE_COLORS = {
     "complete": 0x57F287,
     "error": 0xED4245,
     "idle": 0x99AAB5,
+    "paused": 0xFEE75C,
+    "waiting": 0xFEE75C,
 }
-FRAME_INTERVAL = 0.7
+
+# Slower animation to reduce rate limits
+FRAME_INTERVAL = 1.2
+# Minimum time between Discord API edits
+MIN_EDIT_INTERVAL = 1.0
 
 
 # ============================================================
-# LIVE PANEL
+# LIVE PANEL (UPGRADED - Fixed timeout + better rate limiting)
 # ============================================================
 
 class LivePanel:
     """
-    A visually rich, animated embed panel that updates in-place
-    showing real-time progress with spinners, phase tracking,
-    mini progress bars, ETA, and milestone celebrations.
+    Animated embed panel with proper rate limit handling,
+    graceful shutdown, and no timeout issues.
     """
 
     def __init__(self, channel, title="Agent"):
@@ -203,10 +211,11 @@ class LivePanel:
         self.start_time = time.time()
         self.phase_start_time = time.time()
         self.task_start_times = {}
+        self._last_edit_time = 0  # Rate limit tracking
 
         # Logging
         self.log_lines = []
-        self.max_visible_logs = 12
+        self.max_visible_logs = 10
 
         # Animation
         self._active_step = None
@@ -215,6 +224,7 @@ class LivePanel:
         self._spinner_index = 0
         self._animating = False
         self._lock = asyncio.Lock()
+        self._destroyed = False  # Prevent edits after panel is done
 
         # Stats
         self.total_lines_generated = 0
@@ -227,8 +237,11 @@ class LivePanel:
         self._sub_steps = []
         self._current_sub_step = None
 
+        # Milestone celebration queue
+        self._pending_milestones = []
+
     # ============================================================
-    # EMBED BUILDER
+    # EMBED BUILDER (UPGRADED UI)
     # ============================================================
 
     def _build_embed(self):
@@ -246,6 +259,8 @@ class LivePanel:
             title_text = f"✅ {self.title}"
         elif self.status == "error":
             title_text = f"❌ {self.title}"
+        elif self.status == "paused":
+            title_text = f"⏸️ {self.title}"
         else:
             title_text = f"{icon} {self.title}"
 
@@ -255,11 +270,11 @@ class LivePanel:
         # ---- MAIN PROGRESS BAR ----
         if self.total_tasks > 0:
             pct = (self.completed_tasks / self.total_tasks) * 100
-            bar = self._build_bar(pct, 22, "main")
+            bar = self._build_bar(pct, 20, "main")
             eta = self._estimate_eta()
 
-            progress_text = f"```ansi\n{bar} {pct:.0f}%\n"
-            progress_text += f"Tasks: {self.completed_tasks}/{self.total_tasks}"
+            progress_text = f"```\n{bar} {pct:.0f}%\n"
+            progress_text += f"  Tasks: {self.completed_tasks}/{self.total_tasks}"
             if eta:
                 progress_text += f"  ·  ETA: {eta}"
             progress_text += f"  ·  {self._format_time(elapsed)}\n```"
@@ -269,6 +284,12 @@ class LivePanel:
             for milestone, msg in MILESTONE_MESSAGES.items():
                 if pct >= milestone and milestone not in self.milestones_hit:
                     self.milestones_hit.add(milestone)
+                    self._pending_milestones.append(f"🎯 {msg}")
+
+        # ---- MILESTONE CELEBRATIONS ----
+        if self._pending_milestones:
+            milestone_text = " · ".join(self._pending_milestones[-2:])
+            sections.append(f"> {milestone_text}")
 
         # ---- PHASE INDICATOR ----
         if self.phase != "idle":
@@ -293,27 +314,30 @@ class LivePanel:
         footer_parts = []
         if self.status == "running":
             phase_elapsed = time.time() - self.phase_start_time
-            footer_parts.append(f"Phase: {self.phase} ({self._format_time(phase_elapsed)})")
-        footer_parts.append(f"Elapsed: {self._format_time(elapsed)}")
+            footer_parts.append(f"{self.phase.title()} ({self._format_time(phase_elapsed)})")
+        elif self.status == "paused":
+            footer_parts.append("⏸️ Waiting for approval")
+
+        footer_parts.append(f"⏱️ {self._format_time(elapsed)}")
 
         stats = []
         if self.total_lines_generated > 0:
-            stats.append(f"{self.total_lines_generated} lines")
+            stats.append(f"📝 {self.total_lines_generated}")
         if self.files_created > 0:
-            stats.append(f"{self.files_created} files")
+            stats.append(f"📁 {self.files_created}")
         if self.total_api_calls > 0:
-            stats.append(f"{self.total_api_calls} API calls")
+            stats.append(f"🔄 {self.total_api_calls}")
         if self.bugs_fixed > 0:
-            stats.append(f"{self.bugs_fixed} bugs fixed")
+            stats.append(f"🐛 {self.bugs_fixed}")
         if stats:
-            footer_parts.append(" · ".join(stats))
+            footer_parts.append(" ".join(stats))
 
-        embed.set_footer(text="  |  ".join(footer_parts))
+        embed.set_footer(text="  │  ".join(footer_parts))
 
         return embed
 
     # ============================================================
-    # VISUAL BUILDERS
+    # VISUAL BUILDERS (UPGRADED)
     # ============================================================
 
     def _build_bar(self, percentage, width, style="main"):
@@ -331,7 +355,7 @@ class LivePanel:
         return f"[{bar}]"
 
     def _build_phase_tracker(self):
-        """Build a horizontal phase progress indicator"""
+        """Build a compact phase progress indicator"""
         all_phases = ["analyzing", "planning", "building", "reviewing", "optimizing", "connecting", "scanning", "finalizing"]
 
         relevant = []
@@ -351,7 +375,12 @@ class LivePanel:
                 spinner = PROGRESS_SPINNER[self._spinner_index % len(PROGRESS_SPINNER)]
                 parts.append(f"{spinner} **{p.title()}**")
             elif p in completed_phases:
-                parts.append(f"~~{icon} {p.title()}~~")
+                duration = ""
+                for ph in self.phase_history:
+                    if ph["name"] == p:
+                        duration = f" `{self._format_time(ph['duration'])}`"
+                        break
+                parts.append(f"✓ ~~{p.title()}~~{duration}")
             else:
                 parts.append(f"○ {p.title()}")
 
@@ -365,27 +394,27 @@ class LivePanel:
         lines = []
         for task_id, info in sorted(self.task_statuses.items()):
             status = info.get("status", "pending")
-            name = info.get("name", f"Task {task_id}")[:30]
+            name = info.get("name", f"Task {task_id}")[:28]
             task_time = info.get("time", 0)
             task_lines = info.get("lines", 0)
 
             if status == "complete":
                 icon = "✅"
-                detail = f" — {task_lines} lines, {task_time:.1f}s"
+                detail = f" `{task_lines}L · {task_time:.1f}s`"
             elif status == "running":
                 spinner = SPINNER_FRAMES[self._spinner_index % len(SPINNER_FRAMES)]
                 icon = spinner
                 elapsed = time.time() - self.task_start_times.get(task_id, time.time())
-                detail = f" — {self._format_time(elapsed)}"
+                detail = f" `{self._format_time(elapsed)}`"
 
                 if self._sub_steps:
                     done = sum(1 for s in self._sub_steps if s.get("done"))
                     total = len(self._sub_steps)
-                    mini_bar = self._build_bar((done / max(total, 1)) * 100, 8, "mini")
+                    mini_bar = self._build_bar((done / max(total, 1)) * 100, 6, "mini")
                     detail += f" {mini_bar}"
             elif status == "error":
                 icon = "❌"
-                detail = " — Failed"
+                detail = " `Failed`"
             else:
                 icon = "⬜"
                 detail = ""
@@ -406,16 +435,15 @@ class LivePanel:
             spinner = SPINNER_FRAMES[self._frame_index % len(SPINNER_FRAMES)]
             timestamp = datetime.now().strftime("%H:%M:%S")
             elapsed = time.time() - self.phase_start_time
-            display_lines.append(f"  {timestamp}  {spinner} {self._active_step} ({self._format_time(elapsed)})")
+            display_lines.append(f"  {timestamp}  {spinner} {self._active_step}")
 
         if not display_lines:
             return ""
 
         log_text = "\n".join(display_lines)
-        return f"```ansi\n{log_text}\n```"
+        return f"```\n{log_text}\n```"
 
     def _estimate_eta(self):
-        """Estimate remaining time based on completed task times"""
         if self.completed_tasks == 0:
             return None
 
@@ -430,7 +458,6 @@ class LivePanel:
         return self._format_time(eta_seconds)
 
     def _format_time(self, seconds):
-        """Format seconds into human readable string"""
         if seconds < 60:
             return f"{seconds:.1f}s"
         minutes = int(seconds // 60)
@@ -442,64 +469,88 @@ class LivePanel:
         return f"{hours}h {mins}m"
 
     # ============================================================
-    # MESSAGE MANAGEMENT
+    # MESSAGE MANAGEMENT (FIXED rate limiting)
     # ============================================================
 
     async def send(self):
         embed = self._build_embed()
         self.message = await self.channel.send(embed=embed)
+        self._last_edit_time = time.time()
         return self.message
 
     async def _safe_update(self):
-        if not self.message:
+        """Rate-limited embed update — prevents Discord 429 errors"""
+        if not self.message or self._destroyed:
             return
+
+        # Enforce minimum time between edits
+        now = time.time()
+        since_last = now - self._last_edit_time
+        if since_last < MIN_EDIT_INTERVAL:
+            return  # Skip this update, too soon
+
         if self._lock.locked():
-            return  # Skip this frame instead of waiting
+            return  # Already updating, skip
+
         async with self._lock:
             try:
                 embed = self._build_embed()
                 await self.message.edit(embed=embed)
+                self._last_edit_time = time.time()
+            except discord.NotFound:
+                # Message was deleted
+                self._destroyed = True
+                self._stop_animation_sync()
             except discord.HTTPException as e:
-                if e.status == 429:  # Rate limited
+                if e.status == 429:
                     retry_after = getattr(e, 'retry_after', 2.0)
                     await asyncio.sleep(retry_after)
-                # Otherwise just skip this frame
-    
+                # Other errors: just skip this frame
+
     async def update(self):
         await self._safe_update()
 
     # ============================================================
-    # ANIMATION ENGINE
+    # ANIMATION ENGINE (FIXED - proper cleanup)
     # ============================================================
 
     async def _animation_loop(self):
+        """Animation loop with proper error handling and cleanup"""
         fail_count = 0
-        while self._animating:
+        while self._animating and not self._destroyed:
             self._frame_index = (self._frame_index + 1) % len(SPINNER_FRAMES)
             self._spinner_index = (self._spinner_index + 1) % len(PROGRESS_SPINNER)
 
             try:
                 await self._safe_update()
-                fail_count = 0  # Reset on success
+                fail_count = 0
+            except asyncio.CancelledError:
+                break
             except Exception:
                 fail_count += 1
 
-            # Dynamic interval: slow down if rate limited, speed up when clear
-            if fail_count > 2:
-                interval = min(FRAME_INTERVAL + (fail_count * 0.5), 3.0)
+            # Dynamic interval based on failure rate
+            if fail_count > 3:
+                interval = min(FRAME_INTERVAL + (fail_count * 0.5), 4.0)
             else:
                 interval = FRAME_INTERVAL
 
-            await asyncio.sleep(interval)
+            try:
+                await asyncio.sleep(interval)
+            except asyncio.CancelledError:
+                break
 
     def _start_animation(self, step_text):
+        """Start animation with proper cleanup of previous animation"""
         self._stop_animation_sync()
         self._active_step = step_text
         self._frame_index = 0
         self._animating = True
-        self._animation_task = asyncio.create_task(self._animation_loop())
+        if not self._destroyed:
+            self._animation_task = asyncio.create_task(self._animation_loop())
 
     def _stop_animation_sync(self):
+        """Synchronous animation stop — safe to call from anywhere"""
         self._animating = False
         self._active_step = None
         if self._animation_task and not self._animation_task.done():
@@ -507,25 +558,27 @@ class LivePanel:
         self._animation_task = None
 
     async def _stop_animation(self):
-            self._animating = False
-            self._active_step = None
-            if self._animation_task and not self._animation_task.done():
-                self._animation_task.cancel()
-                try:
-                    await asyncio.wait_for(
-                        asyncio.shield(self._animation_task),
-                        timeout=2.0
-                    )
-                except (asyncio.CancelledError, asyncio.TimeoutError):
-                    pass
-            self._animation_task = None
+        """Async animation stop with proper task cleanup"""
+        self._animating = False
+        self._active_step = None
+        if self._animation_task and not self._animation_task.done():
+            self._animation_task.cancel()
+            try:
+                await asyncio.wait_for(
+                    asyncio.shield(self._animation_task),
+                    timeout=1.5
+                )
+            except (asyncio.CancelledError, asyncio.TimeoutError, Exception):
+                pass
+        self._animation_task = None
 
     # ============================================================
     # PHASE MANAGEMENT
     # ============================================================
 
     async def set_phase(self, phase_name):
-        """Transition to a new phase with visual tracking"""
+        if self._destroyed:
+            return
         if self.phase != "idle" and self.phase != phase_name:
             phase_time = time.time() - self.phase_start_time
             self.phase_history.append({
@@ -537,6 +590,13 @@ class LivePanel:
         self.phase = phase_name
         self.phase_start_time = time.time()
         self.status = "running"
+        await self._safe_update()
+
+    async def set_paused(self):
+        """Set panel to paused state — stops animation, keeps display"""
+        await self._stop_animation()
+        self.status = "paused"
+        self.phase = "paused"
         await self._safe_update()
 
     # ============================================================
@@ -555,7 +615,6 @@ class LivePanel:
                 }
 
     def register_task(self, task_id, name):
-        """Register a task with its name for display"""
         self.task_statuses[task_id] = {
             "status": "pending",
             "name": name[:35],
@@ -564,7 +623,8 @@ class LivePanel:
         }
 
     async def start_task(self, task_id, name=None):
-        """Mark a task as actively running"""
+        if self._destroyed:
+            return
         if name:
             self.task_statuses[task_id] = {
                 "status": "running",
@@ -588,7 +648,6 @@ class LivePanel:
         await self._safe_update()
 
     def complete_task(self, task_num, lines_count=0, seconds=0):
-        """Mark a task as completed with stats"""
         self.completed_tasks += 1
         self.total_lines_generated += lines_count
         self.files_created += 1
@@ -601,7 +660,6 @@ class LivePanel:
         self.log_done(f"Task {task_num} — {lines_count} lines, {seconds}s")
 
     def fail_task(self, task_num, reason=""):
-        """Mark a task as failed"""
         if task_num in self.task_statuses:
             self.task_statuses[task_num]["status"] = "error"
         self.log_error(f"Task {task_num} failed{': ' + reason if reason else ''}")
@@ -611,13 +669,11 @@ class LivePanel:
     # ============================================================
 
     async def add_sub_step(self, name):
-        """Add a sub-step to the current task"""
         self._sub_steps.append({"name": name, "done": False})
         self._current_sub_step = name
         await self._safe_update()
 
     async def complete_sub_step(self, name=None):
-        """Mark a sub-step as done"""
         target = name or self._current_sub_step
         for step in self._sub_steps:
             if step["name"] == target:
@@ -654,7 +710,6 @@ class LivePanel:
         self.log_lines.append(f"  {timestamp}  ℹ {text}")
 
     def log_stat(self, label, value):
-        """Log a key-value stat"""
         timestamp = datetime.now().strftime("%H:%M:%S")
         self.log_lines.append(f"  {timestamp}  ▸ {label}: {value}")
 
@@ -669,6 +724,8 @@ class LivePanel:
     # ============================================================
 
     async def start_step(self, text):
+        if self._destroyed:
+            return
         if self._active_step:
             await self._stop_animation()
         self._start_animation(text)
@@ -683,10 +740,11 @@ class LivePanel:
         await self._safe_update()
 
     # ============================================================
-    # FINISH / FAIL
+    # FINISH / FAIL (FIXED - proper cleanup)
     # ============================================================
 
     async def finish(self, summary_text=None):
+        """Finish panel — stops all animation cleanly"""
         await self._stop_animation()
         self.status = "complete"
         self.phase = "complete"
@@ -695,9 +753,9 @@ class LivePanel:
 
         if summary_text:
             self.log("")
-            self.log(f"{'═' * 40}")
+            self.log(f"{'═' * 38}")
             self.log(summary_text)
-            self.log(f"{'═' * 40}")
+            self.log(f"{'═' * 38}")
 
         stats = []
         if self.files_created > 0:
@@ -713,7 +771,25 @@ class LivePanel:
         if stats:
             self.log(f"  Final: {' · '.join(stats)}")
 
+        # Force one final update
+        self._last_edit_time = 0  # Reset rate limit for final update
         await self._safe_update()
+        self._destroyed = True
+
+    async def finish_paused(self, summary_text=None):
+        """Finish panel in paused state — for present_task approval flow"""
+        await self._stop_animation()
+        self.status = "paused"
+        self.phase = "waiting"
+
+        if summary_text:
+            self.log("")
+            self.log(summary_text)
+
+        # Force final update
+        self._last_edit_time = 0
+        await self._safe_update()
+        self._destroyed = True
 
     async def fail(self, error_text=None):
         await self._stop_animation()
@@ -721,7 +797,9 @@ class LivePanel:
         self.phase = "error"
         if error_text:
             self.log_error(error_text)
+        self._last_edit_time = 0
         await self._safe_update()
+        self._destroyed = True
 
 
 # ============================================================
@@ -729,41 +807,28 @@ class LivePanel:
 # ============================================================
 
 class CodeFileSender:
-    """
-    Sends code as .lua / .py / .js file attachments.
-    """
-
     EXTENSIONS = {
-        "lua": ".lua",
-        "luau": ".lua",
-        "python": ".py",
-        "py": ".py",
-        "javascript": ".js",
-        "js": ".js",
-        "typescript": ".ts",
-        "ts": ".ts",
-        "json": ".json",
-        "txt": ".txt",
+        "lua": ".lua", "luau": ".lua",
+        "python": ".py", "py": ".py",
+        "javascript": ".js", "js": ".js",
+        "typescript": ".ts", "ts": ".ts",
+        "json": ".json", "txt": ".txt",
     }
 
     def detect_language(self, filename):
         ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
         lang_map = {
             "lua": "lua", "luau": "lua",
-            "py": "python",
-            "js": "javascript",
-            "ts": "typescript",
-            "json": "json",
+            "py": "python", "js": "javascript",
+            "ts": "typescript", "json": "json",
         }
         return lang_map.get(ext, "lua")
 
     def make_file(self, filename, code):
-        """Create a discord.File from code string"""
         buffer = io.BytesIO(code.encode("utf-8"))
         return discord.File(buffer, filename=filename)
 
     def make_files(self, files_dict):
-        """Create multiple discord.File objects"""
         result = []
         for filename, code in files_dict.items():
             if code and code.strip():
@@ -771,7 +836,6 @@ class CodeFileSender:
         return result
 
     async def send_files_to_thread(self, thread, files_dict, file_tree=None):
-        """Send all files as attachments in a thread."""
         if file_tree:
             await thread.send(f"```\n{file_tree}\n```")
             await asyncio.sleep(0.3)
@@ -787,10 +851,8 @@ class CodeFileSender:
             for filename, code in batch:
                 if not code or not code.strip():
                     continue
-
                 buffer = io.BytesIO(code.encode("utf-8"))
                 files.append(discord.File(buffer, filename=filename))
-
                 line_count = len(code.strip().split("\n"))
                 descriptions.append(f"**{filename}** — {line_count} lines")
 
@@ -800,20 +862,17 @@ class CodeFileSender:
                 await asyncio.sleep(0.5)
 
     async def send_single_file(self, channel, filename, code, description=None):
-        """Send a single code file as attachment"""
         if not code or not code.strip():
             return
-
         buffer = io.BytesIO(code.encode("utf-8"))
         file = discord.File(buffer, filename=filename)
         line_count = len(code.strip().split("\n"))
-
         content = description or f"**{filename}** — {line_count} lines"
         await channel.send(content=content, file=file)
 
 
 # ============================================================
-# AGENT MODE
+# AGENT MODE (FIXED + UPGRADED)
 # ============================================================
 
 class AgentMode:
@@ -876,12 +935,12 @@ class AgentMode:
         try:
             from config import AI_MODEL
             messages = [{"role": "user", "content": prompt}]
-            
+
             response = await asyncio.wait_for(
                 asyncio.to_thread(
                     anthropic_client.messages.create,
                     model=AI_MODEL,
-                    max_tokens=8192,
+                    max_tokens=16384,
                     messages=messages,
                     temperature=0.7
                 ),
@@ -912,19 +971,19 @@ class AgentMode:
         # Settings
         if content_lower == "creative mode on":
             session["creative"] = True
-            await message.reply("Creative mode is now **on**.")
+            await message.reply("✅ Creative mode is now **on**.")
             return
         if content_lower == "creative mode off":
             session["creative"] = False
-            await message.reply("Creative mode is now **off**.")
+            await message.reply("✅ Creative mode is now **off**.")
             return
         if content_lower in ("enable present task", "present task on"):
             session["present_task"] = True
-            await message.reply("Task approval is now **on**.")
+            await message.reply("✅ Task approval is now **on**. Plans will be shown before execution.")
             return
         if content_lower in ("disable present task", "present task off"):
             session["present_task"] = False
-            await message.reply("Task approval is now **off**.")
+            await message.reply("✅ Task approval is now **off**. Plans execute immediately.")
             return
 
         # Commands
@@ -945,7 +1004,7 @@ class AgentMode:
         elif state == "waiting_approval":
             return await self._handle_approval(message, session)
         elif state == "executing":
-            await message.reply("Working on your previous request. Please wait.")
+            await message.reply("⏳ Working on your previous request. Please wait.")
             return
         elif state == "follow_up":
             return await self._handle_followup(message, session)
@@ -953,7 +1012,7 @@ class AgentMode:
             return await self._handle_code_review_input(message, session)
 
     # ========================================================
-    # PIPELINE - START
+    # PIPELINE - START (FIXED: panel lifecycle)
     # ========================================================
 
     async def _start_pipeline(self, message, session):
@@ -964,8 +1023,8 @@ class AgentMode:
         channel = message.channel
         mode_label = "Super Agent" if is_super else "Agent"
 
-        # Create live panel
-        panel = LivePanel(channel, title=f"{mode_label} — Processing")
+        # Create live panel for analysis + planning phase
+        panel = LivePanel(channel, title=f"{mode_label} — Analyzing")
         await panel.send()
 
         # Phase 1: Analysis
@@ -973,7 +1032,12 @@ class AgentMode:
         await panel.start_step("Analyzing request")
 
         memory_context = memory.get_context_string()
-        channel_context = await self.reader.get_context(channel, before=message)
+
+        # Safe channel context read
+        try:
+            channel_context = await self.reader.get_context(channel, before=message)
+        except Exception:
+            channel_context = "[Could not read channel history]"
 
         template_matches = self.templates.search(user_input)
         template_context = ""
@@ -1033,71 +1097,76 @@ class AgentMode:
             panel.log_stat(f"Task {t['id']}", f"{t['name']} (~{t.get('estimated_lines', '?')} lines)")
         await panel.update()
 
-        # Present task approval?
+        # ==========================================
+        # PRESENT TASK APPROVAL (FIXED)
+        # ==========================================
         if session.get("present_task", False):
-                session["state"] = "waiting_approval"
+            session["state"] = "waiting_approval"
 
-                # Difficulty badge
-                diff = plan.get("difficulty", "Medium")
-                diff_icons = {"Easy": "🟢", "Medium": "🟡", "Hard": "🟠", "Complex": "🔴"}
-                diff_icon = diff_icons.get(diff, "⚪")
+            # FINISH the planning panel CLEANLY before showing approval embed
+            await panel.finish_paused("Plan generated — awaiting approval")
 
-                total_est_lines = sum(t.get("estimated_lines", 0) for t in plan["tasks"])
+            # Difficulty badge
+            diff = plan.get("difficulty", "Medium")
+            diff_icons = {"Easy": "🟢", "Medium": "🟡", "Hard": "🟠", "Complex": "🔴"}
+            diff_icon = diff_icons.get(diff, "⚪")
 
-                embed = discord.Embed(
-                    title="📋 Task Plan — Awaiting Approval",
-                    color=0x5865F2
-                )
+            total_est_lines = sum(t.get("estimated_lines", 0) for t in plan["tasks"])
 
-                # Header info
-                header = (
-                    f"{diff_icon} **Difficulty:** {diff}\n"
-                    f"📁 **Tasks:** {len(plan['tasks'])}\n"
-                    f"📝 **Est. Lines:** ~{total_est_lines}\n"
-                    f"💬 **Request:** {plan.get('original_request', '')[:150]}"
-                )
-                embed.description = header
+            embed = discord.Embed(
+                title="📋 Task Plan — Awaiting Approval",
+                color=0x5865F2
+            )
 
-                # Each task as a field
-                for task in plan["tasks"]:
-                    lines_est = task.get("estimated_lines", "?")
-                    task_header = f"📄 ~{lines_est} lines"
+            # Header info
+            header = (
+                f"{diff_icon} **Difficulty:** {diff}\n"
+                f"📁 **Tasks:** {len(plan['tasks'])}\n"
+                f"📝 **Est. Lines:** ~{total_est_lines}\n"
+                f"💬 **Request:** {plan.get('original_request', '')[:150]}"
+            )
+            embed.description = header
 
-                    # Wrap description nicely
-                    desc = task.get("description", "No description")
-                    if len(desc) > 200:
-                        desc = desc[:197] + "..."
+            # Each task as a field
+            for task in plan["tasks"]:
+                lines_est = task.get("estimated_lines", "?")
+                task_header = f"📄 ~{lines_est} lines"
 
-                    embed.add_field(
-                        name=f"`{task['id']}` {task['name']}",
-                        value=f"{task_header}\n```\n{desc}\n```",
-                        inline=False
-                    )
+                desc = task.get("description", "No description")
+                if len(desc) > 200:
+                    desc = desc[:197] + "..."
 
-                # Controls footer
                 embed.add_field(
-                    name="─────────────────────────────",
-                    value=(
-                        "✅ `approve` — Start building\n"
-                        "✏️ `edit <num> <desc>` — Change a task\n"
-                        "➕ `add <desc>` — Add a task\n"
-                        "🗑️ `remove <num>` — Remove a task\n"
-                        "❌ `cancel` — Cancel plan"
-                    ),
+                    name=f"`{task['id']}` {task['name']}",
+                    value=f"{task_header}\n```\n{desc}\n```",
                     inline=False
                 )
 
-                embed.set_footer(text=f"Plan generated in {round(time.time() - panel.start_time, 1)}s")
+            # Controls
+            embed.add_field(
+                name="━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+                value=(
+                    "✅ `approve` — Start building\n"
+                    "✏️ `edit <num> <desc>` — Change a task\n"
+                    "➕ `add <desc>` — Add a task\n"
+                    "🗑️ `remove <num>` — Remove a task\n"
+                    "❌ `cancel` — Cancel plan"
+                ),
+                inline=False
+            )
 
-                await panel.finish("Waiting for approval")
-                await channel.send(embed=embed)
-                return
+            plan_time = round(time.time() - panel.start_time, 1)
+            embed.set_footer(text=f"Plan generated in {plan_time}s │ {panel.total_api_calls} API calls")
 
+            await channel.send(embed=embed)
+            return
+
+        # No approval needed — execute immediately
         session["state"] = "executing"
         await self._execute_pipeline(message, session, panel)
 
     # ========================================================
-    # PIPELINE - EXECUTE
+    # PIPELINE - EXECUTE (FIXED: always creates fresh panel)
     # ========================================================
 
     async def _execute_pipeline(self, message, session, panel=None):
@@ -1114,28 +1183,28 @@ class AgentMode:
         if plan.get("template_used"):
             template_code = self.templates.get_template_for_prompt(plan["template_used"])
 
-        if panel is None:
-            panel = LivePanel(channel, title=f"{mode_label} — Executing")
+        # ALWAYS create a fresh panel for execution
+        # This fixes the timeout issue when coming from approval
+        if panel is None or panel._destroyed:
+            panel = LivePanel(channel, title=f"{mode_label} — Building")
             await panel.send()
+        else:
+            # Reuse existing panel but update title
+            panel.title = f"{mode_label} — Building"
 
         # Register all tasks
         panel.total_tasks = len(tasks)
-        panel.title = f"{mode_label} — Building"
         for task in tasks:
             panel.register_task(task["id"], task["name"])
 
         await panel.set_phase("building")
         await panel.start_step("Initializing build pipeline")
-        await asyncio.sleep(0.6)
+        await asyncio.sleep(0.5)
         await panel.complete_step("Build pipeline ready")
 
         setup_script = None
         test_guide = None
 
-        # Pipeline timeout
-        pipeline_start = time.time()
-        max_pipeline_time = len(tasks) * 150
-        
         for task_idx, task in enumerate(tasks):
             task_start = time.time()
             task_num = task["id"]
@@ -1144,31 +1213,30 @@ class AgentMode:
 
             try:
                 # ---- WRITING CODE ----
-                await panel.start_step(f"Task {task_num}/{len(tasks)}: {task['name']} — Writing code")
+                await panel.start_step(f"Task {task_num}/{len(tasks)}: {task['name']}")
 
                 task_prompt = self._build_task_prompt(plan, tasks, task, complexity, template_code)
                 code_result = await self._call_ai(task_prompt)
                 panel.increment_api_calls()
 
-                # Check if AI returned an error
                 if code_result.startswith("ERROR:"):
-                    panel.fail_task(task_num, code_result)
-                    await panel.complete_step(f"Task {task_num} — Failed: {code_result[:50]}")
+                    panel.fail_task(task_num, code_result[:80])
+                    await panel.complete_step(f"Task {task_num} — Failed")
                     continue
 
                 await panel.complete_step(f"Task {task_num} — Code generated")
 
                 if is_super:
                     # ===== SUPER AGENT PIPELINE =====
-                    await panel.set_phase("reviewing")
 
                     # SELF REVIEW
+                    await panel.set_phase("reviewing")
                     await panel.add_sub_step("Self Review")
                     await panel.start_step(f"Task {task_num} — Self-review")
 
                     review_prompt = (
                         "Review this Luau code for bugs, errors, and issues:\n\n"
-                        + code_result[:3000] + "\n\n"
+                        + code_result[:4000] + "\n\n"
                         "If there are bugs, fix them and return the COMPLETE fixed code.\n"
                         "If no bugs, return the code as-is.\n"
                         "Start with BUGS FOUND: X\nThen the complete code."
@@ -1180,11 +1248,11 @@ class AgentMode:
                         if "BUGS FOUND: 0" not in reviewed.upper():
                             code_result = reviewed
                             panel.increment_bugs_fixed()
-                            await panel.complete_step(f"Task {task_num} — Fixed issues")
+                            await panel.complete_step(f"Task {task_num} — Bugs fixed")
                         else:
-                            await panel.complete_step(f"Task {task_num} — Review passed")
+                            await panel.complete_step(f"Task {task_num} — Clean ✓")
                     else:
-                        await panel.complete_step(f"Task {task_num} — Review skipped (timeout)")
+                        await panel.complete_step(f"Task {task_num} — Review skipped")
                     await panel.complete_sub_step("Self Review")
 
                     # OPTIMIZE
@@ -1198,7 +1266,7 @@ class AgentMode:
                         "- Optimize performance\n"
                         "- Add input validation\n"
                         "- Improve structure\n\n"
-                        + code_result[:3000] + "\n\n"
+                        + code_result[:4000] + "\n\n"
                         "Return COMPLETE upgraded code. Start with FILENAME:"
                     )
                     upgraded = await self._call_ai(upgrade_prompt)
@@ -1208,16 +1276,16 @@ class AgentMode:
                         code_result = upgraded
                         await panel.complete_step(f"Task {task_num} — Optimized")
                     else:
-                        await panel.complete_step(f"Task {task_num} — Optimize skipped (timeout)")
+                        await panel.complete_step(f"Task {task_num} — Optimize skipped")
                     await panel.complete_sub_step("Optimize")
 
-                    # VERIFY UPGRADES
+                    # VERIFY
                     await panel.add_sub_step("Verify")
-                    await panel.start_step(f"Task {task_num} — Verifying upgrades")
+                    await panel.start_step(f"Task {task_num} — Verifying")
 
                     review2_prompt = (
                         "Review this upgraded code for any new bugs:\n\n"
-                        + code_result[:3000] + "\n\n"
+                        + code_result[:4000] + "\n\n"
                         "Fix any issues. Return COMPLETE fixed code."
                     )
                     reviewed2 = await self._call_ai(review2_prompt)
@@ -1225,20 +1293,20 @@ class AgentMode:
 
                     if not reviewed2.startswith("ERROR:"):
                         code_result = reviewed2
-                        await panel.complete_step(f"Task {task_num} — Upgrades verified")
+                        await panel.complete_step(f"Task {task_num} — Verified")
                     else:
-                        await panel.complete_step(f"Task {task_num} — Verify skipped (timeout)")
+                        await panel.complete_step(f"Task {task_num} — Verify skipped")
                     await panel.complete_sub_step("Verify")
 
                     # ALIGNMENT CHECK
-                    await panel.add_sub_step("Align Check")
-                    await panel.start_step(f"Task {task_num} — Checking alignment")
+                    await panel.add_sub_step("Align")
+                    await panel.start_step(f"Task {task_num} — Alignment check")
 
                     reread_prompt = (
                         "Compare this code against the original request.\n\n"
                         "USER WANTED: " + plan.get("original_request", "") + "\n"
                         "TASK: " + task["name"] + " - " + task["description"] + "\n\n"
-                        "CODE:\n" + code_result[:3000] + "\n\n"
+                        "CODE:\n" + code_result[:4000] + "\n\n"
                         "Does this fulfill what the user asked?\n"
                         "Respond: ALIGNED: YES/NO\nMISSING: [list or 'nothing']"
                     )
@@ -1252,14 +1320,14 @@ class AgentMode:
                         )
 
                         if needs_more:
-                            await panel.complete_step(f"Task {task_num} — Misalignment detected")
+                            await panel.complete_step(f"Task {task_num} — Misaligned")
 
-                            await panel.add_sub_step("Fix Alignment")
+                            await panel.add_sub_step("Fix")
                             await panel.start_step(f"Task {task_num} — Fixing alignment")
 
                             fix_prompt = (
-                                "Alignment report:\n" + alignment[:1000] + "\n\n"
-                                "Current code:\n" + code_result[:3000] + "\n\n"
+                                "Alignment report:\n" + alignment[:1500] + "\n\n"
+                                "Current code:\n" + code_result[:4000] + "\n\n"
                                 "Fix missing parts. Return COMPLETE code. Start with FILENAME:"
                             )
                             fixed = await self._call_ai(fix_prompt)
@@ -1267,30 +1335,30 @@ class AgentMode:
 
                             if not fixed.startswith("ERROR:"):
                                 code_result = fixed
-                                await panel.complete_step(f"Task {task_num} — Alignment fixed")
+                                await panel.complete_step(f"Task {task_num} — Fixed")
                             else:
-                                await panel.complete_step(f"Task {task_num} — Fix skipped (timeout)")
-                            await panel.complete_sub_step("Fix Alignment")
+                                await panel.complete_step(f"Task {task_num} — Fix skipped")
+                            await panel.complete_sub_step("Fix")
 
                             # Final check
-                            await panel.add_sub_step("Final Check")
-                            await panel.start_step(f"Task {task_num} — Final verification")
+                            await panel.add_sub_step("Final")
+                            await panel.start_step(f"Task {task_num} — Final check")
 
-                            final_prompt = "Final review. Fix any bugs:\n\n" + code_result[:3000] + "\n\nReturn COMPLETE fixed code."
+                            final_prompt = "Final review. Fix any bugs:\n\n" + code_result[:4000] + "\n\nReturn COMPLETE fixed code."
                             final_result = await self._call_ai(final_prompt)
                             panel.increment_api_calls()
 
                             if not final_result.startswith("ERROR:"):
                                 code_result = final_result
-                                await panel.complete_step(f"Task {task_num} — Final check passed")
+                                await panel.complete_step(f"Task {task_num} — Final ✓")
                             else:
-                                await panel.complete_step(f"Task {task_num} — Final check skipped")
-                            await panel.complete_sub_step("Final Check")
+                                await panel.complete_step(f"Task {task_num} — Final skipped")
+                            await panel.complete_sub_step("Final")
                         else:
                             await panel.complete_step(f"Task {task_num} — Aligned ✓")
                     else:
-                        await panel.complete_step(f"Task {task_num} — Alignment skipped (timeout)")
-                    await panel.complete_sub_step("Align Check")
+                        await panel.complete_step(f"Task {task_num} — Align skipped")
+                    await panel.complete_sub_step("Align")
 
                     await panel.set_phase("building")
 
@@ -1318,8 +1386,8 @@ class AgentMode:
 
             except Exception as task_error:
                 print(f"[Agent] Task {task_num} error: {task_error}")
-                panel.fail_task(task_num, str(task_error)[:100])
-                await panel.complete_step(f"Task {task_num} — Error: {str(task_error)[:50]}")
+                panel.fail_task(task_num, str(task_error)[:80])
+                await panel.complete_step(f"Task {task_num} — Error")
 
             memory.add_message("agent", f"Done task {task['id']}: {task['name']}")
             await asyncio.sleep(0.3)
@@ -1330,52 +1398,64 @@ class AgentMode:
 
             # Cross-file connections
             await panel.set_phase("connecting")
-            await panel.start_step("Checking cross-file connections")
-            conn_result = await self.connector.check_connections(all_files)
-            panel.increment_api_calls()
-            if not conn_result.get("connected", True) and conn_result.get("fixed_files"):
-                fixes = 0
-                for fname, fcode in conn_result["fixed_files"].items():
-                    if fname in all_files:
-                        all_files[fname] = fcode
-                        fixes += 1
-                await panel.complete_step(f"Fixed {fixes} connection issues")
-            else:
-                await panel.complete_step("All files connected properly")
+            await panel.start_step("Cross-file connections")
+            try:
+                conn_result = await self.connector.check_connections(all_files)
+                panel.increment_api_calls()
+                if not conn_result.get("connected", True) and conn_result.get("fixed_files"):
+                    fixes = 0
+                    for fname, fcode in conn_result["fixed_files"].items():
+                        if fname in all_files:
+                            all_files[fname] = fcode
+                            fixes += 1
+                    await panel.complete_step(f"Fixed {fixes} connections")
+                else:
+                    await panel.complete_step("All connected ✓")
+            except Exception as e:
+                await panel.complete_step(f"Connection check skipped: {str(e)[:30]}")
 
             # Vulnerability scan
             await panel.set_phase("scanning")
-            await panel.start_step("Scanning for vulnerabilities")
-            exploit_result = await self.exploit_scanner.scan(all_files)
-            panel.increment_api_calls()
-            if not exploit_result.get("safe", True) and exploit_result.get("patched_files"):
-                patches = 0
-                for fname, fcode in exploit_result["patched_files"].items():
-                    if fname in all_files:
-                        all_files[fname] = fcode
-                        patches += 1
-                vulns = len(exploit_result.get("vulnerabilities", []))
-                panel.increment_bugs_fixed(vulns)
-                await panel.complete_step(f"Patched {vulns} vulnerabilities")
-            else:
-                await panel.complete_step("No vulnerabilities detected")
+            await panel.start_step("Security scan")
+            try:
+                exploit_result = await self.exploit_scanner.scan(all_files)
+                panel.increment_api_calls()
+                if not exploit_result.get("safe", True) and exploit_result.get("patched_files"):
+                    patches = 0
+                    for fname, fcode in exploit_result["patched_files"].items():
+                        if fname in all_files:
+                            all_files[fname] = fcode
+                            patches += 1
+                    vulns = len(exploit_result.get("vulnerabilities", []))
+                    panel.increment_bugs_fixed(vulns)
+                    await panel.complete_step(f"Patched {vulns} vulnerabilities")
+                else:
+                    await panel.complete_step("No vulnerabilities ✓")
+            except Exception as e:
+                await panel.complete_step(f"Scan skipped: {str(e)[:30]}")
 
             # Setup script
             await panel.set_phase("finalizing")
-            await panel.start_step("Generating setup script")
-            setup_script = await self.setup_gen.generate(all_files)
-            panel.increment_api_calls()
-            await panel.complete_step("Setup script ready")
+            await panel.start_step("Setup script")
+            try:
+                setup_script = await self.setup_gen.generate(all_files)
+                panel.increment_api_calls()
+                await panel.complete_step("Setup script ready")
+            except Exception as e:
+                await panel.complete_step(f"Setup skipped: {str(e)[:30]}")
+                setup_script = None
 
             # Test guide
-            await panel.start_step("Generating test guide")
-            test_guide = await self.test_gen.generate(plan, all_files)
-            panel.increment_api_calls()
-            await panel.complete_step("Test guide ready")
+            await panel.start_step("Test guide")
+            try:
+                test_guide = await self.test_gen.generate(plan, all_files)
+                panel.increment_api_calls()
+                await panel.complete_step("Test guide ready")
+            except Exception as e:
+                await panel.complete_step(f"Tests skipped: {str(e)[:30]}")
+                test_guide = None
 
         # ========== PRESENT RESULTS ==========
-        await panel.start_step("Preparing output")
-
         total_lines = sum(len(code.split("\n")) for code in all_files.values())
         total_time = round(time.time() - panel.start_time, 1)
 
@@ -1383,7 +1463,7 @@ class AgentMode:
 
         # Create output thread
         ts = datetime.now().strftime("%H:%M")
-        thread_name = f"{mode_label} | {message.author.display_name[:15]} | {ts}"
+        thread_name = f"{mode_label} │ {message.author.display_name[:12]} │ {ts}"
 
         try:
             output_thread = await panel.message.create_thread(
@@ -1393,31 +1473,42 @@ class AgentMode:
         except discord.HTTPException:
             output_thread = channel
 
-        # Summary embed
+        # Summary embed (UPGRADED)
         summary_embed = discord.Embed(
-            title="Build Complete",
+            title="✅ Build Complete",
             color=0x57F287
         )
 
-        summary_lines = []
-        summary_lines.append(f"**Request:** {plan.get('original_request', '')[:200]}")
-        summary_lines.append(f"**Difficulty:** {plan.get('difficulty', '?')}")
-        summary_lines.append(f"**Files:** {len(all_files)} · **Lines:** {total_lines} · **Time:** {total_time}s")
-        summary_lines.append(f"**Mode:** {mode_label}")
-        if panel.total_api_calls > 0:
-            summary_lines.append(f"**API Calls:** {panel.total_api_calls}")
-        if panel.bugs_fixed > 0:
-            summary_lines.append(f"**Bugs Fixed:** {panel.bugs_fixed}")
-        if plan.get("template_used"):
-            summary_lines.append(f"**Template:** {plan['template_used']}")
-        summary_embed.description = "\n".join(summary_lines)
+        # Build summary description
+        summary_parts = []
+        summary_parts.append(f"```\n📋 {plan.get('original_request', '')[:120]}\n```")
+        summary_parts.append("")
 
+        diff = plan.get('difficulty', '?')
+        diff_icons = {"Easy": "🟢", "Medium": "🟡", "Hard": "🟠", "Complex": "🔴"}
+        diff_icon = diff_icons.get(diff, "⚪")
+
+        summary_parts.append(f"{diff_icon} **Difficulty:** {diff}")
+        summary_parts.append(f"📁 **Files:** {len(all_files)} · **Lines:** {total_lines}")
+        summary_parts.append(f"⏱️ **Time:** {total_time}s · **Mode:** {mode_label}")
+
+        if panel.total_api_calls > 0:
+            summary_parts.append(f"🔄 **API Calls:** {panel.total_api_calls}")
+        if panel.bugs_fixed > 0:
+            summary_parts.append(f"🐛 **Bugs Fixed:** {panel.bugs_fixed}")
+        if plan.get("template_used"):
+            summary_parts.append(f"📋 **Template:** {plan['template_used']}")
+
+        summary_embed.description = "\n".join(summary_parts)
+
+        # Task list
         task_list = ""
         for task in tasks:
             fname = task.get("filename", "")
             lc = len(all_files.get(fname, "").split("\n")) if fname in all_files else 0
-            task_list += f"`{task['id']}` {task['name']} — {lc} lines\n"
-        summary_embed.add_field(name="Tasks", value=task_list, inline=False)
+            status = "✅" if task.get("completed") else "❌"
+            task_list += f"{status} `{task['id']}` {task['name']} — {lc} lines\n"
+        summary_embed.add_field(name="📋 Tasks", value=task_list, inline=False)
 
         await output_thread.send(embed=summary_embed)
 
@@ -1446,14 +1537,17 @@ class AgentMode:
             await self.file_sender.send_files_to_thread(output_thread, all_files)
 
             if is_super:
-                await output_thread.send("---\n**Code Breakdown**")
+                await output_thread.send("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n**📖 Code Breakdown**")
                 for fname, fcode in all_files.items():
-                    explanation = await self.explainer.explain(fname, fcode)
-                    exp_text = f"**{fname}**\n{explanation}"
-                    chunks = self.splitter.split_content(exp_text)
-                    for chunk in chunks:
-                        await output_thread.send(chunk)
-                        await asyncio.sleep(0.3)
+                    try:
+                        explanation = await self.explainer.explain(fname, fcode)
+                        exp_text = f"**{fname}**\n{explanation}"
+                        chunks = self.splitter.split_content(exp_text)
+                        for chunk in chunks:
+                            await output_thread.send(chunk)
+                            await asyncio.sleep(0.3)
+                    except Exception:
+                        await output_thread.send(f"**{fname}** — Could not generate explanation")
 
                 if setup_script and "ERROR" not in setup_script:
                     setup_code = self._extract_code_content(setup_script)
@@ -1462,12 +1556,12 @@ class AgentMode:
                             output_thread,
                             "AutoSetup.lua",
                             setup_code,
-                            "**Setup Script** — Run in Studio command bar"
+                            "**🔧 Setup Script** — Paste in Studio Command Bar"
                         )
                     await asyncio.sleep(0.3)
 
                 if test_guide and "ERROR" not in test_guide:
-                    await output_thread.send("---\n**Testing Guide**")
+                    await output_thread.send("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n**🧪 Testing Guide**")
                     chunks = self.splitter.split_content(test_guide)
                     for chunk in chunks:
                         await output_thread.send(chunk)
@@ -1480,7 +1574,18 @@ class AgentMode:
                     await output_thread.send(chunk)
                     await asyncio.sleep(0.3)
 
-        await output_thread.send("---\nProject saved. Send a message for follow-ups.")
+        # Footer message
+        footer_embed = discord.Embed(
+            description=(
+                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                "💾 **Project saved** — Send a follow-up message to modify or ask questions\n"
+                "🔄 Type a new request to start another build\n"
+                "📋 `my projects` to see saved work"
+            ),
+            color=0x2F3136
+        )
+        await output_thread.send(embed=footer_embed)
+
         self.project_memory.save_project(message.author.id, plan, [])
 
         session["state"] = "follow_up"
@@ -1521,20 +1626,32 @@ class AgentMode:
         return prompt
 
     # ========================================================
-    # APPROVAL
+    # APPROVAL (FIXED: creates fresh panel on approve)
     # ========================================================
 
     async def _handle_approval(self, message, session):
         content = message.content.strip().lower()
         plan = session["current_plan"]
 
-        if content in ("approve", "yes", "go"):
+        if content in ("approve", "yes", "go", "ok", "start"):
             session["state"] = "executing"
-            await self._execute_pipeline(message, session)
-        elif content in ("cancel", "no"):
+
+            # Send confirmation
+            confirm_embed = discord.Embed(
+                description="✅ **Plan approved!** Starting build...",
+                color=0x57F287
+            )
+            await message.reply(embed=confirm_embed)
+
+            # Create a FRESH panel for execution — this is the key fix!
+            # The old planning panel is already destroyed/finished
+            await self._execute_pipeline(message, session, panel=None)
+
+        elif content in ("cancel", "no", "stop"):
             session["state"] = "idle"
             session["current_plan"] = None
-            await message.reply("Cancelled.")
+            await message.reply("❌ Plan cancelled. Send a new request anytime.")
+
         elif content.startswith("edit "):
             parts = content[5:].strip().split(" ", 1)
             if len(parts) == 2:
@@ -1543,30 +1660,71 @@ class AgentMode:
                     for t in plan["tasks"]:
                         if t["id"] == num:
                             t["description"] = parts[1]
-                            await message.reply(f"Task {num} updated. Type `approve` when ready.")
+                            await message.reply(f"✏️ Task {num} updated.\n`approve` when ready · `cancel` to abort")
                             return
+                    await message.reply(f"❌ Task {num} not found.")
                 except ValueError:
-                    pass
-            await message.reply("Usage: `edit 2 new description`")
+                    await message.reply("Usage: `edit 2 new description here`")
+            else:
+                await message.reply("Usage: `edit 2 new description here`")
+
         elif content.startswith("add "):
             desc = content[4:].strip()
+            if not desc:
+                await message.reply("Usage: `add description of new task`")
+                return
             new_id = len(plan["tasks"]) + 1
             plan["tasks"].append({
                 "id": new_id, "name": f"Task {new_id}",
                 "description": desc, "completed": False, "estimated_lines": 50
             })
-            await message.reply(f"Task {new_id} added. Type `approve` when ready.")
+            await message.reply(f"➕ Task {new_id} added.\n`approve` when ready · `cancel` to abort")
+
         elif content.startswith("remove "):
             try:
                 num = int(content[7:].strip())
+                original_len = len(plan["tasks"])
                 plan["tasks"] = [t for t in plan["tasks"] if t["id"] != num]
-                for i, t in enumerate(plan["tasks"]):
-                    t["id"] = i + 1
-                await message.reply("Task removed. Type `approve` when ready.")
+                if len(plan["tasks"]) < original_len:
+                    for i, t in enumerate(plan["tasks"]):
+                        t["id"] = i + 1
+                    await message.reply(f"🗑️ Task {num} removed.\n`approve` when ready · `cancel` to abort")
+                else:
+                    await message.reply(f"❌ Task {num} not found.")
             except ValueError:
                 await message.reply("Usage: `remove 2`")
+
+        elif content == "show" or content == "plan":
+            # Re-show the plan
+            diff = plan.get("difficulty", "Medium")
+            diff_icons = {"Easy": "🟢", "Medium": "🟡", "Hard": "🟠", "Complex": "🔴"}
+            diff_icon = diff_icons.get(diff, "⚪")
+
+            embed = discord.Embed(
+                title="📋 Current Plan",
+                description=f"{diff_icon} **{diff}** · {len(plan['tasks'])} tasks",
+                color=0x5865F2
+            )
+            for task in plan["tasks"]:
+                desc = task.get("description", "No description")[:150]
+                embed.add_field(
+                    name=f"`{task['id']}` {task['name']} (~{task.get('estimated_lines', '?')} lines)",
+                    value=f"```\n{desc}\n```",
+                    inline=False
+                )
+            embed.set_footer(text="approve · edit · add · remove · cancel")
+            await message.reply(embed=embed)
+
         else:
-            await message.reply("`approve` · `edit <num> <desc>` · `add <desc>` · `remove <num>` · `cancel`")
+            await message.reply(
+                "**Plan Commands:**\n"
+                "`approve` — Start building\n"
+                "`edit <num> <desc>` — Change a task\n"
+                "`add <desc>` — Add a new task\n"
+                "`remove <num>` — Remove a task\n"
+                "`show` — Re-show the plan\n"
+                "`cancel` — Cancel everything"
+            )
 
     # ========================================================
     # FOLLOW UP
@@ -1601,12 +1759,13 @@ class AgentMode:
             await message.reply("No saved projects. Complete an agent task to save one.")
             return
 
-        embed = discord.Embed(title="Saved Projects", color=0x5865F2)
+        embed = discord.Embed(title="📁 Saved Projects", color=0x5865F2)
         for i, p in enumerate(projects):
             task_count = len(p.get("tasks", []))
+            diff = p.get('difficulty', '?')
             embed.add_field(
                 name=f"`{i + 1}` {p.get('original_request', '?')[:60]}",
-                value=f"{p.get('difficulty', '?')} · {task_count} tasks",
+                value=f"{diff} · {task_count} tasks",
                 inline=False
             )
         embed.set_footer(text="load project <number>  ·  load project last")
@@ -1635,7 +1794,10 @@ class AgentMode:
             session["current_plan"] = plan
             session["state"] = "follow_up"
             session["memory"].save_plan(plan)
-            await message.reply(f"**Project loaded:** {project.get('original_request', '')[:200]}\n\nAsk follow-ups or start a new request.")
+            await message.reply(
+                f"✅ **Project loaded:** {project.get('original_request', '')[:200]}\n\n"
+                f"Send follow-ups or type a new request to start building."
+            )
         except (ValueError, IndexError):
             await message.reply("Usage: `load project 1` or `load project last`")
 
@@ -1645,11 +1807,14 @@ class AgentMode:
 
     async def _show_templates(self, message):
         templates = self.templates.get_all_names()
-        embed = discord.Embed(title="Templates", color=0x5865F2)
+        if not templates:
+            await message.reply("No templates available.")
+            return
+        embed = discord.Embed(title="📋 Templates", color=0x5865F2)
         for t in templates:
             embed.add_field(
                 name=f"`{t['key']}` {t['name']}",
-                value=t["description"],
+                value=t.get("description", "No description"),
                 inline=False
             )
         embed.set_footer(text="use template <name>")
@@ -1676,7 +1841,7 @@ class AgentMode:
 
     async def _start_code_review(self, message, session):
         session["state"] = "waiting_code_review"
-        await message.reply("Paste your code and I'll review it.")
+        await message.reply("📝 Paste your code and I'll review it. (Use a code block for best results)")
 
     async def _handle_code_review_input(self, message, session):
         code = message.content.strip()
@@ -1689,13 +1854,13 @@ class AgentMode:
             language = "lua"
 
         if len(code) < 10:
-            await message.reply("Paste actual code to review.")
+            await message.reply("Please paste actual code to review. Use a code block: ` ```lua ... ``` `")
             return
 
         channel = message.channel
 
         # Live panel for review
-        panel = LivePanel(channel, title="Code Review")
+        panel = LivePanel(channel, title="🔍 Code Review")
         await panel.send()
 
         await panel.set_phase("analyzing")
@@ -1705,8 +1870,14 @@ class AgentMode:
 
         await panel.set_phase("reviewing")
         await panel.start_step("Checking for bugs and vulnerabilities")
-        review_data = await self.code_reviewer.review_code(code, language)
-        panel.increment_api_calls()
+
+        try:
+            review_data = await self.code_reviewer.review_code(code, language)
+            panel.increment_api_calls()
+        except Exception as e:
+            await panel.fail(f"Review failed: {str(e)[:60]}")
+            session["state"] = "idle"
+            return
 
         score = review_data.get("score", 0)
         grade = review_data.get("grade", "?")
@@ -1727,7 +1898,7 @@ class AgentMode:
             color = 0xED4245
 
         review_embed = discord.Embed(
-            title=f"Code Review — {score}/100 ({grade})",
+            title=f"📊 Code Review — {score}/100 ({grade})",
             color=color
         )
 
@@ -1742,18 +1913,18 @@ class AgentMode:
                 bug_text += f"**[{severity}]** {b.get('issue', '?')}\n"
                 fix = b.get("fix", "")
                 if fix:
-                    bug_text += f"Fix: {fix[:100]}\n\n"
-            review_embed.add_field(name=f"Bugs ({len(bugs)})", value=bug_text[:1024], inline=False)
+                    bug_text += f"  💡 {fix[:100]}\n\n"
+            review_embed.add_field(name=f"🐛 Bugs ({len(bugs)})", value=bug_text[:1024], inline=False)
         else:
-            review_embed.add_field(name="Bugs", value="None found", inline=False)
+            review_embed.add_field(name="🐛 Bugs", value="✅ None found!", inline=False)
 
         if perf:
-            perf_text = "\n".join([f"· {p.get('issue', '?')}" for p in perf[:3]])
-            review_embed.add_field(name=f"Performance ({len(perf)})", value=perf_text[:1024], inline=False)
+            perf_text = "\n".join([f"⚡ {p.get('issue', '?')}" for p in perf[:3]])
+            review_embed.add_field(name=f"⚡ Performance ({len(perf)})", value=perf_text[:1024], inline=False)
 
         if sec:
-            sec_text = "\n".join([f"· {s.get('issue', '?')}" for s in sec[:3]])
-            review_embed.add_field(name=f"Security ({len(sec)})", value=sec_text[:1024], inline=False)
+            sec_text = "\n".join([f"🛡️ {s.get('issue', '?')}" for s in sec[:3]])
+            review_embed.add_field(name=f"🛡️ Security ({len(sec)})", value=sec_text[:1024], inline=False)
 
         await channel.send(embed=review_embed)
 
@@ -1764,7 +1935,7 @@ class AgentMode:
                 channel,
                 f"improved_code{ext}",
                 improved,
-                "**Improved version** — with fixes applied"
+                "**✨ Improved version** — with fixes applied"
             )
 
         session["state"] = "idle"

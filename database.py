@@ -102,7 +102,8 @@ class UserProfile:
             "custom_color": None,
             "auto_agent_switch": False,
             "temp_chat_cooldown": None,
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at":
+            datetime.utcnow().isoformat(),
             "last_quest": None,
             "last_daily": None,
             "daily_streak": 0,
@@ -132,7 +133,20 @@ class UserProfile:
                 "sabotage": 0,
                 "reroll": 0
             },
+            
+            "bughunt_wins": 0,
+            "bughunt_games": 0,
+            "bughunt_bugs_found": 0,
+            "bughunt_powerups": {
+                "hint": 0,
+                "time_freeze": 0,
+                "auto_find": 0,
+                "shield": 0,
+                "bug_bomb": 0,
+                "reveal": 0
+            },
         }
+            
         if db is not None:
             try:
                 await db["users"].insert_one(user)
@@ -925,3 +939,171 @@ class ActiveDuelData:
         specs.append(user_id)
         await ActiveDuelData.update_active_duel(duel_id, {"spectators": specs})
         return True
+
+# ===== BUG HUNT DATA =====
+BUGHUNT_FILE = os.path.join(DATA_DIR, "bughunt.json")
+VOUCH_FILE = os.path.join(DATA_DIR, "vouches.json")
+_memory_bughunt = load_json(BUGHUNT_FILE, {})
+_memory_vouches = load_json(VOUCH_FILE, {})
+
+
+class BugHuntData:
+
+    @staticmethod
+    async def create_lobby(lobby_id, host_id, host_name):
+        lobby = {
+            "_id": lobby_id,
+            "host_id": host_id,
+            "host_name": host_name,
+            "players": [{"id": host_id, "name": host_name}],
+            "max_players": 5,
+            "status": "waiting",
+            "channel_id": None,
+            "guild_id": None,
+            "created_at": datetime.utcnow().isoformat()
+        }
+        if db is not None:
+            try:
+                await db["bughunt"].insert_one(lobby)
+            except Exception:
+                pass
+        _memory_bughunt[lobby_id] = lobby
+        save_json(BUGHUNT_FILE, _memory_bughunt)
+        return lobby
+
+    @staticmethod
+    async def get_lobby(lobby_id):
+        if db is not None:
+            try:
+                return await db["bughunt"].find_one({"_id": lobby_id})
+            except Exception:
+                pass
+        return _memory_bughunt.get(lobby_id)
+
+    @staticmethod
+    async def update_lobby(lobby_id, updates):
+        if db is not None:
+            try:
+                await db["bughunt"].update_one({"_id": lobby_id}, {"$set": updates})
+            except Exception:
+                pass
+        if lobby_id in _memory_bughunt:
+            _memory_bughunt[lobby_id].update(updates)
+            save_json(BUGHUNT_FILE, _memory_bughunt)
+
+    @staticmethod
+    async def delete_lobby(lobby_id):
+        if db is not None:
+            try:
+                await db["bughunt"].delete_one({"_id": lobby_id})
+            except Exception:
+                pass
+        if lobby_id in _memory_bughunt:
+            del _memory_bughunt[lobby_id]
+            save_json(BUGHUNT_FILE, _memory_bughunt)
+
+    @staticmethod
+    async def join_lobby(lobby_id, user_id, user_name):
+        lobby = await BugHuntData.get_lobby(lobby_id)
+        if not lobby:
+            return False, "Lobby not found!"
+        if lobby.get("status") != "waiting":
+            return False, "Game already started!"
+        players = lobby.get("players", [])
+        if len(players) >= lobby.get("max_players", 5):
+            return False, "Lobby is full!"
+        for p in players:
+            if p["id"] == user_id:
+                return False, "Already in lobby!"
+        players.append({"id": user_id, "name": user_name})
+        await BugHuntData.update_lobby(lobby_id, {"players": players})
+        return True, "Joined!"
+
+    @staticmethod
+    async def leave_lobby(lobby_id, user_id):
+        lobby = await BugHuntData.get_lobby(lobby_id)
+        if not lobby:
+            return False
+        players = lobby.get("players", [])
+        players = [p for p in players if p["id"] != user_id]
+        await BugHuntData.update_lobby(lobby_id, {"players": players})
+        return True
+
+    @staticmethod
+    async def get_all_lobbies(guild_id=None):
+        lobbies = []
+        if db is not None:
+            try:
+                query = {"status": "waiting"}
+                if guild_id:
+                    query["guild_id"] = guild_id
+                lobbies = await db["bughunt"].find(query).to_list(50)
+                if lobbies:
+                    return lobbies
+            except Exception:
+                pass
+        for l in _memory_bughunt.values():
+            if l.get("status") == "waiting":
+                if guild_id and l.get("guild_id") != guild_id:
+                    continue
+                lobbies.append(l)
+        return lobbies
+
+
+class VouchData:
+
+    @staticmethod
+    async def can_vouch(voucher_id, target_id):
+        key = f"{voucher_id}_{target_id}"
+        if db is not None:
+            try:
+                record = await db["vouches"].find_one({"_id": key})
+                if record:
+                    last = record.get("last_vouch", "")
+                    if last:
+                        last_dt = datetime.fromisoformat(last)
+                        diff = (datetime.utcnow() - last_dt).total_seconds()
+                        if diff < 86400:
+                            remaining = int(86400 - diff)
+                            hours = remaining // 3600
+                            mins = (remaining % 3600) // 60
+                            return False, f"Wait **{hours}h {mins}m**"
+                return True, "OK"
+            except Exception:
+                pass
+
+        record = _memory_vouches.get(key, {})
+        last = record.get("last_vouch", "")
+        if last:
+            try:
+                last_dt = datetime.fromisoformat(last)
+                diff = (datetime.utcnow() - last_dt).total_seconds()
+                if diff < 86400:
+                    remaining = int(86400 - diff)
+                    hours = remaining // 3600
+                    mins = (remaining % 3600) // 60
+                    return False, f"Wait **{hours}h {mins}m**"
+            except Exception:
+                pass
+        return True, "OK"
+
+    @staticmethod
+    async def record_vouch(voucher_id, target_id):
+        key = f"{voucher_id}_{target_id}"
+        record = {
+            "_id": key,
+            "voucher_id": voucher_id,
+            "target_id": target_id,
+            "last_vouch": datetime.utcnow().isoformat()
+        }
+        if db is not None:
+            try:
+                await db["vouches"].update_one(
+                    {"_id": key},
+                    {"$set": record},
+                    upsert=True
+                )
+            except Exception:
+                pass
+        _memory_vouches[key] = record
+        save_json(VOUCH_FILE, _memory_vouches)
